@@ -32,6 +32,10 @@ export function setupDevPageTemplate(
   // HTML compiled into the module
   let compiledHTML: string | undefined;
 
+  // Any file can change the HTML (e.g. read by a `transformIndexHtml` hook): only page requests
+  // pay for the transform, once per change
+  let stale = true;
+
   const transformHTML = async (): Promise<string | undefined> => {
     if (!template) {
       return;
@@ -44,6 +48,8 @@ export function setupDevPageTemplate(
       );
     } catch (error) {
       nitro.logger.warn("Failed to transform HTML via Vite:", error);
+      // Transformed again by the next page request
+      stale = true;
       return html;
     }
   };
@@ -58,9 +64,6 @@ export function setupDevPageTemplate(
     return { sync: async () => {}, close: () => {} };
   }
 
-  // Any file can change the HTML (e.g. read by a `transformIndexHtml` hook): only page requests
-  // pay for the transform, once per change
-  let stale = true;
   server.watcher.add(template);
   server.watcher.on("all", () => {
     stale = true;
@@ -95,8 +98,10 @@ export function setupDevPageTemplate(
           return sync();
         })
         .catch((error) => {
-          // Retried by the next page request (meanwhile, the last compiled HTML is rendered)
+          // Retried by the next page request (meanwhile, the last compiled HTML is rendered),
+          // invalidating the module again even if the HTML is the same
           stale = true;
+          compiledHTML = undefined;
           nitro.logger.error("Failed to update the page template:", error);
         });
     }
@@ -175,7 +180,7 @@ function _pageRequest(nitro: Nitro, req: Request): "document" | "other" | undefi
   const dest = req.headers.get("sec-fetch-dest");
   return dest === "document" ||
     dest === "iframe" ||
-    (!dest && req.headers.get("accept")?.includes("text/html"))
+    (!dest && req.headers.get("accept")?.toLowerCase().includes("text/html"))
     ? "document"
     : "other";
 }
