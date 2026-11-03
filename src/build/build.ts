@@ -23,6 +23,10 @@ export async function build(nitro: Nitro) {
       const { rspackBuild } = await import("./rspack/build.ts");
       return rspackBuild(nitro);
     }
+    case "bun": {
+      const { bunBuild } = await import("./bun/build.ts");
+      return bunBuild(nitro);
+    }
     case "vite": {
       const { viteBuild } = await import("./vite/build.ts");
       return viteBuild(nitro);

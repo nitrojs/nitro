@@ -109,6 +109,6 @@ describe.skipIf(isWindows)("nitro:preset:cloudflare-pages", async () => {
 
   it("should export the correct functions", async () => {
     const entry = await fsp.readFile(resolve(ctx.outDir, "_worker.js", "index.js"), "utf8");
-    expect(entry).toMatch(/export \{.*myScheduled.*\}/);
+    expect(entry).toMatch(/export \{[^}]*myScheduled[^}]*\}/);
   });
 });

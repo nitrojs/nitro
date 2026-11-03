@@ -59,7 +59,8 @@ describe("nitro:preset:node-middleware", async () => {
     expect(buildInfo.serverEntry).toBe("server/index.mjs");
   });
 
-  it("names chunks by their modules", () => {
+  // Bun names chunks itself (`_chunks/[name]-[hash].mjs`)
+  it.skipIf(process.env.NITRO_BUILDER === "bun")("names chunks by their modules", () => {
     const serverDir = resolve(ctx.outDir, "server");
     for (const file of [
       "_routes/api/echo.mjs",

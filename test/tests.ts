@@ -849,8 +849,10 @@ export function testNitro(
         ctx.preset === "nitro-dev"
     )("sourcemap works", async () => {
       const { data } = await callHandler({ url: "/errors/stack" });
-      // Mapped through the `transform` hook of `fixture:sourcemap` (adding lines)
-      expect(data.stack).toMatch("test/fixture/server/routes/errors/stack.ts:3:");
+      // Mapped through the `transform` hook of `fixture:sourcemap` (adding lines). Bun has no
+      // input source maps, so `transform` hooks do not update them with the `bun` builder.
+      const line = ctx.nitro!.options.builder === "bun" ? "" : ":3:";
+      expect(data.stack).toMatch(`test/fixture/server/routes/errors/stack.ts${line}`);
     });
 
     it.skipIf(
@@ -1149,7 +1151,7 @@ export function testNitro(
       if (
         ctx.preset.includes("cloudflare") &&
         key.startsWith("globals:") &&
-        (ctx.nitro!.options.builder === "rolldown" || ctx.nitro!.options.builder === "rspack")
+        ["rolldown", "rspack", "bun"].includes(ctx.nitro!.options.builder as string)
       ) {
         continue;
       }
