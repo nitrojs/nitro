@@ -78,34 +78,29 @@ describe("getVercelTaskSchedules", () => {
 describe("getVercelSchedulesMode", () => {
   it("requires experimental tasks", () => {
     expect(
-      getVercelSchedulesMode(
-        options({ experimental: {}, vercel: { experimentalSchedules: "private" } }),
-        {}
-      )
+      getVercelSchedulesMode(options({ experimental: {}, vercel: { schedules: "private" } }), {})
     ).toBe(false);
   });
 
-  it("prefers the vercel.experimentalSchedules option", () => {
+  it("prefers the vercel.schedules option", () => {
     expect(
-      getVercelSchedulesMode(options({ vercel: { experimentalSchedules: false } }), {
+      getVercelSchedulesMode(options({ vercel: { schedules: false } }), {
         NITRO_VERCEL_SCHEDULES: "private",
       })
     ).toBe(false);
   });
 
   it("uses private function targets", () => {
-    expect(
-      getVercelSchedulesMode(options({ vercel: { experimentalSchedules: "private" } }), {})
-    ).toBe("private");
+    expect(getVercelSchedulesMode(options({ vercel: { schedules: "private" } }), {})).toBe(
+      "private"
+    );
     expect(getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "private" })).toBe(
       "private"
     );
   });
 
   it("uses public path targets", () => {
-    expect(
-      getVercelSchedulesMode(options({ vercel: { experimentalSchedules: "public" } }), {})
-    ).toBe("public");
+    expect(getVercelSchedulesMode(options({ vercel: { schedules: "public" } }), {})).toBe("public");
     expect(getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "PUBLIC" })).toBe("public");
   });
 
@@ -116,9 +111,9 @@ describe("getVercelSchedulesMode", () => {
   });
 
   it("rejects invalid values", () => {
-    const invalid = options({ vercel: { experimentalSchedules: true as unknown as "private" } });
+    const invalid = options({ vercel: { schedules: true as unknown as "private" } });
     expect(() => getVercelSchedulesMode(invalid, {})).toThrow(
-      "Invalid `vercel.experimentalSchedules` value: true"
+      "Invalid `vercel.schedules` value: true"
     );
     expect(() => getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "1" })).toThrow(
       'Invalid `NITRO_VERCEL_SCHEDULES` value: "1"'
@@ -134,7 +129,7 @@ function createNitro(
     options: options({
       tasks: { cleanup: task },
       scheduledTasks: { "0 3 * * *": "cleanup" },
-      vercel: { experimentalSchedules: schedules },
+      vercel: { schedules: schedules },
       virtual: {},
       handlers: [],
       devHandlers: [],
@@ -157,7 +152,7 @@ describe("getVercelBuildOutputSchedules", () => {
       cleanup: { schedule: "0 3 * * *", path: "/_vercel/cron" },
     });
     const nitro = createNitro("public", {
-      vercel: { experimentalSchedules: "public", cronHandlerRoute: "/api/cron" },
+      vercel: { schedules: "public", cronHandlerRoute: "/api/cron" },
     });
     expect(getVercelBuildOutputSchedules(nitro)).toEqual({
       cleanup: { schedule: "0 3 * * *", path: "/api/cron" },
@@ -182,7 +177,7 @@ describe("getVercelScheduleFunction", () => {
   it("describes the private function, with only it allowed to run tasks", () => {
     const nitro = createNitro("private", {
       vercel: {
-        experimentalSchedules: "private",
+        schedules: "private",
         functionRules: { "/_vercel/tasks": { maxDuration: 60, environment: { FOO: "bar" } } },
       },
     });
@@ -209,7 +204,7 @@ describe("setupVercelSchedules", () => {
   it("registers a private function with the schedule trigger", () => {
     const nitro = createNitro("private", {
       vercel: {
-        experimentalSchedules: "private",
+        schedules: "private",
         functionRules: { "/_vercel/tasks": { maxDuration: 60 } },
       },
     });
@@ -233,7 +228,7 @@ describe("setupVercelSchedules", () => {
   it("rejects function rules with their own triggers", () => {
     const nitro = createNitro("private", {
       vercel: {
-        experimentalSchedules: "private",
+        schedules: "private",
         functionRules: {
           "/_vercel/tasks": { experimentalTriggers: [{ type: "queue/v2beta", topic: "x" }] },
         },

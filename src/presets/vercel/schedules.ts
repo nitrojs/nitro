@@ -39,7 +39,7 @@ export interface VercelTaskSchedule {
 /**
  * Whether and how scheduled tasks are emitted as Vercel Schedules instead of Cron Jobs.
  *
- * Set with the `vercel.experimentalSchedules` option, or else the `NITRO_VERCEL_SCHEDULES`
+ * Set with the `vercel.schedules` option, or else the `NITRO_VERCEL_SCHEDULES`
  * environment variable (`private` or `public`).
  */
 export function getVercelSchedulesMode(
@@ -49,13 +49,13 @@ export function getVercelSchedulesMode(
   if (!options.experimental.tasks) {
     return false;
   }
-  const option = options.vercel?.experimentalSchedules;
+  const option = options.vercel?.schedules;
   if (option !== undefined) {
     if (option === false || option === "private" || option === "public") {
       return option;
     }
     throw new Error(
-      `[vercel] Invalid \`vercel.experimentalSchedules\` value: ${JSON.stringify(option)}. Use "private", "public" or \`false\`.`
+      `[vercel] Invalid \`vercel.schedules\` value: ${JSON.stringify(option)}. Use "private", "public" or \`false\`.`
     );
   }
   const value = env.NITRO_VERCEL_SCHEDULES?.toLowerCase();

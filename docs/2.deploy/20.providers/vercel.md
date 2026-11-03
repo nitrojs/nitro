@@ -201,7 +201,7 @@ import { defineConfig } from "nitro";
 
 export default defineConfig({
   vercel: {
-    experimentalSchedules: "private",
+    schedules: "private",
   },
 });
 ```
@@ -396,7 +396,7 @@ Additional options are available under the `vercel` key in your Nitro config:
 - `entryFormat`: Handler format for Vercel Functions. `"web"` (default) or `"node"`. The `node` format enables compatibility with Node.js specific APIs (e.g., `req.runtime.node`).
 - `skewProtection`: Set to `false` to disable the Nitro [skew protection](https://vercel.com/docs/skew-protection) integration (enabled by default when skew protection is enabled in the Vercel dashboard).
 - `cronHandlerRoute`: Route path for the Vercel cron handler endpoint used with `scheduledTasks` (default: `"/_vercel/cron"`).
-- `experimentalSchedules`: Run `scheduledTasks` with [Vercel Schedules](#vercel-schedules) instead of Cron Jobs, `"private"` or `"public"` (default: the `NITRO_VERCEL_SCHEDULES` environment variable).
+- `schedules` (experimental): Run `scheduledTasks` with [Vercel Schedules](#vercel-schedules) instead of Cron Jobs, `"private"` or `"public"` (default: the `NITRO_VERCEL_SCHEDULES` environment variable).
 
 ## On-demand incremental static regeneration (ISR)
 

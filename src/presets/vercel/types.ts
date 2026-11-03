@@ -212,7 +212,7 @@ export interface VercelOptions {
    * @experimental Vercel Schedules is in beta.
    * @default false
    */
-  experimentalSchedules?: "private" | "public" | false;
+  schedules?: "private" | "public" | false;
 
   /**
    * Vercel Queues configuration.

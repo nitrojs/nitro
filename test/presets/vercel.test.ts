@@ -1006,7 +1006,7 @@ describe("nitro:preset:vercel:node", async () => {
           handler: resolve(presetFixturesDir, "websocket.ts"),
         },
       ],
-      vercel: { entryFormat: "node", experimentalSchedules: "private" },
+      vercel: { entryFormat: "node", schedules: "private" },
     },
   });
   testNitro(
