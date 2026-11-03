@@ -149,6 +149,10 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
       };
       debug("[env]  Environments:", Object.keys(environments).join(", "));
       return {
+        // Plugins read the root `build.outDir` (e.g. UnoCSS), not the one of the client environment
+        ...(userConfig.build?.outDir === undefined && {
+          build: { outDir: useNitro(ctx).options.output.publicDir },
+        }),
         environments,
       };
     },
