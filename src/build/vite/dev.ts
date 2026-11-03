@@ -14,13 +14,10 @@ import { isAbsolute, join, relative } from "pathe";
 import { debounce } from "perfect-debounce";
 import { withBase, withoutBase } from "ufo";
 import { handleDevRPC } from "../../dev/_rpc.ts";
+import { withDevErrorRecovery } from "../../dev/_error-recovery.ts";
+import { DevReloadSignal } from "../../dev/_reload-signal.ts";
 import { writeDevBuildInfo } from "../info.ts";
 import { rescanHandlers, watchScanDirs } from "./_scan-watch.ts";
-import {
-  isDocumentRequest,
-  isRecoverableDevErrorPage,
-  withDevErrorRecovery,
-} from "./_dev-error-page.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
 import { _isWorkerdRunner } from "./env.ts";
 
@@ -75,6 +72,8 @@ export async function createFetchableDevEnvironment(
 export interface FetchableDevEnvironment extends DevEnvironment {
   devServer: DevServer;
   dispatchFetch(request: Request): Promise<Response>;
+  /** Called when the environment (and so its Vite server) closes. */
+  onClose?: () => void;
 }
 
 interface FetchableDevEnvironmentConstructor {
@@ -112,6 +111,7 @@ function _defineFetchableDevEnvironment({
 }: typeof import("vite")): FetchableDevEnvironmentConstructor {
   return class FetchableDevEnvironment extends DevEnvironment {
     devServer: DevServer;
+    onClose?: () => void;
 
     #entry: string;
     #workerd: boolean;
@@ -161,6 +161,7 @@ function _defineFetchableDevEnvironment({
     }
 
     override async close(): Promise<void> {
+      this.onClose?.();
       await super.close();
       await this.devServer.close?.();
     }
@@ -174,7 +175,13 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
 
   const viteBase = server.config.base || "/";
-  const hmrEnabled = server.config.server.ws !== false && server.config.server.hmr !== false;
+
+  // One reload state per server: inline plugins (and their dev app) are reused on
+  // `server.restart()`, which creates the new server before it closes the old one. Closing it
+  // answers waiting error pages, which would otherwise hold a middleware mode host server open.
+  const reloadSignal = new DevReloadSignal();
+  ctx.devApp!.reloadSignal = reloadSignal;
+  nitroEnv.onClose = () => reloadSignal.close();
 
   // Restart with nitro.config changes
   const nitroConfigFile = nitro.options._c12.configFile;
@@ -211,6 +218,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   const reload = debounce(async () => {
     await rescanHandlers(nitro, nitroEnv);
     nitroEnv.hot.send({ type: "full-reload" });
+    ctx.devApp?.reloadSignal.bump();
   });
   watchScanDirs(nitro, server, () => reload());
 
@@ -316,14 +324,16 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
         await envRes.body?.cancel();
         return next();
       }
-      if (hmrEnabled && isRecoverableDevErrorPage(nodeReq.method, envRes)) {
-        // Set for the page's own polling fetches too, so a still broken page is notified again.
-        ctx._devErrorPageServed = true;
-        if (isDocumentRequest(nodeReq.headers)) {
-          return await sendNodeResponse(nodeRes, withDevErrorRecovery(envRes, viteBase));
-        }
-      }
-      return await sendNodeResponse(nodeRes, envRes);
+      // The dev worker reloads lazily, so the page checks that it renders again before reloading.
+      // Nitro routes are served outside the Vite `base`.
+      return await sendNodeResponse(
+        nodeRes,
+        withDevErrorRecovery(req, envRes, {
+          signal: ctx.devApp!.reloadSignal,
+          base: nitro.options.baseURL,
+          poll: true,
+        })
+      );
     } catch (error) {
       if (_isResponseDestroyed(nodeRes)) return;
       return next(error);

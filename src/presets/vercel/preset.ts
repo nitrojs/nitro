@@ -6,6 +6,7 @@ import { importDep } from "../../utils/dep.ts";
 import { generateFunctionFiles, generateStaticFiles, resolveVercelRuntime } from "./utils.ts";
 import { setupImmutableStaticFiles, generateImmutableManifest } from "./immutable.ts";
 import { vercelDevModule } from "./dev.ts";
+import { getVercelSchedulesMode, setupVercelSchedules } from "./schedules.ts";
 
 import type { VercelFunctionTrigger } from "./types.ts";
 
@@ -66,8 +67,10 @@ const vercel = defineNitroPreset(
           nitro.options.plugins.unshift(join(presetsDir, "vercel/runtime/telemetry/plugin"));
         }
 
-        // Cron tasks handler
-        if (
+        // Scheduled tasks
+        if (getVercelSchedulesMode(nitro.options)) {
+          setupVercelSchedules(nitro);
+        } else if (
           nitro.options.experimental.tasks &&
           Object.keys(nitro.options.scheduledTasks || {}).length > 0
         ) {
@@ -81,7 +84,11 @@ const vercel = defineNitroPreset(
         // Queue consumer handler
         const queues = nitro.options.vercel?.queues;
         if (queues?.triggers?.length) {
-          await importDep({ id: "@vercel/queue", dir: nitro.options.rootDir });
+          await importDep({
+            id: "@vercel/queue",
+            dir: nitro.options.rootDir,
+            deps: nitro.options.deps,
+          });
 
           const handlerRoute = queues.handlerRoute || "/_vercel/queues/consumer";
 

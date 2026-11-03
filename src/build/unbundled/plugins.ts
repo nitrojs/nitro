@@ -151,7 +151,7 @@ function runtimeDepsPlugin(nitro: Nitro, sync?: boolean): EnvRunnerPlugin {
           return;
         }
         const resolve = () => this.resolve(source, join(nitro.options.rootDir, "_"));
-        if (resolveDep(source, { dir: nitro.options.rootDir, paths: nitro.options.deps?.paths })) {
+        if (resolveDep(source, { dir: nitro.options.rootDir, deps: nitro.options.deps })) {
           return resolve();
         }
         if (sync) {

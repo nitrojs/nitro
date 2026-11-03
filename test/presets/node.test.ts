@@ -1,13 +1,15 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { execa } from "execa";
-import { getRandomPort, waitForPort } from "get-port-please";
+import { getRandomPort } from "get-port-please";
 import { resolve } from "pathe";
 import { isBun, isWindows } from "std-env";
 import { describe, expect, it } from "vitest";
 import { setupTest, startServer, testNitro } from "../tests.ts";
 import { testCloseHook } from "./_close-hook.ts";
+import { testListenError } from "./_listen-error.ts";
 import { testUnixSocket } from "./_unix-socket.ts";
+import { waitForServer } from "./_wait-for-server.ts";
 
 // Tests spawning the output are skipped on Bun: under `bun --bun`, `node` resolves to Bun,
 // where the crossws Node.js adapter refuses to run (the `bun` preset is the native path)
@@ -90,7 +92,7 @@ describe("nitro:preset:node-server", async () => {
       reject: false,
     });
     try {
-      await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
+      await waitForServer(`http://127.0.0.1:${port}/`, child.nodeChildProcess);
       const res = await fetch(`http://127.0.0.1:${port}/srvx-middleware`);
       expect(await res.text()).not.toBe("server entry middleware works!");
       expect(res.headers.get("x-srvx-plugin")).toBeNull();
@@ -115,7 +117,7 @@ describe("nitro:preset:node-server", async () => {
         reject: false,
       });
       try {
-        await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
+        await waitForServer(`http://127.0.0.1:${port}/`, child.nodeChildProcess);
         await expect(
           negotiateProtocol(`ws://127.0.0.1:${port}/_ws-protocol`, ["graphql-transport-ws"])
         ).resolves.toBe("graphql-transport-ws");
@@ -133,6 +135,7 @@ describe("nitro:preset:node-server", async () => {
   if (!isBun) {
     testCloseHook(ctx, { command: process.execPath, args: (entry) => [entry] });
     testUnixSocket(ctx, { command: process.execPath, args: (entry) => [entry] });
+    testListenError(ctx, { command: process.execPath, args: (entry) => [entry] });
   }
 });
 
@@ -163,7 +166,7 @@ describe("nitro:preset:node-cluster", async () => {
       });
 
       try {
-        await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
+        await waitForServer(`http://127.0.0.1:${port}/`, child.nodeChildProcess);
 
         // SIGKILL the sole worker (child of the primary) like a crash would.
         const { stdout: workerPids } = await execa("pgrep", [
@@ -185,6 +188,13 @@ describe("nitro:preset:node-cluster", async () => {
     command: process.execPath,
     args: (entry) => [entry],
     env: { NITRO_CLUSTER_WORKERS: "2" },
+  });
+
+  testListenError(ctx, {
+    command: process.execPath,
+    args: (entry) => [entry],
+    env: { NITRO_CLUSTER_WORKERS: "2" },
+    skip: isBun,
   });
 });
 

@@ -508,6 +508,25 @@ export interface NitroOptions extends PresetOptions {
   scheduledTasks: { [cron: string]: string | string[] };
 
   /**
+   * Scheduler options for `scheduledTasks`.
+   *
+   * @see https://nitro.build/config/features#scheduler
+   */
+  scheduler: {
+    /**
+     * Run `scheduledTasks` in-process with the built-in cron runner, in presets that use it
+     * (`dev`, `node_*`, `bun` and `deno_server`).
+     *
+     * Set to `false` when something else invokes the scheduled tasks, such as a system cron.
+     * The tasks stay registered, so `runCronTasks()` and the `/_nitro/tasks` dev route keep
+     * working. Platform schedules (Cloudflare Cron Triggers, Vercel Cron Jobs) are not affected.
+     *
+     * @default true
+     */
+    runner?: boolean;
+  };
+
+  /**
    * Virtual module definitions.
    *
    * A map from dynamic virtual import names to their contents or an async
@@ -829,18 +848,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * @see https://nitro.build/config/build#deps
    */
-  deps?: {
-    /**
-     * Explicit packages to use, by package name, as a path or `file://` URL to the package
-     * directory or entry (e.g. `import.meta.resolve("unstorage")`). Relative paths resolve
-     * against `rootDir`.
-     *
-     * By default, these packages are resolved from the project root and installed on demand. A
-     * framework built on top of Nitro can pass its own copies, so the versions it depends on are
-     * the ones that run. `deps.paths.vite` and `vite.path` are aliases.
-     */
-    paths?: Record<string, string>;
-  };
+  deps?: NitroDepsOptions;
 
   /**
    * Build plugins, applied with every builder (`rollup`, `rolldown`, `vite` and `false`).
@@ -1195,6 +1203,36 @@ export interface NitroConfigLayer {
 
   /** Layer metadata from `$meta` in the layer config or `extends` options. */
   meta?: { name?: string; [key: string]: unknown };
+}
+
+/**
+ * Options for the optional dependencies Nitro installs on demand.
+ *
+ * @see https://nitro.build/config/build#deps
+ */
+export interface NitroDepsOptions {
+  /**
+   * Explicit packages to use, by package name, as a path or `file://` URL to the package
+   * directory or entry (e.g. `import.meta.resolve("unstorage")`). Relative paths resolve
+   * against `rootDir`.
+   *
+   * By default, these packages are resolved from the project root and installed on demand. A
+   * framework built on top of Nitro can pass its own copies, so the versions it depends on are
+   * the ones that run. `deps.paths.vite` and `vite.path` are aliases.
+   */
+  paths?: Record<string, string>;
+
+  /**
+   * Whether a missing package may be installed. Disable it to fail with the install command
+   * instead, so a build only uses the committed dependencies.
+   *
+   * Interactive environments prompt before installing (except for the packages the server
+   * bundle imports). Nothing is installed in tests, for an explicit package in `paths`, or
+   * when `rootDir` is inside `node_modules`.
+   *
+   * @default true, or `false` in CI
+   */
+  install?: boolean;
 }
 
 /**

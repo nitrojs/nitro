@@ -16,6 +16,7 @@ import { createVFSHandler } from "./vfs.ts";
 import { createDevProxy, type DevProxy } from "./_proxy.ts";
 import { isLocalDevRequest } from "./_request.ts";
 import { createDevToolsJSONHandler, DEVTOOLS_JSON_ROUTE } from "./_devtools-json.ts";
+import { DevReloadSignal, DEV_RELOAD_ROUTE } from "./_reload-signal.ts";
 import { isCompressibleFile } from "../utils/compress.ts";
 
 import devErrorHandler, {
@@ -26,6 +27,8 @@ import devErrorHandler, {
 export class NitroDevApp {
   nitro: Nitro;
   fetch: (req: Request) => Response | Promise<Response>;
+  /** Server reloads that open dev error pages wait for (see `withDevErrorRecovery`). */
+  reloadSignal: DevReloadSignal = new DevReloadSignal();
 
   #wsProxies?: ReturnType<typeof createRouter<DevProxy>>;
   #routes = createRouter();
@@ -48,6 +51,11 @@ export class NitroDevApp {
         });
       },
     });
+
+    // Open dev error pages wait on it to reload (registered first so no catch-all shadows it)
+    const reloadRoute = joinURL(this.nitro.options.baseURL, DEV_RELOAD_ROUTE);
+    app.get(reloadRoute, (event) => this.reloadSignal.handle(event));
+    this.#addRoute("GET", reloadRoute);
 
     // Dev-only handlers
     for (const h of this.nitro.options.devHandlers) {

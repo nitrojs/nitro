@@ -1,5 +1,5 @@
 import type { ConnectorName } from "db0";
-import type { NitroOptions } from "nitro/types";
+import type { NitroDepsOptions, NitroOptions } from "nitro/types";
 import { importDep } from "./dep.ts";
 import type { LibDep } from "./dep.ts";
 
@@ -34,7 +34,7 @@ export async function resolveDatabaseConnections(
   }
   const { connectors, connectorDependencies } = await importDb0({
     dir: options.rootDir,
-    paths: options.deps?.paths,
+    deps: options.deps,
     reason: "the `database` config",
   });
   return entries.map(([name, { connector, options: connectorOpts }]) => {
@@ -52,7 +52,7 @@ export async function resolveDatabaseConnections(
 /** Import `db0` from the project, installing it on demand. */
 export function importDb0(opts: {
   dir: string;
-  paths?: Record<string, string>;
+  deps?: NitroDepsOptions;
   reason: string;
 }): Promise<typeof import("db0")> {
   return importDep({ id: "db0", ...opts });

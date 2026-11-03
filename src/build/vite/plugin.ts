@@ -33,8 +33,9 @@ import { nitroPreviewPlugin } from "./preview.ts";
 import { nitroAssetsImport } from "./_assets.ts";
 import { defu } from "defu";
 import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
-import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
+import { nitroDevServiceProxy, SERVICE_MANIFEST_FILE, viteServicesTemplate } from "./services.ts";
 import { nitroRequireExternals } from "./_require-externals.ts";
+import { nitroServerAliases } from "./_server-aliases.ts";
 import { importVite, setRunningVite, viteImportOptions } from "./_import.ts";
 import { isVitest, nitroVitest } from "./vitest.ts";
 
@@ -230,29 +231,6 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
   };
 }
 
-function nitroServerAliases(ctx: NitroPluginContext): VitePlugin {
-  return {
-    name: "nitro:server-aliases",
-    enforce: "pre",
-    applyToEnvironment: (env) => env.name !== "client" && env.config?.consumer !== "client",
-
-    async resolveId(id, importer, options) {
-      if (!ctx.bundlerConfig) {
-        return;
-      }
-      const resolved = resolveAlias(id, ctx.bundlerConfig.base.aliases);
-      if (resolved !== id && resolved.startsWith("node:")) {
-        return (
-          (await this.resolve(resolved, importer, { ...options, skipSelf: true })) || {
-            id: resolved,
-            external: true,
-          }
-        );
-      }
-    },
-  };
-}
-
 function nitroEnvAliases(_aliases: Record<string, string>, keys: string[]): VitePlugin {
   const aliases = normalizeAliases(_aliases);
   const keysRE = keys.map((key) => escapeRegExp(key.replace(/\/$/, ""))).join("|");
@@ -383,6 +361,11 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
             this.error(`No entry point found for service "${this.environment.name}".`);
           }
           ctx._entryPoints![this.environment.name] = entryFile!;
+          this.emitFile({
+            type: "asset",
+            fileName: SERVICE_MANIFEST_FILE,
+            source: JSON.stringify({ entry: entryFile }),
+          });
         }
       },
     },
@@ -427,9 +410,8 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         return [];
       }
       // Server-only changes send nothing to the browser, so tell open dev error pages to retry.
-      if (ctx._devErrorPageServed && modules.length > 0) {
-        ctx._devErrorPageServed = false;
-        server.ws.send("nitro:server-update");
+      if (modules.length > 0) {
+        ctx.devApp?.reloadSignal.bump();
       }
       const clientEnvs = Object.values(server.environments).filter(
         (env) => env.config.consumer === "client"

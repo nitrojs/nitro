@@ -53,7 +53,22 @@ export interface VercelBuildConfigV3 {
     path: string;
     schedule: string;
   }[];
+  /** Vercel Schedules, keyed by schedule name. */
+  schedules?: Record<string, VercelSchedule>;
 }
+
+/**
+ * Vercel Schedules definition in the Build Output API, keyed by its name in `schedules`
+ * @see https://vercel.com/docs/schedules
+ */
+export type VercelSchedule = {
+  /** Cron expression. */
+  schedule: string;
+  /** IANA timezone the cron expression is evaluated in. Defaults to UTC. */
+  timezone?: string;
+  /** Maximum random delay in minutes, from 1 to 15. */
+  jitter?: number;
+} & ({ function: string } | { path: string; requestMethod?: "GET" | "POST" } | { topic: string });
 
 /**
  * https://vercel.com/docs/build-output-api/primitives#serverless-function-configuration
@@ -116,13 +131,17 @@ export interface VercelServerlessFunctionConfig {
   [key: string]: unknown;
 }
 
-export type VercelFunctionTrigger = {
-  type: "queue/v2beta";
-  topic: string;
-  retryAfterSeconds?: number;
-  initialDelaySeconds?: number;
-  consumer?: string;
-};
+export type VercelFunctionTrigger =
+  | {
+      type: "queue/v2beta";
+      topic: string;
+      retryAfterSeconds?: number;
+      initialDelaySeconds?: number;
+      consumer?: string;
+    }
+  | {
+      type: "schedule/v1beta";
+    };
 
 export interface VercelOptions {
   config?: VercelBuildConfigV3;
@@ -174,6 +193,26 @@ export interface VercelOptions {
    * @see https://vercel.com/docs/cron-jobs
    */
   cronHandlerRoute?: string;
+
+  /**
+   * Run [`scheduledTasks`](https://nitro.build/docs/tasks#scheduled-tasks) with Vercel Schedules
+   * instead of Vercel Cron Jobs. Nitro emits one schedule per task in the Build Output API.
+   *
+   * - `"private"`: every schedule targets a private function that runs the task. Only Vercel
+   *   Schedules can invoke it, so there is no public cron endpoint and no `CRON_SECRET` is needed.
+   * - `"public"`: every schedule targets the public cron handler route
+   *   ({@link VercelOptions.cronHandlerRoute}), which keeps working for direct requests
+   *   exactly like with Cron Jobs.
+   *
+   * Under `vercel dev`, the local Schedules broker runs scheduled tasks instead of the
+   * in-process scheduler.
+   *
+   * Defaults to the `NITRO_VERCEL_SCHEDULES` environment variable (`private` or `public`).
+   *
+   * @experimental Vercel Schedules is in beta.
+   * @default false
+   */
+  schedules?: "private" | "public" | false;
 
   /**
    * Vercel Queues configuration.

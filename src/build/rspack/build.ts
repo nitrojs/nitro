@@ -9,7 +9,7 @@ export async function rspackBuild(nitro: Nitro) {
   const rspack = await importDep({
     id: "@rspack/core",
     dir: nitro.options.rootDir,
-    paths: nitro.options.deps?.paths,
+    deps: nitro.options.deps,
   });
   await nitro.hooks.callHook("build:before", nitro);
   const config = await getRspackConfig(nitro, rspack);

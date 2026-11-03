@@ -1,4 +1,4 @@
-import type { Nitro } from "nitro/types";
+import type { Nitro, NitroDepsOptions } from "nitro/types";
 import type { ResolvedConfig } from "vite";
 import { resolveModulePath } from "exsolve";
 import { resolveFromDepPath } from "../../utils/_dep-path.ts";
@@ -17,6 +17,8 @@ export interface ViteImportOptions {
   path?: string;
   /** Throw instead of installing `vite` when it cannot be resolved (the `nitro/vite` plugin). */
   plugin?: boolean;
+  /** The `deps` option (`deps.paths.vite` is passed as `path`). */
+  deps?: NitroDepsOptions;
 }
 
 /**
@@ -64,6 +66,7 @@ export function viteImportOptions(nitro: Nitro): ViteImportOptions {
     dir: nitro.options.rootDir,
     path: nitro.options.vite?.path || _runningVite.get(nitro),
     plugin: _runningVite.has(nitro),
+    deps: nitro.options.deps,
   };
 }
 
@@ -119,7 +122,7 @@ function _viteDep(opts: ViteImportOptions) {
     dir: opts.dir,
     reason: deps.vite.reason,
     version: deps.vite.version,
-    paths: opts.path ? { [id]: opts.path } : undefined,
+    deps: { ...opts.deps, paths: opts.path ? { [id]: opts.path } : undefined },
   };
 }
 

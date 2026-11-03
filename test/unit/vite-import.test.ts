@@ -40,13 +40,21 @@ describe("importVite", () => {
   });
 
   const id = "nitro-missing-vite";
-  const createNitro = () => ({ options: { rootDir, vite: {} } }) as any;
+  const createNitro = (deps: { install?: boolean } = { install: true }) =>
+    ({ options: { rootDir, vite: {}, deps } }) as any;
 
   it("installs vite for the vite builder", async () => {
     await expect(importVite({ ...viteImportOptions(createNitro()), id })).rejects.toThrow(
       "is not installed"
     );
     expect(addDevDependency).toHaveBeenCalledOnce();
+  });
+
+  it("does not install vite in CI by default", async () => {
+    await expect(importVite({ ...viteImportOptions(createNitro({})), id })).rejects.toThrow(
+      "is not installed"
+    );
+    expect(addDevDependency).not.toHaveBeenCalled();
   });
 
   it("throws instead of installing vite when the running vite cannot be located", async () => {

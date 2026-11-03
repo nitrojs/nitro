@@ -10,6 +10,7 @@ import { existsSync } from "node:fs";
 import { writeBuildInfo } from "../info.ts";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { isTest, isCI } from "std-env";
+import { readBuiltServiceEntry } from "./services.ts";
 import type { RolldownOutput } from "rolldown";
 
 const BuilderNames = {
@@ -28,6 +29,13 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   for (const [envName, env] of Object.entries(builder.environments)) {
     // prettier-ignore
     const fmtName = BuilderNames[envName] || (envName.length <= 3 ? envName.toUpperCase() : envName[0].toUpperCase() + envName.slice(1));
+    if (env.isBuilt && ctx.services[envName] && !ctx._entryPoints[envName]) {
+      const outDir = resolve(env.config.root, env.config.build.outDir);
+      const entry = await readBuiltServiceEntry(outDir);
+      if (entry) {
+        ctx._entryPoints[envName] = entry;
+      }
+    }
     if (envName === "nitro" || !env.config.build.rollupOptions.input || env.isBuilt) {
       if (!["nitro", "ssr", "client"].includes(envName)) {
         nitro.logger.info(

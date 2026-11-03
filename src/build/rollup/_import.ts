@@ -11,6 +11,6 @@ export function importRollup(nitro: Nitro): Promise<typeof import("rollup")> {
   return importDep({
     id: "rollup",
     dir: nitro.options.rootDir,
-    paths: nitro.options.deps?.paths,
+    deps: nitro.options.deps,
   });
 }
