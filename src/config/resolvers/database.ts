@@ -32,6 +32,6 @@ export async function resolveDatabaseOptions(options: NitroOptions) {
       ...connection,
       name: connection.connector,
     })),
-    { dir: options.rootDir, label: "database connector" }
+    { dir: options.rootDir, deps: options.deps, label: "database connector" }
   );
 }

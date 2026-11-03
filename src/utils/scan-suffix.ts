@@ -6,6 +6,7 @@ const methodSuffixes = new Set(["connect", "delete", "get", "head", "options", "
 const envSuffixes = new Set(["dev", "prod", "prerender"]);
 
 const lastSuffixRe = /(?<=[^/])\.([a-z]+)$/;
+const orderPrefixRe = /(?:^|\/)\d+$/;
 
 export type ScanSuffixOptions = {
   /** Allow a `.<method>` suffix (e.g. `.get`). */
@@ -25,7 +26,8 @@ export type ParsedScanPath = {
  * Splits Nitro suffixes (`.<method>.<env>`) from a scanned file path.
  *
  * Any other trailing lowercase suffix is reserved for Nitro, unless it is a known file extension
- * (`.json`, `.md`, ...) or listed in `scanSuffixes`. Files with a reserved suffix are rejected
+ * (`.json`, `.md`, ...), listed in `scanSuffixes` or the name after a numeric order prefix
+ * (`middleware/1.cors.ts`). Files with a reserved suffix are rejected
  * (logged and skipped in dev, thrown in builds).
  */
 export function parseScanPath(
@@ -54,7 +56,10 @@ export function parseScanPath(
     (opts.method && methodSuffixes.has(suffix)) ||
     (opts.env && envSuffixes.has(suffix)) ||
     mime.getType(suffix) ||
-    nitro.options.scanSuffixes?.includes(suffix)
+    nitro.options.scanSuffixes?.includes(suffix) ||
+    (!methodSuffixes.has(suffix) &&
+      !envSuffixes.has(suffix) &&
+      orderPrefixRe.test(result.name.slice(0, -suffix.length - 1)))
   ) {
     return result;
   }

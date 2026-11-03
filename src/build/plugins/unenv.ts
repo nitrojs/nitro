@@ -24,7 +24,7 @@ export function unenv(nitro: Nitro, env: BuildEnv): Plugin {
     const opts = {
       id: "unenv" as const,
       dir: nitro.options.rootDir,
-      paths: nitro.options.deps?.paths,
+      deps: nitro.options.deps,
       reason: `Node.js compatibility (\`${id}\` import with the \`${nitro.options.preset}\` preset)`,
     };
     if (!(await ensureDep(opts))) {
@@ -63,7 +63,7 @@ export function unenv(nitro: Nitro, env: BuildEnv): Plugin {
         await ensureUnenv(id);
         const path = resolveDep(target || id, {
           dir: nitro.options.rootDir,
-          paths: nitro.options.deps?.paths,
+          deps: nitro.options.deps,
         });
         if (!path) {
           throw new Error(

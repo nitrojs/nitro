@@ -66,7 +66,7 @@ async function deployToZephyr(nitro: Nitro): Promise<void> {
     const zephyrAgent = await importDep({
       id: "zephyr-agent",
       dir: nitro.options.rootDir,
-      paths: nitro.options.deps?.paths,
+      deps: nitro.options.deps,
     });
 
     const { deploymentUrl } = await zephyrAgent.uploadOutputToZephyr({

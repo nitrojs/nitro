@@ -60,7 +60,7 @@ export function runtimeDeps(nitro: Nitro): Plugin {
         await ensureRuntimeDep(nitro, id);
         const path = resolveDep(id, {
           dir: nitro.options.rootDir,
-          paths: nitro.options.deps?.paths,
+          deps: nitro.options.deps,
         });
         if (!path) {
           const name = depPackageName(id);
@@ -76,5 +76,9 @@ export function runtimeDeps(nitro: Nitro): Plugin {
 
 function runtimeDepOptions(nitro: Nitro, id: string) {
   const name = depPackageName(id) as DepId;
-  return { id: name, dir: nitro.options.rootDir, paths: nitro.options.deps?.paths };
+  return {
+    id: name,
+    dir: nitro.options.rootDir,
+    deps: nitro.options.deps,
+  };
 }

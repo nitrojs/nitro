@@ -26,7 +26,7 @@ Use Nitro's deploy command to build and upload your app to Zephyr in one step:
 npx nitro deploy --preset zephyr
 ```
 
-Nitro will upload the generated output using `zephyr-agent`. If `zephyr-agent` is missing, Nitro will prompt to install it locally and will install it automatically in CI.
+Nitro will upload the generated output using `zephyr-agent`. If `zephyr-agent` is missing, Nitro will prompt to install it locally. In CI, add it to your dependencies (or enable [`deps.install`](/config/build#deps)).
 
 ## Deploy during build
 

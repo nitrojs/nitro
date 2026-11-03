@@ -54,7 +54,8 @@ export default defineConfig({
   },
   "devDependencies": {
     "nitro": "latest",
-    "shiki": "latest"
+    "shiki": "latest",
+    "vite": "latest"
   }
 }
 ```

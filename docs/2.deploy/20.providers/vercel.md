@@ -186,6 +186,49 @@ To prevent unauthorized access to the cron handler, set a `CRON_SECRET` environm
 `CRON_SECRET` is **not** set by default. Matching [Vercel's own behaviour](https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs), the cron endpoint (`/_vercel/cron`, configurable via [`vercel.cronHandlerRoute`](#other-preset-options)) performs no authentication when the variable is missing. Anyone who knows the route can then pick a schedule with the `x-vercel-cron-schedule` header and run the tasks registered for it on demand. Always set `CRON_SECRET` when using `scheduledTasks` on Vercel.
 ::
 
+### Vercel Schedules
+
+:read-more{title="Vercel Schedules" to="https://vercel.com/docs/schedules"}
+
+::warning
+Vercel Schedules is in beta and must be enabled for your Vercel team.
+::
+
+::note
+Vercel Schedules support is currently only available in the [nightly channel](/docs/nightly).
+::
+
+You can run your `scheduledTasks` with [Vercel Schedules](https://vercel.com/docs/schedules) instead of Cron Jobs. Your tasks and `scheduledTasks` config stay the same. Enable it in your Nitro config, or with the `NITRO_VERCEL_SCHEDULES=private` environment variable:
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  vercel: {
+    schedules: "private",
+  },
+});
+```
+
+There are two modes:
+
+- **`"private"`** (recommended): schedules invoke a private `_vercel/tasks` function. It has no public route and only Vercel Schedules can invoke it, so you don't need `CRON_SECRET`. Requests to `/_vercel/tasks` that reach your public server get a `404`. To configure the function, for example its `maxDuration`, use [`vercel.functionRules`](#per-route-function-configuration) with the `/_vercel/tasks` key.
+- **`"public"`**: schedules invoke the public cron route (`/_vercel/cron`, or [`vercel.cronHandlerRoute`](#other-preset-options)) with a `GET` request, like Cron Jobs. Use it if you also call that route yourself: direct requests keep working as with Cron Jobs, and `CRON_SECRET` is still checked. Set `CRON_SECRET`, otherwise anyone who can reach the route can run your scheduled tasks.
+
+Compared to Cron Jobs:
+
+- Each task gets its own schedule, named after the task. Characters Vercel does not allow become `.`, so `db:cleanup` becomes `db.cleanup`. A task with several cron expressions gets a suffix per expression.
+- Each task runs in its own invocation, so one failing task does not affect the others.
+- `payload.scheduledTime` is the time the invocation started, like with Cron Jobs. Failed invocations are not retried.
+
+#### Local development
+
+Under `vercel dev`, the local Schedules broker runs your scheduled tasks instead of the in-process scheduler, and `vercel schedules invoke <name> --local` runs one on demand. This requires `nitro dev` to use the Vercel preset, so set `preset: "vercel"` in your Nitro config (or `NITRO_PRESET=vercel`). Otherwise, and with plain `nitro dev`, scheduled tasks keep running in-process.
+
+::note
+Like `/_nitro/tasks`, the routes that `vercel dev` uses to discover and run your scheduled tasks only accept local requests.
+::
+
 ## Queues
 
 :read-more{title="Vercel Queues" to="https://vercel.com/docs/queues"}
@@ -357,6 +400,7 @@ Additional options are available under the `vercel` key in your Nitro config:
 - `entryFormat`: Handler format for Vercel Functions. `"web"` (default) or `"node"`. The `node` format enables compatibility with Node.js specific APIs (e.g., `req.runtime.node`).
 - `skewProtection`: Set to `false` to disable the Nitro [skew protection](https://vercel.com/docs/skew-protection) integration (enabled by default when skew protection is enabled in the Vercel dashboard).
 - `cronHandlerRoute`: Route path for the Vercel cron handler endpoint used with `scheduledTasks` (default: `"/_vercel/cron"`).
+- `schedules` (experimental): Run `scheduledTasks` with [Vercel Schedules](#vercel-schedules) instead of Cron Jobs, `"private"` or `"public"` (default: the `NITRO_VERCEL_SCHEDULES` environment variable).
 
 ## On-demand incremental static regeneration (ISR)
 

@@ -19,7 +19,11 @@ export async function setupAzureFunctions(nitro: Nitro) {
     const { reason, version } = deps["@azure/functions"];
     const installedVersion = await getInstalledFunctionsVersion(nitro.options.rootDir);
     if (!installedVersion) {
-      const resolved = await ensureDep({ id: "@azure/functions", dir: nitro.options.rootDir });
+      const resolved = await ensureDep({
+        id: "@azure/functions",
+        dir: nitro.options.rootDir,
+        deps: nitro.options.deps,
+      });
       if (!resolved) {
         throw new Error(
           `\`@azure/functions@${version}\` is not installed. Please add it to your dependencies for ${reason}, or set \`azure.functionsVersion\` to \`3\` to use the legacy programming model.`

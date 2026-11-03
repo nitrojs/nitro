@@ -1,7 +1,8 @@
 import { pathToFileURL } from "node:url";
 import { resolveModulePath } from "exsolve";
 import { resolveFromDepPath } from "../../utils/_dep-path.ts";
-import { ensureDep } from "../../utils/dep.ts";
+import type { NitroDepsOptions } from "nitro/types";
+import { ensureDep, missingDepError } from "../../utils/dep.ts";
 
 /**
  * Resolve `rolldown` from the user project (or `undefined` if it is not installed).
@@ -36,16 +37,15 @@ export function resolveRolldown(
  */
 export async function importRolldown(
   dir: string,
-  opts: { paths?: Record<string, string> } = {}
+  opts: { deps?: NitroDepsOptions } = {}
 ): Promise<typeof import("rolldown")> {
   // An explicit path is resolved through `ensureDep` too, which checks its version
+  const paths = opts.deps?.paths;
+  const depOpts = { id: "rolldown" as const, dir, deps: opts.deps };
   const resolved =
-    (!opts.paths?.rolldown && resolveRolldown(dir, opts)) ||
-    (await ensureDep({ id: "rolldown", dir, paths: opts.paths }));
+    (!paths?.rolldown && resolveRolldown(dir, { paths })) || (await ensureDep(depOpts));
   if (!resolved) {
-    throw new Error(
-      "`rolldown` is not installed. Please add it to your project dependencies to build with the `rolldown` builder."
-    );
+    throw missingDepError(depOpts);
   }
   return import(pathToFileURL(resolved).href);
 }

@@ -6,6 +6,7 @@ import { dirname, join, normalize } from "pathe";
 import { hasTTY, isAgent, isCI, isTest } from "std-env";
 import { depPackageName, resolveFromDepPath } from "./_dep-path.ts";
 import { getDepMeta } from "./_deps.ts";
+import type { NitroDepsOptions } from "nitro/types";
 import type { DepId, DepModules } from "./_deps.ts";
 
 /**
@@ -40,10 +41,10 @@ interface DepBaseOptions {
    */
   projectOnly?: boolean;
   /**
-   * Explicit package paths by package name (the `deps.paths` option), used instead of resolving
-   * (and installing) them from `dir`.
+   * The `deps` option: explicit package paths (`paths`), used instead of resolving (and
+   * installing) them from `dir`, and whether missing ones may be installed (`install`).
    */
-  paths?: Record<string, string>;
+  deps?: NitroDepsOptions;
 }
 
 /**
@@ -54,7 +55,7 @@ interface DepBaseOptions {
  */
 export function ensureDep(depOpts: DepOptions): Promise<string | undefined> {
   const opts = _resolveDepOptions(depOpts);
-  const path = opts.paths?.[opts.id];
+  const path = opts.deps?.paths?.[opts.id];
   const key = `${path ? `path:${path}` : opts.projectOnly ? "project" : "any"}:${opts.dir}:${opts.id}`;
   let pending = _pendingDeps.get(key);
   if (!pending) {
@@ -86,14 +87,18 @@ export function missingDepError(depOpts: DepOptions): Error {
     );
   }
   const dev = opts.dev === false ? "" : "dev ";
+  const ci =
+    opts.deps?.install === undefined && isCI && !isTest
+      ? " Dependencies are not installed on demand in CI unless the `deps.install` option is enabled."
+      : "";
   return new Error(
-    `\`${opts.id}\` is not installed. It is required for ${opts.reason}. Please add it to your ${dev}dependencies (e.g. \`npx nypm add ${dev ? "-D " : ""}${_depSpec(opts)}\`).`
+    `\`${opts.id}\` is not installed. It is required for ${opts.reason}. Please add it to your ${dev}dependencies (e.g. \`npx nypm add ${dev ? "-D " : ""}${_depSpec(opts)}\`).${ci}`
   );
 }
 
 export function isDepInstalled(
   id: string,
-  opts: Pick<DepOptions, "dir" | "projectOnly" | "paths">
+  opts: Pick<DepOptions, "dir" | "projectOnly" | "deps">
 ): boolean {
   return !!resolveDep(id, opts);
 }
@@ -108,9 +113,9 @@ export function isDepInstalled(
  */
 export function resolveDep(
   id: string,
-  opts: Pick<DepOptions, "dir" | "projectOnly" | "paths">
+  opts: Pick<DepOptions, "dir" | "projectOnly" | "deps">
 ): string | undefined {
-  const path = opts.paths?.[depPackageName(id)];
+  const path = opts.deps?.paths?.[depPackageName(id)];
   if (path) {
     return resolveFromDepPath(id, { dir: opts.dir, path });
   }
@@ -147,10 +152,12 @@ export function isLibOption(option: string): boolean {
 /**
  * Ensure the third-party libraries lazily imported by the configured storage drivers or
  * database connectors are installed, prompting to install the missing ones.
+ *
+ * Throws for a missing library when installing is disabled (`deps.install`, off in CI).
  */
 export async function ensureLibDeps(
   users: Array<{ name: string; options: Record<string, any>; deps: LibDep[] }>,
-  opts: { dir: string; label: string }
+  opts: { dir: string; label: string; deps?: NitroDepsOptions }
 ): Promise<void> {
   const required = new Map<string, { version?: string; users: Set<string> }>();
   for (const user of users) {
@@ -166,17 +173,23 @@ export async function ensureLibDeps(
 
   for (const [name, { version, users: names }] of required) {
     const reason = `the ${[...names].map((n) => `\`${n}\``).join(", ")} ${opts.label}${names.size > 1 ? "s" : ""}`;
-    const resolved = await ensureDep({
+    const depOpts = {
       id: name,
       version,
       dir: opts.dir,
+      // Imported by name from the bundle: explicit `deps.paths` cannot provide them
+      deps: { install: opts.deps?.install },
       reason,
       dev: false,
       projectOnly: true,
-    });
-    if (!resolved) {
-      consola.warn(`\`${name}\` is not installed. It is required for ${reason}.`);
+    };
+    if (await ensureDep(depOpts)) {
+      continue;
     }
+    if (!isTest && !_canInstall(opts.deps?.install) && !_isInNodeModules(opts.dir)) {
+      throw missingDepError(depOpts);
+    }
+    consola.warn(`\`${name}\` is not installed. It is required for ${reason}.`);
   }
 }
 
@@ -212,8 +225,8 @@ async function _ensureDep(opts: ResolvedDepOptions): Promise<string | undefined>
   }
 
   let shouldInstall: boolean | undefined;
-  if (isTest) {
-    shouldInstall = false; // Do not install dependencies in test mode
+  if (isTest || !_canInstall(opts.deps?.install)) {
+    shouldInstall = false;
   } else if (opts.autoInstall) {
     consola.info(`\`${opts.id}\` is required for ${opts.reason}. Installing automatically...`);
     shouldInstall = true;
@@ -253,6 +266,11 @@ async function _ensureDep(opts: ResolvedDepOptions): Promise<string | undefined>
     consola.warn(`Installed \`${opts.id}\` in ${opts.dir}, but it cannot be resolved from there.`);
   }
   return installed;
+}
+
+/** Whether missing dependencies may be installed (the `deps.install` option, off in CI by default). */
+function _canInstall(install: boolean | undefined): boolean {
+  return install ?? !isCI;
 }
 
 /** Whether a directory is inside `node_modules` (e.g. the `rootDir` of a framework built on Nitro). */
