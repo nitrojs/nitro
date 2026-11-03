@@ -36,8 +36,13 @@ export async function buildProduction(
     if (stats?.hasWarnings()) {
       nitro.logger.warn(stats.toString("errors-warnings"));
     }
-    // Split initial chunks (`_libs/*`) come first in the files of the entrypoint
-    const entryChunk = stats?.compilation.entrypoints.get("index")?.getEntrypointChunk();
+    // Split initial chunks (`_libs/*`) come first in the files of the entrypoint. The entry is
+    // `index` unless `rspackConfig.entry` replaces it (a single string entry is named `main`).
+    const entrypoints = stats?.compilation.entrypoints;
+    const entrypoint =
+      entrypoints?.get("index") ??
+      (entrypoints?.size === 1 ? [...entrypoints.values()][0] : undefined);
+    const entryChunk = entrypoint?.getEntrypointChunk();
     entryFileName = [...(entryChunk?.files || [])].find((file) => /\.m?js$/.test(file));
   }
 

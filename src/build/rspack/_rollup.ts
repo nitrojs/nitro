@@ -159,10 +159,15 @@ function matchExternal(options: ExternalOption[]) {
         continue;
       }
       const patterns = Array.isArray(option) ? option : [option];
-      if (patterns.some((p) => (typeof p === "string" ? p === source : p.test(source)))) {
+      if (patterns.some((p) => (typeof p === "string" ? p === source : testRegExp(p, source)))) {
         return true;
       }
     }
     return false;
   };
+}
+
+function testRegExp(re: RegExp, value: string): boolean {
+  re.lastIndex = 0;
+  return re.test(value);
 }

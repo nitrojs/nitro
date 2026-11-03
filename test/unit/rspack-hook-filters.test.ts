@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolve } from "pathe";
-import { matchFilter } from "../../src/build/rspack/_hooks.ts";
+import { matchFilter, unsupportedHooks } from "../../src/build/rspack/_hooks.ts";
 
 describe("rspack: hook filters", () => {
   it("matches `id` strings as globs (like Rollup)", () => {
@@ -21,5 +21,20 @@ describe("rspack: hook filters", () => {
     expect(matchFilter("import.meta.dev", "if (import.meta.dev) {}", true)).toBe(true);
     expect(matchFilter({ exclude: "process.env" }, "process.env.FOO", true)).toBe(false);
     expect(matchFilter("**", "code", true)).toBe(false);
+  });
+});
+
+describe("rspack: unsupported hooks", () => {
+  it("reports hooks affecting the output only", () => {
+    const plugin = {
+      name: "test",
+      api: { query: () => {} },
+      options: () => {},
+      transform: () => {},
+      augmentChunkHash: () => {},
+      resolveDynamicImport: { handler: () => {} },
+    };
+    expect(unsupportedHooks(plugin as any)).toEqual(["augmentChunkHash", "resolveDynamicImport"]);
+    expect(unsupportedHooks({ name: "test", api: () => {} } as any)).toEqual([]);
   });
 });

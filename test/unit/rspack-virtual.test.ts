@@ -22,6 +22,7 @@ describe("rspack: virtual placeholders", () => {
   it("keeps the extension of TypeScript virtual modules", () => {
     expect(virtual.toRequest("\0virtual:app.tsx")).toMatch(/\.tsx$/);
     expect(virtual.toRequest("\0virtual:app")).toMatch(/\.mjs$/);
+    expect(virtual.toRequest("\0virtual:app.ts?variant")).toMatch(/\.ts$/);
   });
 
   it("leaves existing files and other resources as is", () => {

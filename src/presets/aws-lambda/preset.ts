@@ -14,7 +14,12 @@ const awsLambda = defineNitroPreset(
           return;
         }
         if (buildConfig.builder === "rspack") {
-          (buildConfig.rspack.entry as Record<string, string>).index += "-streaming";
+          const rspack = buildConfig.rspack;
+          if (typeof rspack.entry === "string") {
+            rspack.entry += "-streaming";
+          } else {
+            (rspack.entry as Record<string, string>).index += "-streaming";
+          }
           return;
         }
         const config = buildConfig.rollup ?? buildConfig.rolldown;

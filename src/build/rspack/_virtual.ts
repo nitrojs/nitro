@@ -50,7 +50,7 @@ export class VirtualPlaceholders {
     const name = id.replace(/[^\w.-]+/g, "_").slice(-50);
     const hash = createHash("sha256").update(id).digest("hex").slice(0, 8);
     // TypeScript and JSX virtual modules keep their extension (compiled by the SWC loader)
-    const ext = /\.(?:[cm]?tsx?|jsx)$/.exec(id)?.[0] || ".mjs";
+    const ext = /\.(?:[cm]?tsx?|jsx)$/.exec(path)?.[0] || ".mjs";
     const placeholder = join(this.dir, `${hash}-${name}${ext}`);
     if (!this.ids.has(placeholder)) {
       this.ids.set(placeholder, id);

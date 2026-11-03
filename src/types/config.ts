@@ -851,7 +851,7 @@ export interface NitroOptions extends PresetOptions {
   deps?: NitroDepsOptions;
 
   /**
-   * Build plugins, applied with every builder (`rollup`, `rolldown`, `vite` and `false`).
+   * Build plugins, applied with every builder (`rollup`, `rolldown`, `rspack`, `vite` and `false`).
    *
    * Plugins use the Rollup plugin interface. Only the `resolveId`, `load` and `transform` hooks
    * are supported by all builders; with `builder: false`, plugins run in
