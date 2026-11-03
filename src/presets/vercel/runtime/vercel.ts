@@ -1,10 +1,10 @@
 import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitropack/runtime";
+import { useNitroApp, useRuntimeConfig } from "nitropack/runtime";
 // @ts-ignore
 import { getRouteRulesForPath } from "nitropack/runtime/internal/index";
 import type { NitroRouteRules } from "nitropack/types";
 import { type NodeListener, toNodeListener } from "h3";
-import { parseQuery, withQuery } from "ufo";
+import { parseQuery, withQuery, withoutBase } from "ufo";
 import { ISR_URL_PARAM } from "./consts";
 
 const nitroApp = useNitroApp();
@@ -28,7 +28,10 @@ const listener: NodeListener = function (req, res) {
   const url = headerURL && typeof headerURL === "string" ? headerURL : queryURL;
 
   if (url && typeof url === "string") {
-    const routeRules = getRouteRulesForPath(url) as NitroRouteRules;
+    // Route rules are relative to the baseURL, as in `getRouteRules`
+    const routeRules = getRouteRulesForPath(
+      withoutBase(url, useRuntimeConfig().app.baseURL)
+    ) as NitroRouteRules;
     if (routeRules.isr) {
       // Keep `allowQuery` params, which Vercel forwards on the request URL.
       // Other `x-now-route-matches` entries are route capture groups, not
