@@ -85,10 +85,7 @@ describe("createScheduleHandler", () => {
 });
 
 describe("createCronHandler", () => {
-  const schedules = [
-    { name: "db.migrate", schedule: "0 3 * * *", task: "db:migrate" },
-    { name: "cleanup", schedule: "0 3 * * *", task: "cleanup" },
-  ];
+  const schedules = { "db.migrate": "db:migrate", cleanup: "cleanup" };
 
   it("runs only the task of a schedule dispatch", async () => {
     const res = await fetchHandler(createCronHandler(schedules), {
@@ -104,8 +101,8 @@ describe("createCronHandler", () => {
       headers: { "x-vercel-cron-schedule": "0 3 * * *" },
     });
     expect(res.status).toBe(200);
-    expect(runTask.mock.calls.map((c) => c[0])).toEqual(["db:migrate", "cleanup"]);
-    expect(runCronTasks).not.toHaveBeenCalled();
+    expect(runCronTasks).toHaveBeenCalledWith("0 3 * * *", expect.any(Object));
+    expect(runTask).not.toHaveBeenCalled();
   });
 
   it("runs cron tasks without schedules", async () => {

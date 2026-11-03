@@ -508,6 +508,17 @@ export interface NitroOptions extends PresetOptions {
   scheduledTasks: { [cron: string]: string | string[] };
 
   /**
+   * Run `scheduledTasks` in-process with the built-in scheduler, in presets that support it.
+   *
+   * Set to `false` when an external scheduler invokes the scheduled tasks instead. The tasks
+   * stay registered, so `runCronTasks()` and the `/_nitro/tasks` dev route keep working.
+   *
+   * @default true
+   * @see https://nitro.build/docs/tasks#scheduled-tasks
+   */
+  scheduledTasksRunner?: boolean;
+
+  /**
    * Virtual module definitions.
    *
    * A map from dynamic virtual import names to their contents or an async

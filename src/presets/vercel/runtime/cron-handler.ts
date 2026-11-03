@@ -10,10 +10,7 @@ import { SCHEDULE_EVENT_TYPE } from "./schedule-handler.ts";
  * headers, so a known schedule name runs only its own task. Other requests, including
  * Cron Jobs, run every task of the `x-vercel-cron-schedule` expression.
  */
-export function createCronHandler(schedules?: { name: string; schedule: string; task: string }[]) {
-  const scheduleTasks: Record<string, string> = Object.fromEntries(
-    (schedules || []).map((s) => [s.name, s.task])
-  );
+export function createCronHandler(scheduleTasks: Record<string, string> = {}) {
   return defineHandler(async (event) => {
     // Validate CRON_SECRET if set - https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs
     const cronSecret = process.env.CRON_SECRET;
@@ -48,11 +45,7 @@ export function createCronHandler(schedules?: { name: string; schedule: string; 
       throw new HTTPError("Missing x-vercel-cron-schedule header", { status: 400 });
     }
 
-    // With Vercel Schedules, run the scheduled tasks of the expression from the schedules,
-    // since the in-process scheduler no longer knows about them in `vercel dev`.
-    await (schedules
-      ? Promise.all(schedules.filter((s) => s.schedule === cron).map((s) => runTask(s.task, ctx)))
-      : runCronTasks(cron, ctx));
+    await runCronTasks(cron, ctx);
 
     return { success: true };
   });

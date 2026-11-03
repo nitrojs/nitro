@@ -96,12 +96,11 @@ export function isVercelSchedulesEnabled(
  * expressions gets a stable suffix derived from each expression.
  */
 export function getVercelTaskSchedules(
-  options: Pick<NitroOptions, "scheduledTasks" | "tasks">,
-  scheduledTasks = options.scheduledTasks
+  options: Pick<NitroOptions, "scheduledTasks" | "tasks">
 ): VercelTaskSchedule[] {
   const entries: { cron: string; task: string }[] = [];
   const cronsPerTask = new Map<string, number>();
-  for (const [cron, value] of Object.entries(scheduledTasks || {})) {
+  for (const [cron, value] of Object.entries(options.scheduledTasks || {})) {
     for (const task of new Set(Array.isArray(value) ? value : [value])) {
       if (!options.tasks[task]) {
         continue;
@@ -129,10 +128,7 @@ export function getVercelTaskSchedules(
 }
 
 /** Build Output API `schedules` entries for the scheduled tasks. */
-export function getVercelBuildOutputSchedules(
-  nitro: Nitro,
-  scheduledTasks = nitro.options.scheduledTasks
-): Record<string, VercelSchedule> {
+export function getVercelBuildOutputSchedules(nitro: Nitro): Record<string, VercelSchedule> {
   const mode = getVercelSchedulesMode(nitro.options);
   if (!mode) {
     return {};
@@ -142,7 +138,7 @@ export function getVercelBuildOutputSchedules(
       ? { path: joinURL(nitro.options.baseURL, getCronHandlerRoute(nitro)) }
       : { function: getScheduleFunctionPath(nitro) };
   return Object.fromEntries(
-    getVercelTaskSchedules(nitro.options, scheduledTasks).map(({ name, schedule }) => [
+    getVercelTaskSchedules(nitro.options).map(({ name, schedule }) => [
       name,
       { schedule, ...target },
     ])
@@ -155,7 +151,11 @@ export function getVercelBuildOutputSchedules(
  */
 export function setupVercelSchedules(nitro: Nitro) {
   const mode = getVercelSchedulesMode(nitro.options);
-  if (!mode || getVercelTaskSchedules(nitro.options).length === 0) {
+  if (
+    !mode ||
+    hasVercelDevScheduleBroker(nitro) ||
+    getVercelTaskSchedules(nitro.options).length === 0
+  ) {
     return;
   }
 
@@ -226,37 +226,33 @@ export interface VercelDevManifest {
  * broker then owns task scheduling instead of the in-process scheduler.
  */
 export function setupVercelSchedulesDev(nitro: Nitro) {
-  if (!process.env.VERCEL_SCHEDULE_DEV_API_VERSION) {
+  if (!hasVercelDevScheduleBroker(nitro)) {
     return;
   }
 
   const mode = getVercelSchedulesMode(nitro.options);
-  const scheduledTasks = nitro.options.scheduledTasks;
-  registerDevManifest(nitro, () => getVercelDevManifest(nitro, scheduledTasks));
+  registerDevManifest(nitro, () => getVercelDevManifest(nitro));
   if (!mode) {
     assertLocalDevRoutes(nitro, [DEV_MANIFEST_ROUTE]);
     return;
   }
 
-  registerScheduleHandler(nitro, mode, () => getVercelTaskSchedules(nitro.options, scheduledTasks));
+  registerScheduleHandler(nitro, mode, () => getVercelTaskSchedules(nitro.options));
   assertLocalDevRoutes(nitro, [
     DEV_MANIFEST_ROUTE,
     mode === "public" ? getCronHandlerRoute(nitro) : SCHEDULE_HANDLER_ROUTE,
   ]);
 
   // The broker invokes the handler on schedule, so the in-process scheduler must not.
-  nitro.options.scheduledTasks = {};
+  nitro.options.scheduledTasksRunner = false;
   nitro.logger
     .withTag("vercel")
     .info("Scheduled tasks are run by the `vercel dev` Schedules broker.");
 }
 
 /** The functions and schedules that `vercel dev` registers with its local Schedules broker. */
-export function getVercelDevManifest(
-  nitro: Nitro,
-  scheduledTasks = nitro.options.scheduledTasks
-): VercelDevManifest {
-  const schedules = getVercelBuildOutputSchedules(nitro, scheduledTasks);
+export function getVercelDevManifest(nitro: Nitro): VercelDevManifest {
+  const schedules = getVercelBuildOutputSchedules(nitro);
   if (Object.keys(schedules).length === 0 || getVercelSchedulesMode(nitro.options) === "public") {
     return { functions: [], schedules };
   }
@@ -292,14 +288,11 @@ function registerScheduleHandler(
       ? [join(presetsDir, "vercel/runtime/cron-handler"), "createCronHandler"]
       : [join(presetsDir, "vercel/runtime/schedule-handler"), "createScheduleHandler"];
   nitro.options.virtual[SCHEDULE_HANDLER_ID] = () => {
-    const schedules = getSchedules();
+    const scheduleTasks = Object.fromEntries(getSchedules().map((s) => [s.name, s.task]));
     const args =
       mode === "public"
-        ? [schedules]
-        : [
-            Object.fromEntries(schedules.map((s) => [s.name, s.task])),
-            requireFunctionEnv ? { functionEnv: SCHEDULE_FUNCTION_ENV } : {},
-          ];
+        ? [scheduleTasks]
+        : [scheduleTasks, requireFunctionEnv ? { functionEnv: SCHEDULE_FUNCTION_ENV } : {}];
     return /* js */ `
 import { ${factory} } from "${handlerPath}";
 export default ${factory}(${args.map((arg) => JSON.stringify(arg)).join(", ")});
@@ -342,6 +335,14 @@ function assertLocalDevRoutes(nitro: Nitro, routes: string[]) {
       });
     }
   }
+}
+
+/**
+ * Whether `vercel dev` runs its local Schedules broker, which then owns scheduling in dev and
+ * is served by {@link setupVercelSchedulesDev}.
+ */
+function hasVercelDevScheduleBroker(nitro: Nitro): boolean {
+  return nitro.options.dev && !!process.env.VERCEL_SCHEDULE_DEV_API_VERSION;
 }
 
 function toScheduleName(task: string): string {

@@ -2,7 +2,7 @@ import { Cron } from "croner";
 import { HTTPError } from "h3";
 import type { Task, TaskContext, TaskEvent, TaskPayload, TaskResult } from "nitro/types";
 import { useNitroApp, useNitroHooks } from "./app.ts";
-import { scheduledTasks, tasks } from "#nitro/virtual/tasks";
+import { scheduledTasks, scheduleRunner, tasks } from "#nitro/virtual/tasks";
 
 /** @experimental */
 export function defineTask<RT = unknown>(def: Task<RT>): Task<RT> {
@@ -57,7 +57,7 @@ export function startScheduleRunner({
 }: {
   waitUntil?: ((promise: Promise<unknown>) => void) | undefined;
 } = {}): void {
-  if (!scheduledTasks || scheduledTasks.length === 0 || process.env.TEST) {
+  if (!scheduleRunner || !scheduledTasks || scheduledTasks.length === 0 || process.env.TEST) {
     return;
   }
 

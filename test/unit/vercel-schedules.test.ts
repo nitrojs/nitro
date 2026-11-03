@@ -270,17 +270,18 @@ describe("setupVercelSchedulesDev", () => {
 
   it("keeps the in-process scheduler without the vercel dev broker", () => {
     vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", undefined);
-    const nitro = createNitro();
+    const nitro = createNitro("private", { dev: true });
     setupVercelSchedulesDev(nitro);
-    expect(nitro.options.scheduledTasks).toEqual({ "0 3 * * *": "cleanup" });
+    expect(nitro.options.scheduledTasksRunner).toBeUndefined();
     expect(nitro.options.handlers).toEqual([]);
   });
 
   it("hands scheduling over to the vercel dev broker", async () => {
     vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", "1");
-    const nitro = createNitro();
+    const nitro = createNitro("private", { dev: true });
     setupVercelSchedulesDev(nitro);
-    expect(nitro.options.scheduledTasks).toEqual({});
+    expect(nitro.options.scheduledTasksRunner).toBe(false);
+    expect(nitro.options.scheduledTasks).toEqual({ "0 3 * * *": "cleanup" });
     expect(nitro.options.handlers).toEqual([
       expect.objectContaining({
         route: "/_vercel/dev-manifest",
@@ -296,11 +297,16 @@ describe("setupVercelSchedulesDev", () => {
       "#nitro/virtual/vercel-schedule-handler"
     ] as () => string;
     expect(template()).toContain(`createScheduleHandler({"cleanup":"cleanup"}, {})`);
+
+    // The build-time setup leaves the dev handler to `setupVercelSchedulesDev`
+    setupVercelSchedules(nitro);
+    expect(nitro.options.handlers).toHaveLength(2);
+    expect(template()).toContain(`createScheduleHandler({"cleanup":"cleanup"}, {})`);
   });
 
   it("restricts the dev routes to local requests", () => {
     vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", "1");
-    const nitro = createNitro("private", { baseURL: "/app/" });
+    const nitro = createNitro("private", { baseURL: "/app/", dev: true });
     setupVercelSchedulesDev(nitro);
     expect(nitro.options.devHandlers.map((h) => [h.route, h.middleware])).toEqual([
       ["/app/_vercel/dev-manifest", true],
@@ -319,7 +325,7 @@ describe("setupVercelSchedulesDev", () => {
 
   it("serves the dev manifest for vercel dev", () => {
     vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", "1");
-    const nitro = createNitro();
+    const nitro = createNitro("private", { dev: true });
     setupVercelSchedulesDev(nitro);
     const template = nitro.options.virtual["#nitro/virtual/vercel-dev-manifest"] as () => string;
     expect(template()).toContain(
@@ -338,9 +344,9 @@ describe("setupVercelSchedulesDev", () => {
 
   it("serves an empty dev manifest without the opt-in", () => {
     vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", "1");
-    const nitro = createNitro(false);
+    const nitro = createNitro(false, { dev: true });
     setupVercelSchedulesDev(nitro);
-    expect(nitro.options.scheduledTasks).toEqual({ "0 3 * * *": "cleanup" });
+    expect(nitro.options.scheduledTasksRunner).toBeUndefined();
     expect(nitro.options.handlers).toEqual([
       expect.objectContaining({ route: "/_vercel/dev-manifest" }),
     ]);
@@ -350,9 +356,9 @@ describe("setupVercelSchedulesDev", () => {
 
   it("serves the cron handler for path targets", () => {
     vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", "1");
-    const nitro = createNitro("public");
+    const nitro = createNitro("public", { dev: true });
     setupVercelSchedulesDev(nitro);
-    expect(nitro.options.scheduledTasks).toEqual({});
+    expect(nitro.options.scheduledTasksRunner).toBe(false);
     expect(nitro.options.handlers).toEqual([
       expect.objectContaining({ route: "/_vercel/dev-manifest" }),
       expect.objectContaining({ route: "/_vercel/cron" }),
@@ -360,9 +366,7 @@ describe("setupVercelSchedulesDev", () => {
     const template = nitro.options.virtual[
       "#nitro/virtual/vercel-schedule-handler"
     ] as () => string;
-    expect(template()).toContain(
-      `createCronHandler([{"name":"cleanup","schedule":"0 3 * * *","task":"cleanup"}])`
-    );
+    expect(template()).toContain(`createCronHandler({"cleanup":"cleanup"})`);
     expect(nitro.options.devHandlers.map((h) => h.route)).toContain("/_vercel/cron");
   });
 });
