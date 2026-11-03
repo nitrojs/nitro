@@ -508,15 +508,23 @@ export interface NitroOptions extends PresetOptions {
   scheduledTasks: { [cron: string]: string | string[] };
 
   /**
-   * Run `scheduledTasks` in-process with the built-in scheduler, in presets that support it.
+   * Scheduler options for `scheduledTasks`.
    *
-   * Set to `false` when an external scheduler invokes the scheduled tasks instead. The tasks
-   * stay registered, so `runCronTasks()` and the `/_nitro/tasks` dev route keep working.
-   *
-   * @default true
-   * @see https://nitro.build/docs/tasks#scheduled-tasks
+   * @see https://nitro.build/config/features#tasksscheduler
    */
-  scheduledTasksRunner?: boolean;
+  tasksScheduler: {
+    /**
+     * Run `scheduledTasks` in-process with the built-in cron runner, in presets that use it
+     * (`dev`, `node_*`, `bun` and `deno_server`).
+     *
+     * Set to `false` when something else invokes the scheduled tasks, such as a system cron.
+     * The tasks stay registered, so `runCronTasks()` and the `/_nitro/tasks` dev route keep
+     * working. Platform schedules (Cloudflare Cron Triggers, Vercel Cron Jobs) are not affected.
+     *
+     * @default true
+     */
+    runner?: boolean;
+  };
 
   /**
    * Virtual module definitions.

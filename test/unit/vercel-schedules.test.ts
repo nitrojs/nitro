@@ -17,6 +17,7 @@ function options(overrides: Partial<NitroOptions> = {}): NitroOptions {
     experimental: { tasks: true },
     tasks: {},
     scheduledTasks: {},
+    tasksScheduler: {},
     vercel: {},
     ...overrides,
   } as NitroOptions;
@@ -264,7 +265,7 @@ describe("setupVercelSchedulesDev", () => {
     vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", undefined);
     const nitro = createNitro("private", { dev: true });
     setupVercelSchedulesDev(nitro);
-    expect(nitro.options.scheduledTasksRunner).toBeUndefined();
+    expect(nitro.options.tasksScheduler.runner).toBeUndefined();
     expect(nitro.options.handlers).toEqual([]);
   });
 
@@ -272,7 +273,7 @@ describe("setupVercelSchedulesDev", () => {
     vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", "1");
     const nitro = createNitro("private", { dev: true });
     setupVercelSchedulesDev(nitro);
-    expect(nitro.options.scheduledTasksRunner).toBe(false);
+    expect(nitro.options.tasksScheduler.runner).toBe(false);
     expect(nitro.options.scheduledTasks).toEqual({ "0 3 * * *": "cleanup" });
     expect(nitro.options.handlers).toEqual([
       expect.objectContaining({
@@ -333,7 +334,7 @@ describe("setupVercelSchedulesDev", () => {
     vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", "1");
     const nitro = createNitro(false, { dev: true });
     setupVercelSchedulesDev(nitro);
-    expect(nitro.options.scheduledTasksRunner).toBeUndefined();
+    expect(nitro.options.tasksScheduler.runner).toBeUndefined();
     expect(nitro.options.handlers).toEqual([
       expect.objectContaining({ route: "/_vercel/dev-manifest" }),
     ]);
@@ -345,7 +346,7 @@ describe("setupVercelSchedulesDev", () => {
     vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", "1");
     const nitro = createNitro("public", { dev: true });
     setupVercelSchedulesDev(nitro);
-    expect(nitro.options.scheduledTasksRunner).toBe(false);
+    expect(nitro.options.tasksScheduler.runner).toBe(false);
     expect(nitro.options.handlers).toEqual([
       expect.objectContaining({ route: "/_vercel/dev-manifest" }),
       expect.objectContaining({ route: "/_vercel/cron" }),
