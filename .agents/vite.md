@@ -110,7 +110,7 @@ Nitro uses Vite 6+ environments API for multi-bundle builds:
 - Watches Nitro config file for changes (triggers full restart)
 - WebSocket upgrade handling
 - File watchers for route/API/middleware directories (debounced reload)
-- RPC for `transformHTML` messages
+- Page template (`_page-template-dev.ts`): `transformIndexHtml` output compiled into `#nitro/virtual/renderer-template`; transformed again on the first request routed to the renderer after any file change. When it changed, the module alone is invalidated in the worker (`nitro:invalidate`, acknowledged) before dispatching: the dev renderer route imports it on each request, so the app is not reloaded. Other requests never wait
 
 ### Dev Middleware (`nitroDevMiddleware`)
 Two-stage request routing:
@@ -140,10 +140,9 @@ Browser → Vite Dev Server
 - Service environments (SSR, API, custom)
 - Detailed logging per environment
 
-**Stage 2: Renderer template processing**
-- If client input == renderer template, replaces SSR outlet
-- Inlines `globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST)`
-- Moves processed template to build dir
+**Stage 2: Page template**
+- If client input == renderer template, the built client HTML is passed in memory (`nitro._pageTemplate.html`)
+- Core compiles it into `#nitro/virtual/renderer-template`, rendering the SSR outlet with `fetchViteEnv("ssr")`
 
 **Stage 3: Asset management**
 - Calls `builder.writeAssetsManifest?.()`

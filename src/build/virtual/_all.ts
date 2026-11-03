@@ -21,6 +21,7 @@ import tracing from "./tracing.ts";
 type VirtualTemplate = {
   id: string;
   template: string | (() => string | Promise<string>);
+  watchFiles?: () => string[];
 };
 
 export function virtualTemplates(nitro: Nitro, _polyfills: string[]): VirtualTemplate[] {

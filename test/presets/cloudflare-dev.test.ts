@@ -147,6 +147,22 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
       }
     });
 
+    // Compiled at build time (workerd disallows runtime code generation), rebuilt on changes
+    it.runIf(mode === "nitro" || mode === "vite")("reloads the index.html template", async () => {
+      const path = resolve(rootDir, "index.html");
+      const source = await readFile(path, "utf8");
+      const body = async () => (await fetchPath("/edited")).text();
+      try {
+        await writeFile(path, source.replace("<h1>cloudflare-dev</h1>", "<h1>edited</h1>"));
+        await expect.poll(body, reloadPoll).toContain("<h1>edited</h1>");
+        expect(await body()).toContain("<p>path: /edited</p>");
+      } finally {
+        await waitForWatcher();
+        await writeFile(path, source);
+        await expect.poll(body, reloadPoll).toContain("<h1>cloudflare-dev</h1>");
+      }
+    });
+
     it.runIf(mode === "nitro")("keeps binding state across reloads", async () => {
       await reload!();
       const response = await fetchPath("/kv");

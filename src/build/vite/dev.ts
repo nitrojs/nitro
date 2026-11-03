@@ -6,20 +6,19 @@ import type { Socket } from "node:net";
 
 import { IncomingMessage, ServerResponse } from "node:http";
 import type { Http2ServerResponse } from "node:http2";
-import { readFile } from "node:fs/promises";
 import { statSync } from "node:fs";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { createViteHotChannel } from "env-runner/vite";
 import { isAbsolute, join, relative } from "pathe";
 import { debounce } from "perfect-debounce";
 import { withBase, withoutBase } from "ufo";
-import { handleDevRPC } from "../../dev/_rpc.ts";
 import { withDevErrorRecovery } from "../../dev/_error-recovery.ts";
 import { DevReloadSignal } from "../../dev/_reload-signal.ts";
 import { writeDevBuildInfo } from "../info.ts";
 import { rescanHandlers, watchScanDirs } from "./_scan-watch.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
 import { _isWorkerdRunner } from "./env.ts";
+import { setupDevPageTemplate } from "./_page-template-dev.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -181,7 +180,14 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   // answers waiting error pages, which would otherwise hold a middleware mode host server open.
   const reloadSignal = new DevReloadSignal();
   ctx.devApp!.reloadSignal = reloadSignal;
-  nitroEnv.onClose = () => reloadSignal.close();
+
+  // Page template, compiled into the renderer template module
+  const pageTemplate = setupDevPageTemplate(ctx, server, nitroEnv);
+
+  nitroEnv.onClose = () => {
+    reloadSignal.close();
+    pageTemplate.close();
+  };
 
   // Restart with nitro.config changes
   const nitroConfigFile = nitro.options._c12.configFile;
@@ -251,26 +257,6 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     }
   });
 
-  // Worker => Host RPC
-  nitroEnv.devServer.onMessage((message) =>
-    handleDevRPC(message, {
-      sendMessage: (message) => nitroEnv.devServer.sendMessage(message),
-      handlers: {
-        transformHTML: async (html: string) => {
-          const template = nitro.options.renderer?.template;
-          html =
-            (await _readBundledHTML(server, template)) ??
-            (await server.transformIndexHtml(_htmlTemplateURL(template, server.config.root), html));
-          return html.replace(
-            "<!--ssr-outlet-->",
-            `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
-          );
-        },
-        rendererTemplate: () => readFile(nitro.options.renderer!.template!, "utf8"),
-      },
-    })
-  );
-
   const nitroDevMiddleware = async (
     nodeReq: NitroDevRequest,
     nodeRes: ServerResponse,
@@ -306,6 +292,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       }
 
       // Dispatch the request to the nitro environment
+      await pageTemplate.sync(req);
       const envRes = await nitroEnv.dispatchFetch(req);
       if (nodeRes.writableEnded || nodeRes.headersSent) {
         return;
@@ -497,35 +484,6 @@ export function matchesMiddlewareRoute(route: string | undefined, url: string): 
   }
   const boundary = path[route.length];
   return !boundary || boundary === "/" || boundary === ".";
-}
-
-// Vite derives the HTML file path from the URL, which relative imports (e.g. in inline `<style>`) resolve against.
-function _htmlTemplateURL(template: string | undefined, root: string): string {
-  if (!template) {
-    return "/index.html";
-  }
-  const path = relative(root, template);
-  return path.startsWith("../") || isAbsolute(path) ? join("/@fs", template) : `/${path}`;
-}
-
-// Bundled dev only emits the template when it is a client build input (no custom client entry).
-async function _readBundledHTML(
-  server: ViteDevServer,
-  template: string | undefined
-): Promise<string | undefined> {
-  const bundledDev = server.environments.client.bundledDev;
-  if (!bundledDev) {
-    return;
-  }
-  // `devEngine` is internal to Vite (no public API to wait for the latest output).
-  await bundledDev["devEngine"].ensureLatestBuildOutput();
-  const file = bundledDev.memoryFiles.get(
-    relative(server.config.root, template || join(server.config.root, "index.html"))
-  );
-  if (!file) {
-    return;
-  }
-  return typeof file.source === "string" ? file.source : Buffer.from(file.source).toString("utf8");
 }
 
 // `Http2ServerResponse` (Vite with `server.https`) has no `destroyed`; its stream does.

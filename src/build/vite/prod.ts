@@ -1,16 +1,16 @@
 import type { ViteBuilder } from "vite";
 import type { NitroPluginContext } from "./types.ts";
 
-import { basename, dirname, resolve } from "pathe";
+import { basename, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
 import { colors as C } from "consola/utils";
 import { copyPublicAssets, prerender } from "../../builder.ts";
 import { compressPublicAssets } from "../../utils/compress.ts";
 import { existsSync } from "node:fs";
 import { writeBuildInfo } from "../info.ts";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
 import { isTest, isCI } from "std-env";
-import { readBuiltServiceEntry } from "./services.ts";
+import { readBuiltServiceEntry, ssrFetchService } from "./services.ts";
 import { writeAssetsManifest } from "./_assets-build.ts";
 import type { RolldownOutput } from "rolldown";
 
@@ -52,22 +52,22 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
     await builder.build(env);
   }
 
-  // Use transformed client input for renderer template generation
-  const nitroOptions = ctx.nitro!.options;
+  // Page template: the client HTML built by Vite when the renderer template is the client input
+  const template = nitro.options.renderer?.template;
   const clientInput = builder.environments.client?.config?.build?.rollupOptions?.input;
-  if (nitroOptions.renderer?.template && nitroOptions.renderer?.template === clientInput) {
-    const outputPath = resolve(nitroOptions.output.publicDir, basename(clientInput as string));
+  let pageHTML: string | undefined;
+  if (template && template === clientInput) {
+    const outputPath = resolve(nitro.options.output.publicDir, basename(template));
     if (existsSync(outputPath)) {
-      const html = await readFile(outputPath, "utf8").then((r) =>
-        r.replace("<!--ssr-outlet-->", `{{{ fetchViteEnv("ssr", $REQUEST) || "" }}}`)
-      );
+      pageHTML = await readFile(outputPath, "utf8");
       await rm(outputPath);
-      const tmp = resolve(nitroOptions.buildDir, "vite/index.html");
-      await mkdir(dirname(tmp), { recursive: true });
-      await writeFile(tmp, html, "utf8");
-      nitroOptions.renderer.template = tmp;
     }
   }
+  nitro._pageTemplate = {
+    ...nitro._pageTemplate,
+    html: pageHTML === undefined ? undefined : () => pageHTML,
+    fetchService: ssrFetchService(ctx),
+  };
 
   // Write the manifest of `?assets` imports (server environments import it)
   if (ctx._assetsImport) {

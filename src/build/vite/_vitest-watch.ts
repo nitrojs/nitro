@@ -5,6 +5,8 @@ import { normalize } from "pathe";
 import { debounce } from "perfect-debounce";
 import { rescanHandlers, watchScanDirs } from "./_scan-watch.ts";
 
+const RENDERER_TEMPLATE_ID = "#nitro/virtual/renderer-template";
+
 // Projects can share a Vite server (and so its plugins and module graph)
 const _watchedServers = new WeakSet<ViteDevServer>();
 
@@ -51,13 +53,9 @@ export function setupVitestWatch(
     },
   ];
 
-  // Added or removed handlers: rescan, then rerun the tests depending on virtual modules
-  const rescan = debounce(async () => {
-    await rescanHandlers(nitro, nitroEnv);
-    const virtualModules = [...nitroEnv.moduleGraph.idToModuleMap.values()].filter((mod) =>
-      mod.id?.startsWith("#nitro/virtual/")
-    );
-    let specs = [...affectedTests(virtualModules).tests].flatMap((file) =>
+  // Reruns the tests depending on modules (Vitest does not walk importers through virtual ones)
+  const rerun = async (modules: Iterable<EnvironmentModuleNode>) => {
+    let specs = [...affectedTests(modules).tests].flatMap((file) =>
       vitest.getModuleSpecifications(file)
     );
     // Same filter as Vitest's own watch reruns (`filenamePattern` is internal, set from the `p` prompt)
@@ -70,10 +68,38 @@ export function setupVitestWatch(
       await vitest.waitForTestRunEnd();
       await vitest.rerunTestSpecifications(specs);
     }
+  };
+
+  // Added or removed handlers: rescan, then rerun the tests depending on virtual modules
+  const rescan = debounce(async () => {
+    await rescanHandlers(nitro, nitroEnv);
+    await rerun(
+      [...nitroEnv.moduleGraph.idToModuleMap.values()].filter((mod) =>
+        mod.id?.startsWith("#nitro/virtual/")
+      )
+    );
   });
   watchScanDirs(nitro, server, () => {
     rescan().catch((error) => nitro.logger.error(error));
   });
+
+  // Renderer template: compiled into a virtual module
+  const template = nitro.options.renderer?.template;
+  if (template) {
+    const reloadTemplate = debounce(async () => {
+      const mod = nitroEnv.moduleGraph.getModuleById(RENDERER_TEMPLATE_ID);
+      if (mod) {
+        nitroEnv.moduleGraph.invalidateModule(mod);
+        await rerun([mod]);
+      }
+    });
+    server.watcher.add(template);
+    server.watcher.on("all", (event, file) => {
+      if (event !== "addDir" && event !== "unlinkDir" && normalize(file) === template) {
+        reloadTemplate().catch((error) => nitro.logger.error(error));
+      }
+    });
+  }
 
   // Nitro config: Vitest only restarts on its own config files (its `restart` reruns everything)
   const configFile = nitro.options._c12.configFile;
