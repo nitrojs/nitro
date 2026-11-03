@@ -2,7 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { consola } from "consola";
 import type { NitroOptions } from "nitro/types";
 import { resolve } from "pathe";
-import { assertBunRuntime, isBunRuntime } from "../../build/bun/_runtime.ts";
+import { isBun } from "std-env";
+import { assertBunRuntime } from "../../build/bun/_runtime.ts";
 import { resolveRolldown } from "../../build/rolldown/_import.ts";
 import { ensureDep, isDepInstalled } from "../../utils/dep.ts";
 
@@ -69,7 +70,7 @@ export async function resolveBuilder(options: NitroOptions) {
   // With the Bun runtime (`bun --bun`) and neither `rolldown` nor `vite` in the project, bundle with
   // `Bun.build` instead of installing rolldown (build) or running without a builder (dev)
   if (
-    isBunRuntime() &&
+    isBun &&
     !resolveRolldown(options.rootDir, { paths: options.deps?.paths }) &&
     !isDepInstalled("vite", { dir: options.rootDir, paths: options.deps?.paths })
   ) {

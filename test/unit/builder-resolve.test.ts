@@ -10,9 +10,11 @@ const state = vi.hoisted(() => ({
   bun: false,
 }));
 
-vi.mock("../../src/build/bun/_runtime.ts", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../src/build/bun/_runtime.ts")>()),
-  isBunRuntime: () => state.bun,
+vi.mock("std-env", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("std-env")>()),
+  get isBun() {
+    return state.bun;
+  },
 }));
 
 vi.mock("../../src/build/rolldown/_import.ts", async (importOriginal) => ({
@@ -109,11 +111,12 @@ describe("resolveBuilder", () => {
     expect(await resolve({ dev: false, builder: "vite" })).toBe("vite");
   });
 
-  it.runIf(process.versions.bun)("keeps an explicit bun builder with the Bun runtime", async () => {
+  it("keeps an explicit bun builder with the Bun runtime", async () => {
+    state.bun = true;
     expect(await resolve({ dev: false, builder: "bun" })).toBe("bun");
   });
 
-  it.skipIf(process.versions.bun)("rejects the bun builder without the Bun runtime", async () => {
+  it("rejects the bun builder without the Bun runtime", async () => {
     await expect(resolve({ dev: false, builder: "bun" })).rejects.toThrow(
       "The `bun` builder requires the Bun runtime"
     );
