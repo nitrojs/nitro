@@ -213,7 +213,7 @@ export default defineConfig({
 There are two modes:
 
 - **`"private"`** (recommended): schedules invoke a private `_vercel/tasks` function. It has no public route and only Vercel Schedules can invoke it, so you don't need `CRON_SECRET`. Requests to `/_vercel/tasks` that reach your public server get a `404`. To configure the function, for example its `maxDuration`, use [`vercel.functionRules`](#per-route-function-configuration) with the `/_vercel/tasks` key.
-- **`"public"`**: schedules invoke the public cron route (`/_vercel/cron`, or [`vercel.cronHandlerRoute`](#other-preset-options)). Use it if you also call that route yourself: direct requests keep working as with Cron Jobs, and `CRON_SECRET` is still checked. Set `CRON_SECRET`, otherwise anyone who can reach the route can run your scheduled tasks.
+- **`"public"`**: schedules invoke the public cron route (`/_vercel/cron`, or [`vercel.cronHandlerRoute`](#other-preset-options)) with a `GET` request, like Cron Jobs. Use it if you also call that route yourself: direct requests keep working as with Cron Jobs, and `CRON_SECRET` is still checked. Set `CRON_SECRET`, otherwise anyone who can reach the route can run your scheduled tasks.
 
 Compared to Cron Jobs:
 

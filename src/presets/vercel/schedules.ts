@@ -117,7 +117,10 @@ export function getVercelBuildOutputSchedules(nitro: Nitro): Record<string, Verc
   }
   const target =
     mode === "public"
-      ? { path: joinURL(nitro.options.baseURL, getCronHandlerRoute(nitro)) }
+      ? {
+          path: joinURL(nitro.options.baseURL, getCronHandlerRoute(nitro)),
+          requestMethod: "GET" as const,
+        }
       : { function: getScheduleFunctionPath(nitro) };
   return Object.fromEntries(
     getVercelTaskSchedules(nitro.options).map(({ name, schedule }) => [
@@ -129,7 +132,8 @@ export function getVercelBuildOutputSchedules(nitro: Nitro): Record<string, Verc
 
 /**
  * Registers the handler that Vercel Schedules invokes to run scheduled tasks: a private
- * function in `private` mode, or the public cron handler in `public` mode.
+ * function in `private` mode, or the public cron handler in `public` mode, which schedules
+ * invoke with `GET` like Vercel Cron Jobs.
  */
 export function setupVercelSchedules(nitro: Nitro) {
   const mode = getVercelSchedulesMode(nitro.options);
@@ -191,10 +195,10 @@ export function getCronHandlerRoute(nitro: Nitro): string {
  * function runs tasks: in dev, the `vercel dev` Schedules broker invokes the handler directly.
  */
 export function registerScheduleHandler(nitro: Nitro, mode: VercelSchedulesMode): string {
-  const [file, factory, route] =
+  const [file, factory, route, method] =
     mode === "public"
-      ? ["cron-handler", "createCronHandler", getCronHandlerRoute(nitro)]
-      : ["schedule-handler", "createScheduleHandler", SCHEDULE_HANDLER_ROUTE];
+      ? (["cron-handler", "createCronHandler", getCronHandlerRoute(nitro), "GET"] as const)
+      : (["schedule-handler", "createScheduleHandler", SCHEDULE_HANDLER_ROUTE] as const);
   const options =
     mode === "private" && !nitro.options.dev ? { functionEnv: SCHEDULE_FUNCTION_ENV } : {};
   nitro.options.virtual[SCHEDULE_HANDLER_ID] = () => {
@@ -206,7 +210,7 @@ import { ${factory} } from "${join(presetsDir, "vercel/runtime", file)}";
 export default ${factory}(${JSON.stringify(scheduleTasks)}, ${JSON.stringify(options)});
 `;
   };
-  nitro.options.handlers.push({ route, lazy: true, handler: SCHEDULE_HANDLER_ID });
+  nitro.options.handlers.push({ route, method, lazy: true, handler: SCHEDULE_HANDLER_ID });
   return route;
 }
 
