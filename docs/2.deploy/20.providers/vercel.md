@@ -194,6 +194,10 @@ To prevent unauthorized access to the cron handler, set a `CRON_SECRET` environm
 Vercel Schedules is in beta and must be enabled for your Vercel team.
 ::
 
+::note
+Vercel Schedules support is currently only available in the [nightly channel](/docs/nightly).
+::
+
 You can run your `scheduledTasks` with [Vercel Schedules](https://vercel.com/docs/schedules) instead of Cron Jobs. Your tasks and `scheduledTasks` config stay the same. Enable it in your Nitro config, or with the `NITRO_VERCEL_SCHEDULES=private` environment variable:
 
 ```ts [nitro.config.ts]
