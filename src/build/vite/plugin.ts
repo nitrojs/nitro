@@ -26,6 +26,7 @@ import {
 import { runtimeDir } from "#nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { mergeConfig } from "../../config/_merge.ts";
+import { NitroDefaults } from "../../config/defaults.ts";
 import { prettyPath } from "../../utils/fs.ts";
 import { escapeRegExp } from "../../utils/regex.ts";
 import { NitroDevApp } from "../../dev/app.ts";
@@ -274,7 +275,10 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         (scopeSelfAliases && /^nitro(\/|$)/.test(find)) ||
         (hostAliases.has(find) && hostAliases.get(find) !== replacement);
       ctx._nitroEnvAliases = aliases.filter(isScoped).map(([find]) => find);
+      // Client assets are served under the base URL of Nitro
+      const baseURL = useNitro(ctx).options.baseURL;
       return {
+        ...(userConfig.base === undefined && baseURL !== "/" && { base: baseURL }),
         appType: userConfig.appType || "custom",
         resolve: {
           alias: aliases
@@ -527,9 +531,19 @@ async function setupNitroContext(
     dotenvFileNames.push(`.env.${configEnv.mode}`, `.env.${configEnv.mode}.local`);
   }
 
-  // Initialize a new Nitro instance
+  // Initialize a new Nitro instance (a Vite `base` path is the default base URL)
+  // Vitest resets the Vite `base` to `/`, so it is not used there
+  const viteBase = ctx._isVitest ? undefined : getPathBase(userConfig.base);
   ctx.nitro =
-    providedNitro || (await createNitro(nitroConfig, { dotenv: { fileName: dotenvFileNames } }));
+    providedNitro ||
+    (await createNitro(nitroConfig, {
+      dotenv: { fileName: dotenvFileNames },
+      ...(viteBase && {
+        c12: {
+          defaults: { ...NitroDefaults, baseURL: process.env.NITRO_APP_BASE_URL || viteBase },
+        },
+      }),
+    }));
 
   // Install Vite plugin modules on the provided instance (`nitro build`)
   if (providedNitro && pluginModules.length > 0) {
@@ -727,5 +741,12 @@ async function flattenPlugins(userConfig: UserConfig, configEnv: ConfigEnv): Pro
 function applyInlineViteOptions(nitro: Nitro, nitroConfig: NitroConfig) {
   if (nitroConfig.vite) {
     nitro.options.vite = defu(nitroConfig.vite, nitro.options.vite);
+  }
+}
+
+/** Returns the Vite `base` when it is a path other than `/` (not relative or an external URL). */
+function getPathBase(base: string | undefined): string | undefined {
+  if (base && base !== "/" && base.startsWith("/") && !base.startsWith("//")) {
+    return base;
   }
 }

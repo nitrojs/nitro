@@ -129,7 +129,9 @@ describe("vite: dev error page recovery (base, middleware mode)", { concurrent: 
     });
     try {
       await server.listen("0" as unknown as number);
-      const origin = server.resolvedUrls!.local[0]!.replace(/\/$/, "");
+      // The Nitro `baseURL` is the Vite `base`
+      expect(server.config.base).toBe("/app/");
+      const origin = new URL(server.resolvedUrls!.local[0]!).origin;
       const res = await page(`${origin}/app/`);
       expect(res.status).toBe(500);
       const url = reloadURL(await res.text());

@@ -122,16 +122,23 @@ describe.each(["/", "/app/"])("vite:html template ?url assets (base: %s)", (base
   // missing one, so the response does not reveal whether it exists.
   // URL parsing (`fetch()`, `get(url)`) would normalize the dot segments, so send a raw path.
   test("does not probe files outside the root", async () => {
-    const res = await new Promise<IncomingMessage>((resolve, reject) => {
-      const path = `${base}%2e%2e/%2e%2e/%2e%2e/package.json`;
-      get({ host: addr.address, port: addr.port, path, headers: { accept: "*/*" } }, resolve).on(
-        "error",
-        reject
-      );
-    });
-    res.resume();
-    expect(res.statusCode).toBe(200);
-    expect(res.headers["content-type"]).toContain("text/html");
+    const request = (file: string) =>
+      new Promise<IncomingMessage>((resolve, reject) => {
+        const path = `${base}%2e%2e/%2e%2e/%2e%2e/${file}`;
+        get({ host: addr.address, port: addr.port, path, headers: { accept: "*/*" } }, (res) => {
+          res.resume();
+          resolve(res);
+        }).on("error", reject);
+      });
+    const [existing, missing] = await Promise.all([
+      request("package.json"),
+      request("missing.json"),
+    ]);
+    // Outside a Nitro `baseURL`, the renderer does not match and Nitro redirects into the base
+    expect(existing.statusCode).toBe(base === "/" ? 200 : 302);
+    expect(existing.statusCode).toBe(missing.statusCode);
+    expect(existing.headers["content-type"]).toBe(missing.headers["content-type"]);
+    expect(existing.headers["content-type"]).not.toContain("json");
   });
 
   // Vite does not serve root files outside its base, so the file probe must not run there
