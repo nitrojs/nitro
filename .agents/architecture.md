@@ -67,7 +67,7 @@ All prefixed `#nitro/virtual/<name>`:
 - `polyfills.ts` — Env polyfills
 - `feature-flags.ts` — Feature detection
 - `routing-meta.ts` — Route metadata (OpenAPI)
-- `renderer-template.ts` — SSR renderer
+- `renderer-template.ts` — Renderer template compiled at build time (dev too); page HTML from `renderer.template` or `nitro._pageTemplate` (builder integrations), `<!--ssr-outlet-->` rendered by the `ssr` service; the template file is a watch file of the module (bundlers rebuild on change)
 - `_all.ts` — Aggregator
 
 ## Configuration System (`src/config/`)

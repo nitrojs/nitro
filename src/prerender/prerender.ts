@@ -72,6 +72,7 @@ export async function prerender(nitro: Nitro) {
   const nitroRenderer = await createNitro(prerendererConfig, {
     c12: { envName: [nitro.options.envName, "prerender"] },
   });
+  nitroRenderer._pageTemplate = nitro._pageTemplate;
   const prerenderStartTime = Date.now();
   await nitro.hooks.callHook("prerender:init", nitroRenderer);
   await nitroRenderer.routing.sync();

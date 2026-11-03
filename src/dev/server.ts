@@ -18,7 +18,6 @@ import type { Nitro, WorkerAddress } from "nitro/types";
 import { HTTPError } from "h3";
 
 import consola from "consola";
-import { readFile } from "node:fs/promises";
 import { resolve } from "pathe";
 import { serve } from "srvx";
 import { debounce } from "perfect-debounce";
@@ -28,7 +27,6 @@ import { withDevErrorRecovery } from "./_error-recovery.ts";
 import { createWatcher } from "../utils/watch.ts";
 import { resolveRunnerDeps } from "./runner-deps.ts";
 import { shutdownRunner } from "./shutdown.ts";
-import { handleDevRPC } from "./_rpc.ts";
 import { createWorkerWebSocketProxy } from "./_proxy.ts";
 import { webSocketPlugin } from "./_ws.ts";
 import { writeDevBuildInfo } from "../build/info.ts";
@@ -142,16 +140,6 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
         );
       }
     });
-
-    // Worker => Host RPC
-    this.#manager.onMessage((message) =>
-      handleDevRPC(message, {
-        sendMessage: (message) => this.#manager.sendMessage(message),
-        handlers: {
-          rendererTemplate: () => readFile(nitro.options.renderer!.template!, "utf8"),
-        },
-      })
-    );
 
     nitro.hooks.hook("close", () => this.close());
 

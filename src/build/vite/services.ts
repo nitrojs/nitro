@@ -1,3 +1,4 @@
+import type { Nitro } from "nitro/types";
 import type { NitroPluginContext } from "./types.ts";
 import type { Plugin as VitePlugin } from "vite";
 import { readFile } from "node:fs/promises";
@@ -14,6 +15,13 @@ export async function readBuiltServiceEntry(outDir: string): Promise<string | un
   } catch {
     return undefined;
   }
+}
+
+/** Renders the `<!--ssr-outlet-->` of the page template with the `ssr` service (when defined). */
+export function ssrFetchService(
+  ctx: NitroPluginContext
+): NonNullable<Nitro["_pageTemplate"]>["fetchService"] {
+  return ctx.services.ssr ? { from: "nitro/vite/runtime", name: "fetchViteEnv" } : undefined;
 }
 
 export function viteServicesTemplate(ctx: NitroPluginContext): string {

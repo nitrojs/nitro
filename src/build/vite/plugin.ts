@@ -537,6 +537,9 @@ async function setupNitroContext(
     await installModules(providedNitro, pluginModules);
   }
 
+  // Page template context (the page HTML and the SSR outlet are set by dev and build)
+  ctx.nitro._pageTemplate = { context: [{ from: "nitro/vite/runtime", name: "fetchViteEnv" }] };
+
   // Register services from config
   ctx.services = { ...ctx.nitro.options.vite?.services };
 
