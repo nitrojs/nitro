@@ -60,7 +60,7 @@ export default defineCommand({
         dev: false,
         minify: args.minify,
         preset,
-        builder: args.builder as "rollup" | "rolldown" | "vite",
+        builder: args.builder as "rollup" | "rolldown" | "vite" | "bun",
         output: outputDir ? { dir: outputDir } : undefined,
       },
       {

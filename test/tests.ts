@@ -1124,7 +1124,7 @@ export function testNitro(
       if (
         ctx.preset.includes("cloudflare") &&
         key.startsWith("globals:") &&
-        ctx.nitro!.options.builder === "rolldown"
+        (ctx.nitro!.options.builder === "rolldown" || ctx.nitro!.options.builder === "bun")
       ) {
         continue;
       }

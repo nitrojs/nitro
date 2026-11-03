@@ -6,16 +6,18 @@ export default function routing(nitro: Nitro) {
   return {
     id: "#nitro/virtual/routing",
     template: async () => {
-      const allHandlers = uniqueBy(
-        [
-          ...Object.values(nitro.routing.routes.routes).flatMap((h) => h.data),
-          ...Object.values(nitro.routing.routedMiddleware.routes).map((h) => h.data),
-          ...nitro.routing.globalMiddleware,
-        ],
-        "_importHash"
-      );
+      const handlers = [
+        ...Object.values(nitro.routing.routes.routes).flatMap((h) => h.data),
+        ...Object.values(nitro.routing.routedMiddleware.routes).map((h) => h.data),
+        ...nitro.routing.globalMiddleware,
+      ];
+      const allHandlers = uniqueBy(handlers, "_importHash");
 
       const traceH3 = !!nitro.options.tracingChannel?.h3;
+
+      // Not imported otherwise: bundlers can keep the builtins it imports (e.g. Bun).
+      // Checked before deduplication: the same handler can be registered with another format
+      const hasNodeHandlers = handlers.some((h) => h.format === "node");
 
       const serverEntry = nitro.options.serverEntry;
       const webServerEntry =
@@ -30,8 +32,7 @@ export default function routing(nitro: Nitro) {
         preMerge: true,
       });
 
-      return /* js */ `
-import * as srvxNode from "srvx/node"
+      return /* js */ `${hasNodeHandlers ? `\nimport * as srvxNode from "srvx/node"` : ""}
 import * as h3 from "h3";${traceH3 ? `\nimport { wrapHandlerWithTracing } from "h3/tracing";` : ""}
 
 ${routeRulesModule}

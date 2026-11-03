@@ -81,13 +81,50 @@ export type RolldownConfig = OptionalDepType<
 };
 
 /**
+ * [`Bun.build`](https://bun.com/docs/bundler) options used by the `bun` builder.
+ *
+ * Nitro's build plugins run in a single Bun plugin (`nitro:plugins`) of `plugins`.
+ */
+export interface BunConfig {
+  entrypoints?: string[];
+  root?: string;
+  target?: "bun" | "node" | "browser";
+  format?: "esm" | "cjs" | "iife";
+  splitting?: boolean;
+  external?: string[];
+  packages?: "bundle" | "external";
+  conditions?: string | string[];
+  naming?: string | { entry?: string; chunk?: string; asset?: string };
+  minify?: boolean | { whitespace?: boolean; syntax?: boolean; identifiers?: boolean };
+  sourcemap?: boolean | "none" | "linked" | "inline" | "external";
+  define?: Record<string, string>;
+  loader?: Record<string, string>;
+  banner?: string;
+  footer?: string;
+  drop?: string[];
+  jsx?: {
+    runtime?: "automatic" | "classic";
+    importSource?: string;
+    factory?: string;
+    fragment?: string;
+    development?: boolean;
+  };
+  env?: "inline" | "disable" | `${string}*`;
+  metafile?: boolean;
+  plugins?: { name: string; setup: (build: any) => void | Promise<void> }[];
+  /** Other `Bun.build` options. */
+  [key: string]: any;
+}
+
+/**
  * Bundler config passed to the `build:config` hook, keyed by the bundler in use.
  *
  * The `vite` builder passes a Rollup or Rolldown config, depending on the Vite version.
  */
 export type NitroBuildConfig =
-  | { builder: "rollup" | "vite"; rollup: RollupConfig; rolldown?: never }
-  | { builder: "rolldown" | "vite"; rolldown: RolldownConfig; rollup?: never };
+  | { builder: "rollup" | "vite"; rollup: RollupConfig; rolldown?: never; bun?: never }
+  | { builder: "rolldown" | "vite"; rolldown: RolldownConfig; rollup?: never; bun?: never }
+  | { builder: "bun"; bun: BunConfig; rollup?: never; rolldown?: never };
 
 export interface OXCOptions {
   minify?: OptionalDepType<RolldownMinifyOptions, BundlerMinifyOptions>;

@@ -30,7 +30,7 @@ import type { Nitro, NitroFrameworkInfo } from "./nitro.ts";
 import type { NitroOpenAPIConfig } from "./openapi.ts";
 export type { NitroOpenAPIConfig } from "./openapi.ts";
 import type { NitroPreset } from "./preset.ts";
-import type { NitroBuildPluginOption, OXCOptions, RolldownConfig } from "./build.ts";
+import type { BunConfig, NitroBuildPluginOption, OXCOptions, RolldownConfig } from "./build.ts";
 import type { CommonJSOptions } from "./_bundler.ts";
 import type { RollupConfig } from "./build.ts";
 import type { NormalizedRouteRules, RouteRuleConfig } from "./route-rules.ts";
@@ -798,9 +798,11 @@ export interface NitroOptions extends PresetOptions {
    * Set to `false` to run the server sources without bundling (experimental, `dev` and
    * `preview` only).
    *
+   * Set to `"bun"` (experimental) to bundle with `Bun.build`. It requires running Nitro with Bun.
+   *
    * @see https://nitro.build/config/build#builder
    */
-  builder?: "rollup" | "rolldown" | "vite" | false;
+  builder?: "rollup" | "rolldown" | "vite" | "bun" | false;
 
   /**
    * Options for the `vite` builder and the `nitro/vite` plugin.
@@ -849,7 +851,7 @@ export interface NitroOptions extends PresetOptions {
   deps?: NitroDepsOptions;
 
   /**
-   * Build plugins, applied with every builder (`rollup`, `rolldown`, `vite` and `false`).
+   * Build plugins, applied with every builder (`rollup`, `rolldown`, `vite`, `bun` and `false`).
    *
    * Plugins use the Rollup plugin interface. Only the `resolveId`, `load` and `transform` hooks
    * are supported by all builders; with `builder: false`, plugins run in
@@ -875,6 +877,13 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config/build#rolldownconfig
    */
   rolldownConfig?: RolldownConfig;
+
+  /**
+   * Additional `Bun.build` options for the `bun` builder.
+   *
+   * @see https://nitro.build/config/build#bunconfig
+   */
+  bunConfig?: BunConfig;
 
   /**
    * Bundler entry point path.

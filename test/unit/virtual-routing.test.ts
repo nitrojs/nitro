@@ -68,6 +68,15 @@ describe("virtual/routing template", () => {
     expect(await routing(createNitroStub()).template()).not.toContain("srvxNode.toFetchHandler");
   });
 
+  it("imports srvx/node when a node handler shares its import with another format", async () => {
+    const nitro = createNitroStub({ handler: { format: "node" } });
+    const handler = (nitro.routing.routes.routes as any)[0].data;
+    (nitro.routing as any).globalMiddleware = [{ ...handler, route: "/**", format: undefined }];
+    const template = await routing(nitro).template();
+    expect(template).toContain("srvxNode.toFetchHandler(_abc123)");
+    expect(template).toContain(`import * as srvxNode from "srvx/node"`);
+  });
+
   it("exposes converted node format handlers as a fetch object", async () => {
     const template = await routing(createNitroStub({ handler: { format: "node" } })).template();
     expect(template).toContain("h3.toEventHandler({ fetch: srvxNode.toFetchHandler(_abc123) })");

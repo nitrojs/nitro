@@ -102,8 +102,8 @@ describe("nitro:preset:cloudflare-module", async () => {
 
   it("should export the correct functions", async () => {
     const entry = await fsp.readFile(resolve(ctx.outDir, "server", "index.mjs"), "utf8");
-    expect(entry).toMatch(/export \{.*myScheduled.*\}/);
-    expect(entry).toMatch(/export \{.*\$DurableObject.*\}/);
+    expect(entry).toMatch(/export \{[^}]*myScheduled[^}]*\}/);
+    expect(entry).toMatch(/export \{[^}]*\$DurableObject[^}]*\}/);
   });
 
   it("serves the app from the `$DurableObject` class when its binding is declared", async () => {
