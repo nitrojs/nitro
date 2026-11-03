@@ -35,7 +35,7 @@ import {
   SCHEDULE_HANDLER_ROUTE,
   getVercelBuildOutputSchedules,
   getVercelScheduleFunction,
-  isVercelSchedulesEnabled,
+  getVercelSchedulesMode,
 } from "./schedules.ts";
 
 // https://vercel.com/docs/build-output-api/configuration
@@ -391,15 +391,16 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   } as VercelBuildConfigV3);
 
   // Schedules from scheduledTasks
-  if (isVercelSchedulesEnabled(nitro.options)) {
-    const schedules = nitro.options.static ? {} : getVercelBuildOutputSchedules(nitro);
-    if (nitro.options.static && Object.keys(nitro.options.scheduledTasks || {}).length > 0) {
+  if (getVercelSchedulesMode(nitro.options)) {
+    if (!nitro.options.static) {
+      const schedules = getVercelBuildOutputSchedules(nitro);
+      if (Object.keys(schedules).length > 0) {
+        config.schedules = { ...schedules, ...config.schedules };
+      }
+    } else if (Object.keys(nitro.options.scheduledTasks || {}).length > 0) {
       nitro.logger.warn(
         "Scheduled tasks are not supported by the `vercel-static` preset. Use the `vercel` preset to run them with Vercel Schedules."
       );
-    }
-    if (Object.keys(schedules).length > 0) {
-      config.schedules = { ...schedules, ...config.schedules };
     }
   }
   // Cron jobs from scheduledTasks
@@ -420,6 +421,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     return config;
   }
 
+  const functionRules = getFunctionRules(nitro);
   config.routes!.push(
     // ISR rules
     ...rules
@@ -441,8 +443,8 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         };
       }),
     // Route function config routes
-    ...(getFunctionRules(nitro)
-      ? sortRoutes(Object.keys(getFunctionRules(nitro)!)).map((pattern) => ({
+    ...(functionRules
+      ? sortRoutes(Object.keys(functionRules)).map((pattern) => ({
           src: routeSrc(pattern).source,
           dest: withLeadingSlash(normalizeRouteDest(pattern)),
         }))

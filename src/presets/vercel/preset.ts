@@ -6,7 +6,7 @@ import { importDep } from "../../utils/dep.ts";
 import { generateFunctionFiles, generateStaticFiles, resolveVercelRuntime } from "./utils.ts";
 import { setupImmutableStaticFiles, generateImmutableManifest } from "./immutable.ts";
 import { vercelDevModule } from "./dev.ts";
-import { isVercelSchedulesEnabled, setupVercelSchedules } from "./schedules.ts";
+import { getVercelSchedulesMode, setupVercelSchedules } from "./schedules.ts";
 
 import type { VercelFunctionTrigger } from "./types.ts";
 
@@ -68,7 +68,7 @@ const vercel = defineNitroPreset(
         }
 
         // Scheduled tasks
-        if (isVercelSchedulesEnabled(nitro.options)) {
+        if (getVercelSchedulesMode(nitro.options)) {
           setupVercelSchedules(nitro);
         } else if (
           nitro.options.experimental.tasks &&

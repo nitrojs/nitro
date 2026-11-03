@@ -6,10 +6,9 @@ import {
   getVercelScheduleFunction,
   getVercelSchedulesMode,
   getVercelTaskSchedules,
-  isVercelSchedulesEnabled,
   setupVercelSchedules,
-  setupVercelSchedulesDev,
 } from "../../src/presets/vercel/schedules.ts";
+import { setupVercelSchedulesDev } from "../../src/presets/vercel/dev.ts";
 
 const task = { handler: "./task.ts" };
 
@@ -75,32 +74,24 @@ describe("getVercelTaskSchedules", () => {
   });
 });
 
-describe("isVercelSchedulesEnabled", () => {
+describe("getVercelSchedulesMode", () => {
   it("requires experimental tasks", () => {
     expect(
-      isVercelSchedulesEnabled(
+      getVercelSchedulesMode(
         options({ experimental: {}, vercel: { experimentalSchedules: "private" } }),
         {}
       )
     ).toBe(false);
   });
 
-  it("defaults to NITRO_VERCEL_SCHEDULES", () => {
-    expect(isVercelSchedulesEnabled(options(), {})).toBe(false);
-    expect(isVercelSchedulesEnabled(options(), { NITRO_VERCEL_SCHEDULES: "private" })).toBe(true);
-    expect(isVercelSchedulesEnabled(options(), { NITRO_VERCEL_SCHEDULES: "false" })).toBe(false);
-  });
-
   it("prefers the vercel.experimentalSchedules option", () => {
     expect(
-      isVercelSchedulesEnabled(options({ vercel: { experimentalSchedules: false } }), {
+      getVercelSchedulesMode(options({ vercel: { experimentalSchedules: false } }), {
         NITRO_VERCEL_SCHEDULES: "private",
       })
     ).toBe(false);
   });
-});
 
-describe("getVercelSchedulesMode", () => {
   it("uses private function targets", () => {
     expect(
       getVercelSchedulesMode(options({ vercel: { experimentalSchedules: "private" } }), {})
@@ -120,6 +111,7 @@ describe("getVercelSchedulesMode", () => {
   it("is disabled without the opt-in", () => {
     expect(getVercelSchedulesMode(options(), {})).toBe(false);
     expect(getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "0" })).toBe(false);
+    expect(getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "false" })).toBe(false);
   });
 
   it("rejects invalid values", () => {
@@ -297,11 +289,6 @@ describe("setupVercelSchedulesDev", () => {
       "#nitro/virtual/vercel-schedule-handler"
     ] as () => string;
     expect(template()).toContain(`createScheduleHandler({"cleanup":"cleanup"}, {})`);
-
-    // The build-time setup leaves the dev handler to `setupVercelSchedulesDev`
-    setupVercelSchedules(nitro);
-    expect(nitro.options.handlers).toHaveLength(2);
-    expect(template()).toContain(`createScheduleHandler({"cleanup":"cleanup"}, {})`);
   });
 
   it("restricts the dev routes to local requests", () => {
@@ -366,7 +353,7 @@ describe("setupVercelSchedulesDev", () => {
     const template = nitro.options.virtual[
       "#nitro/virtual/vercel-schedule-handler"
     ] as () => string;
-    expect(template()).toContain(`createCronHandler({"cleanup":"cleanup"})`);
+    expect(template()).toContain(`createCronHandler({"cleanup":"cleanup"}, {})`);
     expect(nitro.options.devHandlers.map((h) => h.route)).toContain("/_vercel/cron");
   });
 });
