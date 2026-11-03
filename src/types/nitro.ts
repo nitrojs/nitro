@@ -58,17 +58,27 @@ export interface Nitro {
      */
     html?: () => string | undefined | Promise<string | undefined>;
 
-    /**
-     * Import of a `(name, request) => Promise<Response>` function fetching a service.
-     *
-     * When set, the `<!--ssr-outlet-->` comment of the page HTML is rendered with the `ssr` service.
-     */
-    fetchService?: { from: string; name: string };
-
     /** Imports added to the template context (e.g. `fetchViteEnv`). */
     context?: { from: string; name: string }[];
   };
+
+  /**
+   * Set by the builder integration that builds the `services` (e.g. `nitro/vite`): how the
+   * server loads the output of each service.
+   *
+   * @internal
+   */
+  _serviceLoader?: (name: string) => NitroServiceLoader;
 }
+
+/**
+ * How the server loads the output of a service.
+ *
+ * - `import`: module (path or id) imported on the first fetch, bundled by Nitro in production.
+ * - `expression`: JavaScript expression evaluated on each fetch, returning the `{ fetch }`
+ *   service (e.g. registered by a dev worker on `globalThis`).
+ */
+export type NitroServiceLoader = { import: string } | { expression: string };
 
 /**
  * Subset of {@link NitroConfig} that can be updated at runtime via

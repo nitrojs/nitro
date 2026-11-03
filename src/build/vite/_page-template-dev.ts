@@ -4,7 +4,6 @@ import type { NitroPluginContext } from "./types.ts";
 import type { FetchableDevEnvironment } from "./dev.ts";
 import { readFile } from "node:fs/promises";
 import { isAbsolute, join, relative } from "pathe";
-import { ssrFetchService } from "./services.ts";
 
 const RENDERER_TEMPLATE_ID = "#nitro/virtual/renderer-template";
 
@@ -57,7 +56,6 @@ export function setupDevPageTemplate(
   nitro._pageTemplate = {
     ...nitro._pageTemplate,
     html: async () => (compiledHTML ??= await transformHTML()),
-    fetchService: ssrFetchService(ctx),
   };
 
   if (!template) {

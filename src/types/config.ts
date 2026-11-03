@@ -812,6 +812,17 @@ export interface NitroOptions extends PresetOptions {
   builder?: "rollup" | "rolldown" | "rspack" | "vite" | "bun" | false;
 
   /**
+   * Services of the app: server entries exporting a `fetch` handler, built by the builder
+   * integration (e.g. `nitro/vite`) and fetched with `fetchService()` from `nitro/services`.
+   *
+   * An `ssr` service is detected from an `entry-server` file in `app/`, `src/` or the root
+   * directory, and server environments with an entry are registered automatically.
+   *
+   * @see https://nitro.build/config/build#services
+   */
+  services: Record<string, NitroServiceConfig>;
+
+  /**
    * Options for the `vite` builder and the `nitro/vite` plugin.
    */
   vite?: {
@@ -825,9 +836,9 @@ export interface NitroOptions extends PresetOptions {
     path?: string;
 
     /**
-     * Additional Vite environments to register as fetchable services.
+     * Alias of the top-level `services` option (which takes precedence).
      *
-     * Server environments with an entry (e.g. `ssr`) are registered automatically.
+     * @deprecated Use the top-level `services` option.
      */
     services?: Record<string, ViteServiceConfig>;
 
@@ -1250,14 +1261,19 @@ export interface NitroDepsOptions {
 }
 
 /**
- * Vite environment registered as a fetchable service.
+ * Server entry exporting a `fetch` handler, fetched with `fetchService()` from `nitro/services`.
  *
- * @see https://nitro.build/config/build#vite
+ * @see https://nitro.build/config/build#services
  */
-export interface ViteServiceConfig {
+export interface NitroServiceConfig {
   /** Path to the service entry. */
   entry: string;
 }
+
+/**
+ * @deprecated Use {@link NitroServiceConfig}.
+ */
+export type ViteServiceConfig = NitroServiceConfig;
 
 /**
  * Configuration for a public asset directory served in development and

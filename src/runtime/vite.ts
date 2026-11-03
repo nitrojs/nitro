@@ -1,14 +1,8 @@
-import { HTTPError, toRequest } from "h3";
-import { viteServices } from "#nitro/virtual/vite-services";
+import { fetchService } from "./internal/services.ts";
 
-export function fetchViteEnv(
-  viteEnvName: string,
-  input: RequestInfo | URL,
-  init?: RequestInit
-): Promise<Response> {
-  const viteEnv = viteServices[viteEnvName];
-  if (!viteEnv) {
-    throw HTTPError.status(404);
-  }
-  return Promise.resolve(viteEnv.fetch(toRequest(input, init)));
-}
+/**
+ * Fetch a request from a Vite environment registered as a service (e.g. `ssr`).
+ *
+ * @deprecated Use `fetchService()` from `nitro/services`.
+ */
+export const fetchViteEnv: typeof fetchService = fetchService;

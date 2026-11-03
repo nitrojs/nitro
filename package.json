@@ -44,6 +44,7 @@
     "./meta": "./dist/runtime/meta.mjs",
     "./package.json": "./package.json",
     "./runtime-config": "./dist/runtime/runtime-config.mjs",
+    "./services": "./dist/runtime/services.mjs",
     "./storage": "./dist/runtime/storage.mjs",
     "./task": "./dist/runtime/task.mjs",
     "./tsconfig": "./lib/tsconfig.json",

@@ -1,4 +1,4 @@
 import { defineHandler } from "nitro";
-import { fetchViteEnv } from "nitro/vite/runtime";
+import { fetchService } from "nitro/services";
 
-export default defineHandler((event) => fetchViteEnv("api", event.req as Request));
+export default defineHandler((event) => fetchService("api", event.req as Request));

@@ -53,6 +53,7 @@ describe.each([false, true])("vite: ssr outlet (dev, bundledDev=%s)", (bundledDe
     expect(html).toContain(`<div id="app"><main>ssr: /about</main></div>`);
     expect(html).toContain("<p>method: GET</p>");
     expect(html).toContain("<p>fetchViteEnv: function</p>");
+    expect(html).toContain("<p>fetchService: function</p>");
     expect(html).toContain(bundledDev ? "bundledDevClient" : "/@vite/client");
     expect(html).not.toContain("<!--ssr-outlet-->");
   });
@@ -135,6 +136,7 @@ describe("vite: ssr outlet (build)", () => {
     expect(html).toContain(`<div id="app"><main>ssr: /about</main></div>`);
     expect(html).toContain("<p>method: GET</p>");
     expect(html).toContain("<p>fetchViteEnv: function</p>");
+    expect(html).toContain("<p>fetchService: function</p>");
     expect(html).toMatch(/<script type="module" crossorigin src="\/assets\/[^"]+\.js"><\/script>/);
     expect(html).not.toContain("<!--ssr-outlet-->");
   });
@@ -144,5 +146,6 @@ describe("vite: ssr outlet (build)", () => {
     expect(html).toContain(`<div id="app"><main>ssr: /prerendered</main></div>`);
     expect(html).toContain("<p>method: GET</p>");
     expect(html).toContain("<p>fetchViteEnv: function</p>");
+    expect(html).toContain("<p>fetchService: function</p>");
   });
 });
