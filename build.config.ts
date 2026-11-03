@@ -35,7 +35,13 @@ export default defineBuildConfig({
   entries: [
     {
       type: "bundle",
-      input: ["src/builder.ts", "src/cli/index.ts", "src/types/index.ts", "src/vite.ts"],
+      input: [
+        "src/builder.ts",
+        "src/cli/index.ts",
+        "src/rsbuild.ts",
+        "src/types/index.ts",
+        "src/vite.ts",
+      ],
       minifyLibs: true,
       license: { gzip: true },
     },
@@ -118,6 +124,7 @@ export default defineBuildConfig({
         "@scalar/api-reference",
         "cloudflare:workers",
         "@cloudflare/workers-types",
+        "@rsbuild/core",
         // unplugin deps
         "@rspack/core",
         "@farmfe/core",
@@ -217,6 +224,12 @@ export default defineBuildConfig({
       await writeFile(
         "dist/vite.d.mts",
         `import "vite/client";\nimport "nitro/vite/types";\n${await readFile("dist/vite.d.mts", "utf8")}`
+      );
+
+      // Rsbuild types
+      await writeFile(
+        "dist/rsbuild.d.mts",
+        `import "nitro/rsbuild/types";\n${await readFile("dist/rsbuild.d.mts", "utf8")}`
       );
     },
   },

@@ -1,0 +1,17 @@
+{
+  "type": "module",
+  "scripts": {
+    "build": "rsbuild build",
+    "dev": "rsbuild dev",
+    "preview": "rsbuild preview"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^2.3.0",
+    "@rsbuild/plugin-react": "^2.1.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "nitro": "latest",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
+}

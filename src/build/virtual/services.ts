@@ -14,15 +14,25 @@ export function servicesTemplate(nitro: Nitro): string {
     return `export const services = {};`;
   }
 
+  let unbundled = false;
   const entries = names.map((name) => {
     const key = JSON.stringify(name);
     const service = loader(name);
-    return "expression" in service
-      ? `  get [${key}]() { return ${service.expression} }`
-      : `  [${key}]: lazyService(${key}, () => import(${JSON.stringify(service.import)}))`;
+    if ("expression" in service) {
+      return `  get [${key}]() { return ${service.expression} }`;
+    }
+    const id = JSON.stringify(service.import);
+    unbundled ||= service.bundle === false;
+    return `  [${key}]: lazyService(${key}, () => ${service.bundle === false ? `importUnbundled(${id})` : `import(${id})`})`;
   });
 
-  return /* js */ `
+  // A non-literal specifier is not bundled
+  const importUnbundled = /* js */ `
+function importUnbundled(id) {
+  return import(/* webpackIgnore: true */ /* @vite-ignore */ id)
+}`;
+
+  return /* js */ `${unbundled ? importUnbundled : ""}
 function lazyService(name, loader) {
   let promise, mod
   return {
@@ -35,6 +45,10 @@ function lazyService(name, loader) {
             throw new TypeError(\`[nitro] Service "\${name}" entry does not export a \\\`fetch\\\` handler.\`)
           }
           return (mod = m)
+        }).catch(error => {
+          // Retried by the next fetch (e.g. after the output is rebuilt)
+          promise = undefined
+          throw error
         })
       }
       return promise.then(mod => mod.fetch(req))

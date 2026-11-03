@@ -75,10 +75,12 @@ export interface Nitro {
  * How the server loads the output of a service.
  *
  * - `import`: module (path or id) imported on the first fetch, bundled by Nitro in production.
+ *   With `bundle: false`, the module (e.g. a file URL of the service output in development) is
+ *   imported at runtime, not bundled. A failed import is retried by the next fetch.
  * - `expression`: JavaScript expression evaluated on each fetch, returning the `{ fetch }`
  *   service (e.g. registered by a dev worker on `globalThis`).
  */
-export type NitroServiceLoader = { import: string } | { expression: string };
+export type NitroServiceLoader = { import: string; bundle?: false } | { expression: string };
 
 /**
  * Subset of {@link NitroConfig} that can be updated at runtime via

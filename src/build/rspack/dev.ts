@@ -1,5 +1,6 @@
 import type { Nitro } from "nitro/types";
-import type { Compiler, Configuration, Watching } from "@rspack/core";
+import type { Compiler, Configuration, Stats, Watching } from "@rspack/core";
+import { existsSync } from "node:fs";
 import { basename, join, normalize } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
@@ -16,14 +17,71 @@ export async function watchDev(
 ) {
   let watching: Watching | undefined;
   let closed = false;
+
+  const pluginsHost = config.plugins?.find((plugin) => plugin instanceof RollupPluginsHost);
+  const devWatch = createDevWatch(nitro, {
+    pluginsHost,
+    invalidate: () => watching?.invalidate(),
+  });
+
+  nitro.hooks.hook("close", async () => {
+    closed = true;
+    const current = watching;
+    watching = undefined;
+    devWatch.close();
+    if (current) {
+      await new Promise<void>((resolve) => current.close(() => resolve()));
+      await new Promise<void>((resolve) => current.compiler.close(() => resolve()));
+    }
+  });
+
+  nitro.logger.info(
+    `Starting dev watcher (builder: \`rspack\`, preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
+  );
+
+  await devWatch.scan();
+  if (closed) {
+    return;
+  }
+  const compiler = rspack.rspack(config);
+  devWatch.attach(compiler);
+  watching = compiler.watch({ ignored: devWatch.ignored }, () => {});
+}
+
+export interface DevWatch {
+  /** Scans handlers, returning whether they changed. */
+  scan: () => Promise<boolean>;
+  /** Watch `ignored` option (output and virtual module placeholders). */
+  ignored: RegExp;
+  /** Reloads Nitro (and renders virtual modules again) when the compiler rebuilds. */
+  attach: (compiler: Compiler) => void;
+  /** Rebuilds the server, rendering the virtual modules again. */
+  rebuild: () => void;
+  /** Renders the virtual modules again in the next build of the compiler (if handlers changed). */
+  invalidateVirtual: (compiler: Compiler, opts?: { force?: boolean }) => Promise<void>;
+  close: () => void;
+}
+
+/**
+ * Dev watch of a compiler building the Nitro server: rescans handlers when files are added or
+ * removed in scan dirs (to render the virtual modules again), and reloads the dev server after
+ * each build.
+ */
+export function createDevWatch(
+  nitro: Nitro,
+  opts: {
+    pluginsHost?: RollupPluginsHost;
+    invalidate: () => void;
+    /** Whether the server output changed (default: assets were emitted), to skip unchanged reloads. */
+    outputChanged?: (stats: Stats) => boolean;
+  }
+): DevWatch {
+  const { pluginsHost } = opts;
   // Virtual modules are rendered again by the next build
   let stale = false;
   let force = false;
   let handlers: string | undefined;
 
-  const pluginsHost = config.plugins?.find((plugin) => plugin instanceof RollupPluginsHost);
-
-  /** Scans handlers, returning whether they changed. */
   async function scan() {
     await scanHandlers(nitro);
     nitro.routing.sync();
@@ -38,7 +96,7 @@ export async function watchDev(
     if (changed || force) {
       force = false;
       stale = true;
-      watching?.invalidate();
+      opts.invalidate();
     }
   });
 
@@ -75,38 +133,18 @@ export async function watchDev(
     }
   });
 
-  nitro.hooks.hook("close", async () => {
-    closed = true;
-    const current = watching;
-    watching = undefined;
-    scanDirsWatcher.close();
-    rootDirWatcher.close();
-    if (current) {
-      await new Promise<void>((resolve) => current.close(() => resolve()));
-      await new Promise<void>((resolve) => current.compiler.close(() => resolve()));
-    }
-  });
-
   nitro.hooks.hook("build:reload", () => {
     force = true;
     return reload();
   });
-
-  nitro.logger.info(
-    `Starting dev watcher (builder: \`rspack\`, preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
-  );
-
-  await scan();
-  if (!closed) {
-    watching = startWatcher();
-  }
 
   /**
    * Marks the virtual modules as modified when handlers changed, so that they are rendered again
    * (the compiler and its cache are kept). Removed files are also seen by the Rspack watcher, which
    * can start the build before the scan dirs watcher, so handlers are scanned again then.
    */
-  async function invalidateVirtual(compiler: Compiler) {
+  async function invalidateVirtual(compiler: Compiler, { force }: { force?: boolean } = {}) {
+    stale ||= !!force;
     if (!stale && compiler.removedFiles?.size) {
       stale = await scan();
     }
@@ -121,42 +159,79 @@ export async function watchDev(
     compiler.modifiedFiles = new Set([...(compiler.modifiedFiles || []), ...virtualFiles]);
   }
 
-  function startWatcher() {
-    const compiler = rspack.rspack(config);
+  const ignored = watchIgnored(nitro, pluginsHost);
 
+  function attach(compiler: Compiler) {
     let start: number;
+    // Builds without input changes (rebuilt dependencies, or existing files that the Rspack watcher
+    // reports as removed at startup on Windows) only reload the worker when the output changed
+    let inputChanged = true;
+    let reloaded = false;
     compiler.hooks.watchRun.tapPromise("nitro:dev", async (compiler) => {
       start = Date.now();
-      nitro.hooks.callHook("dev:start");
       await invalidateVirtual(compiler);
-    });
-
-    // Virtual module placeholders are marked as modified by `invalidateVirtual`
-    const ignoredDirs = [nitro.options.output.dir, pluginsHost?.virtual.dir]
-      .filter((dir) => dir !== undefined)
-      .map((dir) => pathRegExp(dir.replace(/[/\\]+$/, "")));
-    return compiler.watch(
-      {
-        ignored: new RegExp(
-          String.raw`[/\\]node_modules[/\\]|^(?:${ignoredDirs.join("|")})(?:[/\\]|$)`
-        ),
-      },
-      (error, stats) => {
-        if (error || stats?.hasErrors()) {
-          const buildError = error || new Error(stats!.toString("errors-only"));
-          nitro.logger.error(buildError);
-          nitro.hooks.callHook("dev:error", buildError);
-          return;
-        }
-        if (stats?.hasWarnings()) {
-          nitro.logger.warn(stats.toString("errors-warnings"));
-        }
-        nitro.hooks.callHook("compiled", nitro);
-        if (nitro.options.logging.buildSuccess) {
-          nitro.logger.success(`Server built`, start ? `in ${Date.now() - start}ms` : "");
-        }
-        nitro.hooks.callHook("dev:reload");
+      inputChanged =
+        !reloaded ||
+        !!compiler.modifiedFiles?.size ||
+        [...(compiler.removedFiles || [])].some((file) => !existsSync(file));
+      if (inputChanged) {
+        nitro.hooks.callHook("dev:start");
       }
-    );
+    });
+    compiler.hooks.done.tap("nitro:dev", (stats) => {
+      if (stats.hasErrors()) {
+        reloaded = false;
+        const buildError = new Error(stats.toString("errors-only"));
+        nitro.logger.error(buildError);
+        nitro.hooks.callHook("dev:error", buildError);
+        return;
+      }
+      const outputChanged = (opts.outputChanged || hasEmittedAssets)(stats);
+      if (!inputChanged && !outputChanged) {
+        return;
+      }
+      reloaded = true;
+      if (stats.hasWarnings()) {
+        nitro.logger.warn(stats.toString("errors-warnings"));
+      }
+      nitro.hooks.callHook("compiled", nitro);
+      if (nitro.options.logging.buildSuccess) {
+        nitro.logger.success(`Server built`, start ? `in ${Date.now() - start}ms` : "");
+      }
+      nitro.hooks.callHook("dev:reload");
+    });
+    compiler.hooks.failed.tap("nitro:dev", (error) => {
+      reloaded = false;
+      nitro.logger.error(error);
+      nitro.hooks.callHook("dev:error", error);
+    });
   }
+
+  return {
+    scan,
+    ignored,
+    attach,
+    invalidateVirtual,
+    rebuild: () => {
+      stale = true;
+      opts.invalidate();
+    },
+    close: () => {
+      scanDirsWatcher.close();
+      rootDirWatcher.close();
+    },
+  };
+}
+
+/** Whether a build wrote assets (unchanged assets are not written again). */
+export function hasEmittedAssets(stats: Stats): boolean {
+  return !!stats.toJson({ all: false, assets: true }).assets?.some((asset) => asset.emitted);
+}
+
+/** Watch `ignored` option: virtual module placeholders are marked as modified by `invalidateVirtual`. */
+export function watchIgnored(nitro: Nitro, pluginsHost?: RollupPluginsHost): RegExp {
+  const ignoredDirs = [nitro.options.output.dir, pluginsHost?.virtual.dir]
+    .filter((dir) => dir !== undefined)
+    .map((dir) => pathRegExp(dir.replace(/[/\\]+$/, "")));
+  return new RegExp(String.raw`[/\\]node_modules[/\\]|^(?:${ignoredDirs.join("|")})(?:[/\\]|$)`);
 }

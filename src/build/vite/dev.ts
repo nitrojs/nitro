@@ -19,14 +19,9 @@ import { rescanHandlers, watchScanDirs } from "./_scan-watch.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
 import { _isWorkerdRunner } from "./env.ts";
 import { setupDevPageTemplate } from "./_page-template-dev.ts";
+import { ASSET_EXT_RE } from "../../utils/regex.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
-
-// Extensions that strongly indicate a browser asset load (script/style/font/image/media).
-// Used as a fallback signal when `Sec-Fetch-Dest` is absent (plain-HTTP non-loopback origins).
-// Kept narrow on purpose so that arbitrary dotted Nitro route params (e.g. `.../foo.bar.1`) keep reaching Nitro.
-const ASSET_EXT_RE =
-  /^(?:[jt]sx?|mjs|cjs|css|s[ac]ss|less|styl|vue|svelte|astro|mdx?|map|wasm|png|jpe?g|gif|svg|webp|avif|ico|bmp|woff2?|ttf|otf|eot|mp[34]|webm|wav|ogg|m4a)$/i;
 
 // workerd built-in module namespaces (`cloudflare:workers`, `cloudflare:sockets`, `workerd:...`).
 // These are provided natively by the runtime and have no host-side representation, so they must be

@@ -1,16 +1,16 @@
 import type { ViteBuilder } from "vite";
 import type { NitroPluginContext } from "./types.ts";
 
-import { basename, join, resolve } from "pathe";
+import { basename, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
 import { colors as C } from "consola/utils";
 import { copyPublicAssets, prerender } from "../../builder.ts";
+import { addClientAssetsDir } from "../assets.ts";
 import { compressPublicAssets } from "../../utils/compress.ts";
 import { existsSync } from "node:fs";
 import { writeBuildInfo } from "../info.ts";
 import { readFile, rm } from "node:fs/promises";
 import { isTest, isCI } from "std-env";
-import { withoutTrailingSlash } from "ufo";
 import { readBuiltServiceEntry } from "./services.ts";
 import { writeAssetsManifest } from "./_assets-build.ts";
 import type { RolldownOutput } from "rolldown";
@@ -90,34 +90,10 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   // Copy public assets to the final output directory
   await copyPublicAssets(nitro);
 
-  // Add route rule for asset dirs and register them as public asset dirs without fallthrough,
-  // so a missing (e.g. stale) hashed asset gets a `no-store` 404 instead of the renderer
-  const assetBases = new Set(
-    Object.values(builder.environments)
-      .filter((env) => env.config.consumer === "client")
-      .map((env) => normalizeBase(env.config.build.assetsDir))
-      .filter((base) => base !== "/")
-  );
-  for (const baseURL of assetBases) {
-    const dir = join(nitro.options.output.publicDir, baseURL);
-    if (!existsSync(dir)) {
-      continue;
-    }
-    const rule = (ctx.nitro!.options.routeRules[`${baseURL}/**`] ??= {});
-    const immutable = rule.headers !== false && !rule.headers?.["cache-control"];
-    if (immutable) {
-      rule.headers = {
-        ...rule.headers,
-        "cache-control": `public, max-age=31536000, immutable`,
-      };
-    }
-    if (!nitro.options.publicAssets.some((asset) => normalizeBase(asset.baseURL) === baseURL)) {
-      nitro.options.publicAssets.push({
-        dir,
-        baseURL,
-        fallthrough: false,
-        maxAge: immutable ? 31536000 : 0,
-      });
+  // Hashed client assets are immutable, missing ones get a `no-store` 404
+  for (const env of Object.values(builder.environments)) {
+    if (env.config.consumer === "client") {
+      addClientAssetsDir(nitro, env.config.build.assetsDir);
     }
   }
   ctx.nitro!.routing.sync();
@@ -163,8 +139,4 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
     const deployCommand = nitro.options.framework.deployCommand || "npx nitro deploy --prebuilt";
     nitro.logger.success(`You can deploy this build using \`${deployCommand}\``);
   }
-}
-
-function normalizeBase(base: string = "/"): string {
-  return withoutTrailingSlash(join("/", base));
 }
