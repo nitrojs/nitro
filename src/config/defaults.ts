@@ -30,7 +30,7 @@ export const NitroDefaults: NitroConfig = {
   plugins: [],
   tasks: {},
   scheduledTasks: {},
-  tasksScheduler: {},
+  scheduler: {},
   virtual: {},
   compressPublicAssets: false,
   ignore: [],

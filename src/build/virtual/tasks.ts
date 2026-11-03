@@ -23,7 +23,7 @@ export default function tasks(nitro: Nitro) {
       return /* js */ `
 export const scheduledTasks = ${JSON.stringify(scheduledTasks)};
 
-export const scheduleRunner = ${nitro.options.tasksScheduler.runner !== false};
+export const scheduleRunner = ${nitro.options.scheduler.runner !== false};
 
 export const tasks = {
   ${Object.entries(nitro.options.tasks)

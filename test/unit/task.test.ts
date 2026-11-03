@@ -100,14 +100,14 @@ describe("#nitro/virtual/tasks", () => {
       options: {
         tasks: { test: {} },
         scheduledTasks: { "* * * * *": "test" },
-        tasksScheduler: {},
+        scheduler: {},
         ...options,
       },
     } as any).template();
 
   it("keeps the scheduled tasks when the scheduler runner is disabled", () => {
     expect(render({})).toContain("export const scheduleRunner = true;");
-    const code = render({ tasksScheduler: { runner: false } });
+    const code = render({ scheduler: { runner: false } });
     expect(code).toContain("export const scheduleRunner = false;");
     expect(code).toContain(
       `export const scheduledTasks = [{"cron":"* * * * *","tasks":["test"]}];`

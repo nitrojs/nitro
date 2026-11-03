@@ -76,7 +76,7 @@ export function setupVercelSchedulesDev(nitro: Nitro) {
   if (mode) {
     localRoutes.push(registerScheduleHandler(nitro, mode));
     // The broker invokes the handler on schedule, so the in-process scheduler must not.
-    nitro.options.tasksScheduler.runner = false;
+    nitro.options.scheduler.runner = false;
     nitro.logger
       .withTag("vercel")
       .info("Scheduled tasks are run by the `vercel dev` Schedules broker.");

@@ -510,9 +510,9 @@ export interface NitroOptions extends PresetOptions {
   /**
    * Scheduler options for `scheduledTasks`.
    *
-   * @see https://nitro.build/config/features#tasksscheduler
+   * @see https://nitro.build/config/features#scheduler
    */
-  tasksScheduler: {
+  scheduler: {
     /**
      * Run `scheduledTasks` in-process with the built-in cron runner, in presets that use it
      * (`dev`, `node_*`, `bun` and `deno_server`).
