@@ -117,7 +117,10 @@ export function getVercelBuildOutputSchedules(nitro: Nitro): Record<string, Verc
   }
   const target =
     mode === "public"
-      ? { path: joinURL(nitro.options.baseURL, getCronHandlerRoute(nitro)) }
+      ? {
+          path: joinURL(nitro.options.baseURL, getCronHandlerRoute(nitro)),
+          requestMethod: "GET" as const,
+        }
       : { function: getScheduleFunctionPath(nitro) };
   return Object.fromEntries(
     getVercelTaskSchedules(nitro.options).map(({ name, schedule }) => [

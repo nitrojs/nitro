@@ -149,13 +149,13 @@ describe("getVercelBuildOutputSchedules", () => {
 
   it("targets the cron handler route in path mode", () => {
     expect(getVercelBuildOutputSchedules(createNitro("public"))).toEqual({
-      cleanup: { schedule: "0 3 * * *", path: "/_vercel/cron" },
+      cleanup: { schedule: "0 3 * * *", path: "/_vercel/cron", requestMethod: "GET" },
     });
     const nitro = createNitro("public", {
       vercel: { schedules: "public", cronHandlerRoute: "/api/cron" },
     });
     expect(getVercelBuildOutputSchedules(nitro)).toEqual({
-      cleanup: { schedule: "0 3 * * *", path: "/api/cron" },
+      cleanup: { schedule: "0 3 * * *", path: "/api/cron", requestMethod: "GET" },
     });
   });
 
@@ -168,7 +168,7 @@ describe("getVercelBuildOutputSchedules", () => {
       cleanup: { schedule: "0 3 * * *", function: "app/_vercel/tasks" },
     });
     expect(getVercelBuildOutputSchedules(createNitro("public", { baseURL: "/app/" }))).toEqual({
-      cleanup: { schedule: "0 3 * * *", path: "/app/_vercel/cron" },
+      cleanup: { schedule: "0 3 * * *", path: "/app/_vercel/cron", requestMethod: "GET" },
     });
   });
 });
