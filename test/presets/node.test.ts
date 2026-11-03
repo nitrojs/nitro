@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { execa } from "execa";
 import { getRandomPort } from "get-port-please";
 import { resolve } from "pathe";
@@ -51,6 +52,24 @@ describe("nitro:preset:node-middleware", async () => {
     expect(existsSync(resolve(serverNodeModules, "@fixture/nitro-native-mock/index.js"))).toBe(
       true
     );
+  });
+
+  it("writes the entry chunk as server entry of the build info", async () => {
+    const buildInfo = JSON.parse(await readFile(resolve(ctx.outDir, "nitro.json"), "utf8"));
+    expect(buildInfo.serverEntry).toBe("server/index.mjs");
+  });
+
+  // Bun names chunks itself (`_chunks/[name]-[hash].mjs`)
+  it.skipIf(process.env.NITRO_BUILDER === "bun")("names chunks by their modules", () => {
+    const serverDir = resolve(ctx.outDir, "server");
+    for (const file of [
+      "_routes/api/echo.mjs",
+      "_tasks/test.mjs",
+      "_libs/unstorage.mjs",
+      "_wasm/sum.mjs",
+    ]) {
+      expect(existsSync(resolve(serverDir, file)), file).toBe(true);
+    }
   });
 });
 

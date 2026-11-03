@@ -13,6 +13,15 @@ const awsLambda = defineNitroPreset(
         if (!nitro.options.awsLambda?.streaming) {
           return;
         }
+        if (buildConfig.builder === "rspack") {
+          const rspack = buildConfig.rspack;
+          if (typeof rspack.entry === "string") {
+            rspack.entry += "-streaming";
+          } else {
+            (rspack.entry as Record<string, string>).index += "-streaming";
+          }
+          return;
+        }
         if (buildConfig.bun) {
           buildConfig.bun.entrypoints = buildConfig.bun.entrypoints?.map(
             (entry) => `${entry}-streaming`

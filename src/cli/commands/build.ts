@@ -45,7 +45,7 @@ export default defineCommand({
         dev: false,
         minify: args.minify,
         preset: args.preset,
-        builder: args.builder as "rollup" | "rolldown" | "vite" | "bun",
+        builder: args.builder as "rollup" | "rolldown" | "rspack" | "vite" | "bun",
       },
       {
         compatibilityDate: args.compatibilityDate as DateString,

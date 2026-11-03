@@ -93,6 +93,9 @@ jobs:
           - run: pnpm vitest run test/presets
             env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite }
           - run: pnpm vitest run test/unbundled
+      # Not in parallel with the rolldown presets (tests share the fixture and its output dirs)
+      - run: pnpm vitest run test/presets test/unit/dev-route-reload
+        env: { NITRO_BUILDER: rspack, NITRO_VITE_PKG: vite }
 
   tests-vite:
     runs-on: ubuntu-latest

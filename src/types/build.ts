@@ -9,6 +9,7 @@ import type {
   MinifyOptions as RolldownMinifyOptions,
   RolldownPluginOption,
 } from "rolldown";
+import type { Configuration as RspackConfiguration } from "@rspack/core";
 import type {
   BundlerInputOptions,
   BundlerMinifyOptions,
@@ -80,6 +81,9 @@ export type RolldownConfig = OptionalDepType<
   output?: OptionalDepType<RolldownOutputOptions, BundlerOutputOptions>;
 };
 
+/** Rspack configuration (experimental `rspack` builder). */
+export type RspackConfig = OptionalDepType<RspackConfiguration, Record<string, any>>;
+
 /**
  * [`Bun.build`](https://bun.com/docs/bundler) options used by the `bun` builder.
  *
@@ -122,9 +126,22 @@ export interface BunConfig {
  * The `vite` builder passes a Rollup or Rolldown config, depending on the Vite version.
  */
 export type NitroBuildConfig =
-  | { builder: "rollup" | "vite"; rollup: RollupConfig; rolldown?: never; bun?: never }
-  | { builder: "rolldown" | "vite"; rolldown: RolldownConfig; rollup?: never; bun?: never }
-  | { builder: "bun"; bun: BunConfig; rollup?: never; rolldown?: never };
+  | {
+      builder: "rollup" | "vite";
+      rollup: RollupConfig;
+      rolldown?: never;
+      rspack?: never;
+      bun?: never;
+    }
+  | {
+      builder: "rolldown" | "vite";
+      rolldown: RolldownConfig;
+      rollup?: never;
+      rspack?: never;
+      bun?: never;
+    }
+  | { builder: "rspack"; rspack: RspackConfig; rollup?: never; rolldown?: never; bun?: never }
+  | { builder: "bun"; bun: BunConfig; rollup?: never; rolldown?: never; rspack?: never };
 
 export interface OXCOptions {
   minify?: OptionalDepType<RolldownMinifyOptions, BundlerMinifyOptions>;

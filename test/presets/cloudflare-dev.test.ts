@@ -6,6 +6,7 @@ import { nitro as nitroVite } from "nitro/vite";
 import type { NitroConfig } from "nitro/types";
 import { Miniflare } from "miniflare";
 import { resolve } from "pathe";
+import { isWindows } from "std-env";
 
 const { createServer, createBuilder } = (await import(
   process.env.NITRO_VITE_PKG || "vite"
@@ -17,7 +18,10 @@ const rootDir = fileURLToPath(new URL("../fixture/cloudflare-dev", import.meta.u
 const reloadPoll = { timeout: 10_000 };
 
 // Nitro dev server does not support the vite builder (use `vite dev`)
-const skipNitroDev = process.env.NITRO_BUILDER === "vite";
+const skipNitroDev =
+  process.env.NITRO_BUILDER === "vite" ||
+  // TODO: rspack on Windows (https://github.com/nitrojs/nitro/issues/4948)
+  (isWindows && process.env.NITRO_BUILDER === "rspack");
 
 for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
   if (mode === "nitro" && skipNitroDev) continue;

@@ -1,7 +1,9 @@
 import { defineBuildConfig } from "obuild/config";
 
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, readdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { resolveModulePath } from "exsolve";
+import { dirname, join } from "pathe";
 import type { CodeSplittingOptions } from "rolldown";
 import { glob } from "tinyglobby";
 import { deps } from "./src/utils/_deps.ts";
@@ -197,6 +199,17 @@ export default defineBuildConfig({
         });
         if (lines.join("\n") !== code) {
           await writeFile(file, lines.join("\n"));
+        }
+      }
+
+      // `unwasm/plugin/rspack` (bundled) uses a loader file next to it
+      const unwasmLoader = join(
+        dirname(resolveModulePath("unwasm/plugin/rspack", { from: import.meta.url })),
+        "rspack-loader.cjs"
+      );
+      for (const file of await glob("dist/**/*.mjs")) {
+        if ((await readFile(file, "utf8")).includes("rspack-loader.cjs")) {
+          await copyFile(unwasmLoader, join(dirname(file), "rspack-loader.cjs"));
         }
       }
 

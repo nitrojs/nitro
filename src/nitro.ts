@@ -85,7 +85,7 @@ export async function createNitro(
 }
 
 let _rollupBeforeWarned = false;
-let _rollupBeforeBunWarned = false;
+let _rollupBeforeSkipWarned = false;
 
 function callRollupBeforeHooks(nitro: Nitro, config: NitroBuildConfig) {
   return nitro.hooks.callHookWith(
@@ -93,11 +93,11 @@ function callRollupBeforeHooks(nitro: Nitro, config: NitroBuildConfig) {
       if (fns.length === 0) {
         return;
       }
-      if (config.bun) {
-        if (!_rollupBeforeBunWarned) {
-          _rollupBeforeBunWarned = true;
+      if (config.builder === "rspack" || config.builder === "bun") {
+        if (!_rollupBeforeSkipWarned) {
+          _rollupBeforeSkipWarned = true;
           nitro.logger.warn(
-            "The deprecated `rollup:before` hook is not called with the `bun` builder. Use `build:config` instead."
+            `The deprecated \`rollup:before\` hook is not called with the \`${config.builder}\` builder. Use \`build:config\` instead.`
           );
         }
         return;
@@ -105,7 +105,7 @@ function callRollupBeforeHooks(nitro: Nitro, config: NitroBuildConfig) {
       if (!_rollupBeforeWarned) {
         _rollupBeforeWarned = true;
         nitro.logger.warn(
-          "The `rollup:before` hook is deprecated. Use `build:config` instead (the config is passed as `{ rollup }` or `{ rolldown }`)."
+          "The `rollup:before` hook is deprecated. Use `build:config` instead (the config is passed as `{ rollup }`, `{ rolldown }`, `{ rspack }` or `{ bun }`)."
         );
       }
       for (const fn of fns) {

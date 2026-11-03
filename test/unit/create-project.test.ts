@@ -57,7 +57,7 @@ describe("createProject", () => {
   it("rejects an unknown template", async () => {
     const dir = await tmpDir();
     await expect(createProject(dir, { template: "nope" })).rejects.toThrow(
-      /Unknown template `nope`.*`vite`, `rolldown`, `runtime`/
+      /Unknown template `nope`.*`vite`, `rolldown`, `rspack`, `runtime`/
     );
   });
 

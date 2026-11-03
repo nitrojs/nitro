@@ -11,7 +11,7 @@ export interface NitroHooks {
   /**
    * Called after the bundler config is resolved, right before bundling. Last chance to modify it.
    *
-   * The config is passed as `{ builder, rollup }`, `{ builder, rolldown }` or `{ builder, bun }`,
+   * The config is passed as `{ builder, rollup }`, `{ builder, rolldown }`, `{ builder, rspack }` or `{ builder, bun }`,
    * depending on the builder and bundler in use.
    */
   "build:config": (nitro: Nitro, config: NitroBuildConfig) => HookResult;
