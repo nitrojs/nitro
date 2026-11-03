@@ -133,6 +133,53 @@ describe("nitro:preset:node-server", async () => {
     40_000
   );
 
+  // `node .output/server/index.mjs task ...` runs tasks without starting the server
+  describe.skipIf(isBun)("task cli", () => {
+    const runTaskCLI = (args: string[]) =>
+      execa(process.execPath, [resolve(ctx.outDir, "server/index.mjs"), "task", ...args], {
+        env: { NITRO_TEST_CLOSE_HOOK: "true" },
+        reject: false,
+        timeout: 20_000,
+      });
+
+    it("lists tasks", async () => {
+      const { exitCode, stdout } = await runTaskCLI(["list"]);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("`db:migrate` - Run database migrations");
+      expect(stdout).toContain("`test` - task to debug");
+    });
+
+    it("runs a task, calls `close` hooks and exits", async () => {
+      const { exitCode, stdout } = await runTaskCLI(["run", "test", "--payload", '{"foo":"bar"}']);
+      expect(exitCode).toBe(0);
+      const lines = stdout.trim().split("\n");
+      expect(lines).toContain("[fixture] close hook called");
+      // The result is the last line of stdout
+      expect(JSON.parse(lines.at(-1)!)).toMatchObject({
+        result: { name: "test", payload: { foo: "bar" } },
+      });
+    });
+
+    it("exits non-zero when the task throws", async () => {
+      const { exitCode, stderr } = await runTaskCLI(["run", "test", "--payload", '{"error":1}']);
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("test error");
+    });
+
+    it("exits non-zero on unknown tasks and invalid arguments", async () => {
+      for (const args of [
+        ["run", "unknown"],
+        ["run", "test", "--payload", "[]"],
+        ["run", "test", "--unknown-flag"],
+        ["run"],
+        ["unknown"],
+      ]) {
+        const { exitCode } = await runTaskCLI(args);
+        expect(exitCode, args.join(" ")).toBe(1);
+      }
+    });
+  });
+
   if (!isBun) {
     testCloseHook(ctx, { command: process.execPath, args: (entry) => [entry] });
     testUnixSocket(ctx, { command: process.execPath, args: (entry) => [entry] });
