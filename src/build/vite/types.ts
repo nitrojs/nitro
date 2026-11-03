@@ -3,6 +3,7 @@ import type { getBundlerConfig } from "./bundler.ts";
 import type { Nitro, NitroConfig, NitroModule, ViteServiceConfig } from "nitro/types";
 import type { RunnerManager } from "env-runner";
 import type { NitroDevApp } from "../../dev/app.ts";
+import type { AssetsImportState } from "./_assets.ts";
 
 export type { ViteServiceConfig } from "nitro/types";
 
@@ -47,4 +48,5 @@ export interface NitroPluginContext {
   _entryPoints: Record<string, string>;
   _pluginModules?: VitePlugin[];
   _nitroEnvAliases?: string[];
+  _assetsImport?: AssetsImportState;
 }

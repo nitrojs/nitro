@@ -11,6 +11,7 @@ import { writeBuildInfo } from "../info.ts";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { isTest, isCI } from "std-env";
 import { readBuiltServiceEntry } from "./services.ts";
+import { writeAssetsManifest } from "./_assets-build.ts";
 import type { RolldownOutput } from "rolldown";
 
 const BuilderNames = {
@@ -68,9 +69,10 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
     }
   }
 
-  // Extended builder API by assets plugin
-  // https://github.com/hi-ogawa/vite-plugins/pull/1288
-  await builder.writeAssetsManifest?.();
+  // Write the manifest of `?assets` imports (server environments import it)
+  if (ctx._assetsImport) {
+    await writeAssetsManifest(builder, ctx._assetsImport);
+  }
 
   // ----------------------------------------------
   // Stage 2: Build Nitro

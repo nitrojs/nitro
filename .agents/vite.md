@@ -246,9 +246,12 @@ current evaluations.
 
 `vite` Nitro config options (from inline plugin options, `nitro` in Vite config or `nitro.config.ts`;
 read from `nitro.options.vite`):
-- `assetsImport` (default: true) — `?assets` imports via `@hiogawa/vite-plugin-fullstack`. Its plugins
+- `assetsImport` (default: true) — `?assets` imports (ported from `@hiogawa/vite-plugin-fullstack`):
+  `_assets.ts` (plugin), `_assets-dev.ts` (dev css collection, vite client css `<link>` HMR patches),
+  `_assets-build.ts` (manifest written by `buildEnvironments()` before the Nitro build). The bundler-agnostic contract (result types, virtual ids, `mergeAssets` runtime, manifest
+  format) is in `src/build/_assets-import.ts`, and the `*?assets` module types in `lib/assets.types.d.mts`. The plugins
   are always registered (Vite resolves plugins before Nitro loads its config) and their hooks are
-  skipped when disabled (`_assets.ts`)
+  skipped when disabled
 - `serverReload` (default: true) — reload the dev worker on server-only module changes
 - `services` — register custom service environments
 

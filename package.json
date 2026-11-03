@@ -88,7 +88,6 @@
     "@cloudflare/workers-types": "^5.20261031.1",
     "@cloudflare/workers-utils": "^0.50.1",
     "@deno/types": "^0.0.1",
-    "@hiogawa/vite-plugin-fullstack": "^0.0.11",
     "@netlify/edge-functions": "^4.0.3",
     "@netlify/functions": "^6.0.3",
     "@rollup/plugin-alias": "^6.0.1",
