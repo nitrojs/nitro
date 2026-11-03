@@ -4,7 +4,16 @@ import { tmpdir } from "node:os";
 import { join } from "pathe";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-const state = vi.hoisted(() => ({ rolldown: undefined as string | undefined, vite: false }));
+const state = vi.hoisted(() => ({
+  rolldown: undefined as string | undefined,
+  vite: false,
+  bun: false,
+}));
+
+vi.mock("../../src/build/bun/_runtime.ts", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/build/bun/_runtime.ts")>()),
+  isBunRuntime: () => state.bun,
+}));
 
 vi.mock("../../src/build/rolldown/_import.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../src/build/rolldown/_import.ts")>()),
@@ -45,6 +54,7 @@ describe("resolveBuilder", () => {
     delete process.env.NITRO_BUILDER;
     state.rolldown = undefined;
     state.vite = false;
+    state.bun = false;
   });
 
   async function resolve(opts: Partial<NitroOptions>) {
@@ -107,6 +117,28 @@ describe("resolveBuilder", () => {
     await expect(resolve({ dev: false, builder: "bun" })).rejects.toThrow(
       "The `bun` builder requires the Bun runtime"
     );
+  });
+
+  it("uses the bun builder with the Bun runtime when rolldown and vite are not installed", async () => {
+    state.bun = true;
+    expect(await resolve({ dev: false })).toBe("bun");
+    expect(await resolve({ dev: true })).toBe("bun");
+    expect(await resolve({ dev: true, rollupConfig: { plugins: [] } })).toBe("bun");
+  });
+
+  it("keeps rolldown with the Bun runtime when rolldown or vite is installed", async () => {
+    state.bun = true;
+    state.rolldown = "/rolldown/index.mjs";
+    expect(await resolve({ dev: false })).toBe("rolldown");
+    state.rolldown = undefined;
+    state.vite = true;
+    expect(await resolve({ dev: false })).toBe("rolldown");
+  });
+
+  it("keeps an explicit builder with the Bun runtime", async () => {
+    state.bun = true;
+    expect(await resolve({ dev: false, builder: "rollup" })).toBe("rollup");
+    expect(await resolve({ dev: false, builder: false })).toBe(false);
   });
 
   it("keeps an explicit `builder: false`", async () => {

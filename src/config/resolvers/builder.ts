@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { consola } from "consola";
 import type { NitroOptions } from "nitro/types";
 import { resolve } from "pathe";
-import { assertBunRuntime } from "../../build/bun/_runtime.ts";
+import { assertBunRuntime, isBunRuntime } from "../../build/bun/_runtime.ts";
 import { resolveRolldown } from "../../build/rolldown/_import.ts";
 import { ensureDep, isDepInstalled } from "../../utils/dep.ts";
 
@@ -66,6 +66,23 @@ export async function resolveBuilder(options: NitroOptions) {
     }
   }
 
+  // With the Bun runtime (`bun --bun`) and neither `rolldown` nor `vite` in the project, bundle with
+  // `Bun.build` instead of installing rolldown (build) or running without a builder (dev)
+  if (
+    isBunRuntime() &&
+    !resolveRolldown(options.rootDir, { paths: options.deps?.paths }) &&
+    !isDepInstalled("vite", { dir: options.rootDir, paths: options.deps?.paths })
+  ) {
+    if (!_bunHintShown) {
+      _bunHintShown = true;
+      consola.info(
+        "Using the experimental `bun` builder (Bun runtime, `rolldown` is not installed in your project). Install `rolldown` or set the `builder` option to use another builder."
+      );
+    }
+    options.builder = "bun";
+    return;
+  }
+
   // Default to rolldown when installed in the project, and otherwise install it on build, unless
   // the dev server can run without a builder (no bundler config that `builder: false` would ignore)
   if (
@@ -90,6 +107,7 @@ export async function resolveBuilder(options: NitroOptions) {
 
 let _hintShown = false;
 let _viteHintShown = false;
+let _bunHintShown = false;
 
 function hasConfig(config: object | undefined): boolean {
   return !!config && Object.keys(config).length > 0;
