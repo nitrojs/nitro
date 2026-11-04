@@ -261,6 +261,18 @@ describe("externals resolveId (unresolvable native deps)", () => {
     expect(result).toMatchObject({ external: true, id: "sharp" });
   });
 
+  it("externalizes node builtins with node: prefix", async () => {
+    const result = await handler("fs", "/app/index.js", {});
+    expect(result).toMatchObject({ external: true, id: "node:fs" });
+    const prefixed = await handler("node:fs", "/app/index.js", {});
+    expect(prefixed).toMatchObject({ external: true, id: "node:fs" });
+  });
+
+  it("does not externalize non-node modules with node: prefix", async () => {
+    const result = await handler("ws", "/app/index.js", {});
+    expect(result).toBeNull();
+  });
+
   it("does not externalize an unresolvable dep that is not in the include set", async () => {
     const result = await handler("left-pad", "/app/.nitro/services/ssr/index.js", {});
     expect(result).toBeNull();

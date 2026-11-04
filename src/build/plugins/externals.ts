@@ -3,7 +3,7 @@ import type { PackageJson } from "pkg-types";
 import type { ExternalsTraceOptions, TracedLayout } from "nf3";
 
 import { pathToFileURL } from "node:url";
-import { builtinModules, createRequire } from "node:module";
+import { builtinModules, createRequire, isBuiltin } from "node:module";
 import { dirname, isAbsolute, join, normalize, relative } from "pathe";
 import MagicString from "magic-string";
 import { resolveModulePath } from "exsolve";
@@ -87,11 +87,19 @@ export function externals(opts: ExternalsOptions): Plugin {
       filter: { id: { exclude, include } },
       async handler(id, importer, rOpts) {
         // Externalize built-in modules with normalized prefix
-        if (builtinModules.includes(id)) {
+        if (id.includes(":")) {
+          if (isBuiltin(id) || builtinModules.includes(id)) {
+            return {
+              resolvedBy: PLUGIN_NAME,
+              external: true,
+              id,
+            };
+          }
+        } else if (builtinModules.includes(id) && isBuiltin(`node:${id}`)) {
           return {
             resolvedBy: PLUGIN_NAME,
             external: true,
-            id: id.includes(":") ? id : `node:${id}`,
+            id: `node:${id}`,
           };
         }
 
