@@ -53,8 +53,11 @@ function isHook(value: unknown): boolean {
 function isUnsupportedHook(key: string) {
   return (
     !SUPPORTED_HOOKS.has(key) &&
-    // Only hooks affecting the output (watch and options hooks are harmless, `api` is not a hook)
-    !/^(options|outputOptions|watchChange|closeWatcher|onLog|api)$/.test(key)
+    // Only hooks affecting the output (watch/options hooks are harmless; `api` and unplugin's
+    // `*Include` helpers are not hooks)
+    !/^(options|outputOptions|watchChange|closeWatcher|onLog|api|loadInclude|transformInclude)$/.test(
+      key
+    )
   );
 }
 
