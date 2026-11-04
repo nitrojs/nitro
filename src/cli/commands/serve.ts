@@ -3,8 +3,6 @@ import { consola } from "consola";
 import { colors } from "consola/utils";
 import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
-import { startUnbundledServer } from "../../build/unbundled/serve.ts";
-import { runDev } from "./dev.ts";
 
 export default defineCommand({
   meta: {
@@ -26,6 +24,7 @@ export default defineCommand({
     const rootDir = resolve((args.dir || args._dir || ".") as string);
 
     if (args.dev) {
+      const { runDev } = await import("./dev.ts");
       await runDev({
         rootDir,
         port: args.port,
@@ -35,6 +34,8 @@ export default defineCommand({
       });
       return;
     }
+
+    const { startUnbundledServer } = await import("../../build/unbundled/serve.ts");
 
     let started = false;
     let closing = false;

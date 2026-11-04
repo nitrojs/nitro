@@ -1,6 +1,5 @@
 import { defineCommand } from "citty";
 import type { DateString } from "compatx";
-import { build, copyPublicAssets, createNitro, prepare, prerender } from "nitro/builder";
 import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
 
@@ -38,6 +37,8 @@ export default defineCommand({
   },
   args: buildArgs,
   async run({ args }) {
+    const { build, copyPublicAssets, createNitro, prepare, prerender } =
+      await import("nitro/builder");
     const rootDir = resolve((args.dir || args._dir || ".") as string);
     const nitro = await createNitro(
       {

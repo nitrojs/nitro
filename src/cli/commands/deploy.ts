@@ -2,15 +2,6 @@ import { defineCommand } from "citty";
 import type { DateString } from "compatx";
 import { resolve } from "pathe";
 import consola from "consola";
-import {
-  build,
-  copyPublicAssets,
-  createNitro,
-  deploy,
-  getBuildInfo,
-  prepare,
-  prerender,
-} from "nitro/builder";
 import { buildArgs } from "./build.ts";
 
 export default defineCommand({
@@ -26,6 +17,8 @@ export default defineCommand({
     },
   },
   async run({ args, rawArgs }) {
+    const { build, copyPublicAssets, createNitro, deploy, getBuildInfo, prepare, prerender } =
+      await import("nitro/builder");
     const rootDir = resolve((args.dir || args._dir || ".") as string);
 
     let preset = args.preset;
