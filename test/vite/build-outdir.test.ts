@@ -75,6 +75,12 @@ describe("vite: root `build.outDir`", () => {
     expect(seen.clientOutDir).toMatch(/\.output\/custom\/public\/?$/);
   }, 60_000);
 
+  // Vite resolves an explicit `dist` to the same value as its default
+  it("keeps an explicit `dist` set by the user", async () => {
+    const seen = await build("explicit", { build: { outDir: "dist" } });
+    expect(seen.rootOutDir).toBe("dist");
+  }, 60_000);
+
   // Environments inherit the root value: a server environment must not write to the public dir
   it("is not inherited by other environments", async () => {
     const seen = await build("inherit");

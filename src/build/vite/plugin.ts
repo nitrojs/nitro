@@ -126,6 +126,8 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
 }
 
 function nitroEnv(ctx: NitroPluginContext): VitePlugin {
+  // From the user config: Vite resolves an explicit `dist` to the same value as its default
+  let userOutDir: string | undefined;
   return {
     name: "nitro:env",
     sharedDuringBuild: true,
@@ -133,6 +135,7 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
 
     async config(userConfig, _configEnv) {
       debug("[env]  Extending config (environments)");
+      userOutDir = userConfig.build?.outDir;
       const environments: Record<string, EnvironmentOptions> = {
         ...createServiceEnvironments(ctx),
         nitro: createNitroEnvironment(ctx),
@@ -216,7 +219,7 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
         useSSRServiceRenderer(ctx.nitro!);
         // Plugins read the root `build.outDir` (e.g. UnoCSS), not the one of the client environment.
         // Set after the environments are resolved, as they would inherit it from the root.
-        if (config.command === "build" && config.build.outDir === "dist") {
+        if (config.command === "build" && !userOutDir) {
           config.build.outDir = config.environments.client.build.outDir;
         }
       },
