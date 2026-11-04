@@ -149,10 +149,6 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
       };
       debug("[env]  Environments:", Object.keys(environments).join(", "));
       return {
-        // Plugins read the root `build.outDir` (e.g. UnoCSS), not the one of the client environment
-        ...(userConfig.build?.outDir === undefined && {
-          build: { outDir: useNitro(ctx).options.output.publicDir },
-        }),
         environments,
       };
     },
@@ -213,9 +209,17 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
       return createServiceEnvironment(ctx, name, { entry: resolvedEntry });
     },
 
-    configResolved() {
-      // Setup default SSR renderer after all environments are configured
-      useSSRServiceRenderer(ctx.nitro!);
+    configResolved: {
+      order: "pre",
+      handler(config) {
+        // Setup default SSR renderer after all environments are configured
+        useSSRServiceRenderer(ctx.nitro!);
+        // Plugins read the root `build.outDir` (e.g. UnoCSS), not the one of the client environment.
+        // Set after the environments are resolved, as they would inherit it from the root.
+        if (config.command === "build" && config.build.outDir === "dist") {
+          config.build.outDir = config.environments.client.build.outDir;
+        }
+      },
     },
   };
 }
