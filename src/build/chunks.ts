@@ -1,3 +1,4 @@
+import { posix } from "node:path";
 import type { Nitro } from "nitro/types";
 import { isAbsolute, normalize } from "pathe";
 import { isWindowsPath } from "../utils/fs.ts";
@@ -69,10 +70,11 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
     return `_chunks/${chunk.name}.mjs`;
   }
 
-  // Module paths have `\` separators on Windows, unlike Nitro's handler paths
+  // Module paths have `\` separators on Windows, unlike Nitro's handler paths.
+  // On POSIX `\` is a valid file name character, so only collapse dot segments.
   const ids = chunk.moduleIds
     .filter((id) => !virtualRe.test(id))
-    .map((id) => (isAbsolute(id) && isWindowsPath(id) ? normalize(id) : id));
+    .map((id) => (isAbsolute(id) ? (isWindowsPath(id) ? normalize(id) : posix.normalize(id)) : id));
 
   // All virtual
   if (ids.length === 0) {

@@ -319,6 +319,17 @@ describe("getChunkName", () => {
     }
   );
 
+  it("normalizes dot segments in posix module paths", () => {
+    const n = createNitro({
+      routing: {
+        routes: { routes: [{ data: [{ route: "/users", handler: "/src/routes/users.ts" }] }] },
+      },
+    } as any);
+    expect(getChunkName(createChunk("route", ["/src/lib/../routes/./users.ts"]), n)).toBe(
+      "_routes/users.mjs"
+    );
+  });
+
   it("returns _routes/index.mjs for root route", () => {
     const n = createNitro({
       routing: {
