@@ -1,5 +1,6 @@
 import type { Nitro } from "nitro/types";
 import { isAbsolute, normalize } from "pathe";
+import { isWindowsPath } from "../utils/fs.ts";
 
 // Tests in @test/unit/chunks.test.ts
 
@@ -71,7 +72,7 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
   // Module paths have `\` separators on Windows, unlike Nitro's handler paths
   const ids = chunk.moduleIds
     .filter((id) => !virtualRe.test(id))
-    .map((id) => (isAbsolute(id) ? normalize(id) : id));
+    .map((id) => (isAbsolute(id) && isWindowsPath(id) ? normalize(id) : id));
 
   // All virtual
   if (ids.length === 0) {
@@ -144,6 +145,7 @@ export function routeToFsPath(route: string) {
       .slice(1)
       .map((s) =>
         s
+          .replace(/\\:/g, "_")
           .replace(/^:(\w+)\(\.\*\)$/, "[...$1]")
           .replace(/:(\w+)/g, "[$1]")
           .replace(/\*+/g, "[...]")
