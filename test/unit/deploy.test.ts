@@ -1,9 +1,11 @@
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { runCommand } from "citty";
 import { join } from "pathe";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { deploy } from "../../src/deploy.ts";
 import { getBuildInfo } from "../../src/build/info.ts";
+import deployCommand from "../../src/cli/commands/deploy.ts";
 
 const execSyncMock = vi.hoisted(() => vi.fn());
 vi.mock("node:child_process", () => ({ execSync: execSyncMock }));
@@ -97,5 +99,23 @@ describe("getBuildInfo", () => {
   it("falls back to .output under rootDir", async () => {
     const res = await getBuildInfo({ rootDir });
     expect(res.outputDir).toBeUndefined();
+  });
+});
+
+describe("nitro deploy --prebuilt", () => {
+  it("runs the deploy command saved by the build", async () => {
+    const dir = join(rootDir, "prebuilt");
+    await mkdir(join(dir, ".output"), { recursive: true });
+    await writeFile(
+      join(dir, ".output/nitro.json"),
+      JSON.stringify({
+        preset: "cloudflare-module",
+        commands: { deploy: "npx wrangler deploy --config ./server/wrangler.json" },
+      })
+    );
+    await runCommand(deployCommand, { rawArgs: ["--dir", dir, "--prebuilt"] });
+    expect(execSyncMock.mock.calls[0]?.[0]).toBe(
+      "npx wrangler deploy --config .output/server/wrangler.json"
+    );
   });
 });
