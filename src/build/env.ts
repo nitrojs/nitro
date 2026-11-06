@@ -1,6 +1,6 @@
 import type { Nitro } from "nitro/types";
 import { readFileSync } from "node:fs";
-import { builtinModules } from "node:module";
+import { builtinModules, isBuiltin } from "node:module";
 import { resolveModulePath } from "exsolve";
 import { join } from "pathe";
 import { normalizeAliases, resolveAlias } from "pathe/utils";
@@ -113,7 +113,7 @@ function resolveEnvPaths(env: BuildEnv, rootDir: string) {
     if (id.startsWith("node:") || isUnenvId(id)) {
       return id;
     }
-    if (builtinModules.includes(id)) {
+    if (builtinModules.includes(id) && isBuiltin(`node:${id}`)) {
       return `node:${id}`;
     }
     const from = id.startsWith(".") ? [rootDir] : [import.meta.url, rootDir];

@@ -1,11 +1,11 @@
 import type { RolldownPlugin } from "rolldown";
-import { builtinModules } from "node:module";
+import { builtinModules, isBuiltin } from "node:module";
 import type { BuildEnv } from "../env.ts";
 import { escapeRegExp } from "../../utils/regex.ts";
 
 // Some builtins are only listed with a prefix (e.g. `node:sqlite`, or `bun:sqlite` with Bun)
 export const builtins: string[] = builtinModules.flatMap((m) =>
-  m.includes(":") ? [m] : [m, `node:${m}`]
+  m.includes(":") ? [m] : isBuiltin(`node:${m}`) ? [m, `node:${m}`] : [m]
 );
 
 const REQUIRE_PREFIX = "\0nitro-require-builtin:";

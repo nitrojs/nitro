@@ -7,10 +7,13 @@ import { createNitro } from "../../src/nitro.ts";
 import { getRolldownConfig } from "../../src/build/rolldown/config.ts";
 import { builtinExternals } from "../../src/build/plugins/builtins.ts";
 
-// Bun lists `bun:*` ids, and Node some ids only with their `node:` prefix (e.g. `node:sqlite`)
+// Bun lists `bun:*` ids and packages like `ws`, and Node some ids only with their `node:` prefix (e.g. `node:sqlite`)
 vi.mock("node:module", async (importOriginal) => {
   const mod = await importOriginal<typeof import("node:module")>();
-  return { ...mod, builtinModules: [...mod.builtinModules, "bun:sqlite", "node:sqlite"] };
+  return {
+    ...mod,
+    builtinModules: [...mod.builtinModules, "bun:sqlite", "node:sqlite", "ws", "undici"],
+  };
 });
 
 describe("rolldown builtins", () => {
@@ -29,6 +32,8 @@ describe("rolldown builtins", () => {
       expect.arrayContaining(["events", "node:events", "node:sqlite", "bun:sqlite"])
     );
     expect(external.filter((id) => /^node:[^/]*:/.test(id))).toEqual([]);
+    expect(external).not.toContain("node:ws");
+    expect(external).not.toContain("node:undici");
   });
 });
 

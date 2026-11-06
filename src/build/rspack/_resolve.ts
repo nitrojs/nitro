@@ -1,5 +1,5 @@
 import type { Compiler, ExternalItemFunctionData } from "@rspack/core";
-import { builtinModules } from "node:module";
+import { builtinModules, isBuiltin } from "node:module";
 import { normalize as nativeNormalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname, isAbsolute } from "pathe";
@@ -183,5 +183,5 @@ export class ModuleResolver {
 }
 
 function isBareBuiltin(id: string) {
-  return !id.startsWith("node:") && builtinModules.includes(id);
+  return !id.startsWith("node:") && builtinModules.includes(id) && isBuiltin(`node:${id}`);
 }
