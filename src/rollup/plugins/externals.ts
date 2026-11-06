@@ -214,6 +214,8 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         path: string;
         subpath: string;
         parents: string[];
+        // Imported by the bundle (an input of the trace)
+        initial: boolean;
 
         pkgPath: string;
         pkgName: string;
@@ -249,6 +251,7 @@ export function externals(opts: NodeExternalsOptions): Plugin {
             const tracedFile = <TracedFile>{
               path,
               parents,
+              initial: reasons.type.includes("initial"),
 
               subpath,
               pkgName,
@@ -435,16 +438,25 @@ export function externals(opts: NodeExternalsOptions): Plugin {
 
       // Write packages with multiple versions
       for (const [pkgName, pkgVersions] of Object.entries(multiVersionPkgs)) {
+        const isBundleImport = (version: string) =>
+          tracedPackages[pkgName].versions[version].files.some(
+            (file) => tracedFiles[file].initial
+          );
         const versionEntries = Object.entries(pkgVersions).sort(
           ([v1, p1], [v2, p2]) => {
-            // 1. Package with no parent packages to be hoisted
+            // 1. Version imported by the bundle to be hoisted
+            const b1 = isBundleImport(v1);
+            if (b1 !== isBundleImport(v2)) {
+              return b1 ? -1 : 1;
+            }
+            // 2. Package with no parent packages to be hoisted
             if (p1.length === 0) {
               return -1;
             }
             if (p2.length === 0) {
               return 1;
             }
-            // 2. Newest version to be hoisted
+            // 3. Newest version to be hoisted
             return compareVersions(v1, v2);
           }
         );
