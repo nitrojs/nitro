@@ -56,11 +56,8 @@ export function addClientAssetsDir(nitro: Nitro, base: string | undefined) {
   if (baseURL === "/" || !existsSync(dir)) {
     return;
   }
-  const rule = (nitro.options.routeRules[`${baseURL}/**`] ??= {});
-  const immutable = rule.headers !== false && !rule.headers?.["cache-control"];
-  if (immutable) {
-    rule.headers = { ...rule.headers, "cache-control": "public, max-age=31536000, immutable" };
-  }
+  (nitro._clientAssetsDirs ??= new Set()).add(baseURL);
+  const immutable = addClientAssetsRouteRule(nitro.options.routeRules, baseURL);
   if (!nitro.options.publicAssets.some((asset) => normalizeBase(asset.baseURL) === baseURL)) {
     nitro.options.publicAssets.push({
       dir,
@@ -68,6 +65,13 @@ export function addClientAssetsDir(nitro: Nitro, base: string | undefined) {
       fallthrough: false,
       maxAge: immutable ? 31536000 : 0,
     });
+  }
+}
+
+/** Adds the route rules of the client assets dirs to `nitro.options.routeRules` again. */
+export function resolveClientAssetsRouteRules(nitro: Nitro) {
+  for (const baseURL of nitro._clientAssetsDirs || []) {
+    addClientAssetsRouteRule(nitro.options.routeRules, baseURL);
   }
 }
 
@@ -105,6 +109,15 @@ function getIncludePatterns(
       );
     }),
   ].filter((p) => !PARENT_DIR_GLOB_RE.test(p));
+}
+
+function addClientAssetsRouteRule(routeRules: NitroOptions["routeRules"], baseURL: string) {
+  const rule = (routeRules[`${baseURL}/**`] ??= {});
+  const immutable = rule.headers !== false && !rule.headers?.["cache-control"];
+  if (immutable) {
+    rule.headers = { ...rule.headers, "cache-control": "public, max-age=31536000, immutable" };
+  }
+  return immutable;
 }
 
 function normalizeBase(base: string = "/"): string {
