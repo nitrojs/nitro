@@ -34,6 +34,12 @@ export async function resolveAssetsOptions(options: NitroOptions) {
     dir: resolve(options.serverDir || options.rootDir, "assets"),
   });
 
+  resolvePublicAssetsRouteRules(options);
+}
+
+export function resolvePublicAssetsRouteRules(
+  options: Pick<NitroOptions, "publicAssets" | "routeRules">
+) {
   // Infer `fallthrough` and `maxAge` from publicAssets
   for (const asset of options.publicAssets) {
     asset.baseURL = asset.baseURL || "/";
