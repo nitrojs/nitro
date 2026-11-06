@@ -101,4 +101,15 @@ describe("nitro.updateConfig", () => {
     });
     expect(nitro.options.routeRules).toEqual({ ...initial, ...page });
   });
+
+  it("resolves after the `rollup:reload` hook", async () => {
+    const nitro = await setup();
+    let reloaded = false;
+    nitro.hooks.hook("rollup:reload", async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      reloaded = true;
+    });
+    await nitro.updateConfig({});
+    expect(reloaded).toBe(true);
+  });
 });
