@@ -97,7 +97,12 @@ describe("nitro:preset:netlify", async () => {
         `);
       });
 
-      it("writes server/server.mjs with static paths excluded", async () => {
+      // https://github.com/nitrojs/nitro/issues/5035
+      // Public asset paths stay reachable by the function: with `preferStatic`,
+      // existing assets are still served by the CDN, while missing ones reach
+      // the function and get its `no-store` 404 instead of Netlify's own 404
+      // page served with the `_headers` rules of the asset dir (immutable).
+      it("writes server/server.mjs without excluding public asset paths", async () => {
         const serverFunctionFile = await fsp.readFile(
           resolve(ctx.outDir, "server/server.mjs"),
           "utf8"
@@ -110,7 +115,7 @@ describe("nitro:preset:netlify", async () => {
             path: "/*",
             nodeBundler: "none",
             includedFiles: ["**"],
-            excludedPath: ["/.netlify/*","/build/*"],
+            excludedPath: ["/.netlify/*"],
             preferStatic: true,
           };"
         `);
@@ -162,6 +167,15 @@ describe("nitro:preset:netlify", async () => {
         expect((headers as Record<string, string>)["netlify-cdn-cache-control"]).toBe(
           "public, max-age=60, stale-while-revalidate=31536000, durable"
         );
+      });
+
+      // https://github.com/nitrojs/nitro/issues/5035
+      // Missing public assets now reach the function, which opts them out of
+      // the immutable `cache-control` route rule of the asset dir.
+      it("returns a `no-store` 404 for a missing public asset", async () => {
+        const { status, headers } = await callHandler({ url: "/build/does-not-exist.js" });
+        expect(status).toBe(404);
+        expect((headers as Record<string, string>)["cache-control"]).toBe("no-store");
       });
     }
   );
