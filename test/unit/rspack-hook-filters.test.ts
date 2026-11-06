@@ -37,4 +37,15 @@ describe("rspack: unsupported hooks", () => {
     expect(unsupportedHooks(plugin as any)).toEqual(["augmentChunkHash", "resolveDynamicImport"]);
     expect(unsupportedHooks({ name: "test", api: () => {} } as any)).toEqual([]);
   });
+
+  it("ignores unplugin's `*Include` helpers (applied by the wrapped `load`/`transform`)", () => {
+    const plugin = {
+      name: "unplugin",
+      load: () => {},
+      loadInclude: () => true,
+      transform: () => {},
+      transformInclude: () => true,
+    };
+    expect(unsupportedHooks(plugin as any)).toEqual([]);
+  });
 });
