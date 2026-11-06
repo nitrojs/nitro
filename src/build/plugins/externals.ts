@@ -22,6 +22,10 @@ export type ExternalsOptions = {
 
 const PLUGIN_NAME = "nitro:externals";
 
+// Runtime-augmented modules (e.g. under Bun) that are not Node core builtins and
+// do not exist under a `node:` prefix.
+const RUNTIME_AUGMENTED_BUILTINS = new Set(["bun", "undici", "ws"]);
+
 export function externals(opts: ExternalsOptions): Plugin {
   const resolved = opts.trace ? resolveTraceDeps(opts.include) : undefined;
 
@@ -86,8 +90,13 @@ export function externals(opts: ExternalsOptions): Plugin {
       order: "pre",
       filter: { id: { exclude, include } },
       async handler(id, importer, rOpts) {
-        // Externalize built-in modules with normalized prefix
-        if (builtinModules.includes(id)) {
+        // Externalize built-in modules with normalized prefix. Runtime-augmented
+        // modules (e.g. `ws`, `undici`, `bun` under Bun) are not Node core modules
+        // and do not exist with a `node:` prefix.
+        if (
+          builtinModules.includes(id) &&
+          (id.includes(":") || !RUNTIME_AUGMENTED_BUILTINS.has(id))
+        ) {
           return {
             resolvedBy: PLUGIN_NAME,
             external: true,
