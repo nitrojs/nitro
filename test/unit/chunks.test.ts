@@ -142,6 +142,7 @@ describe("routeToFsPath", () => {
     ["/", "index"],
     ["/api/users/:id/posts/*", "api/users/[id]/posts/[...]"],
     ["/api/files/:path(.*)", "api/files/[...path]"],
+    [String.raw`/example\:action`, "example_action"],
   ])("%s → %s", (route, expected) => {
     expect(routeToFsPath(route)).toBe(expected);
   });
@@ -303,6 +304,30 @@ describe("getChunkName", () => {
     expect(chunkName(String.raw`C:\app\routes\api\hello.ts`)).toBe("_routes/api/hello.mjs");
     expect(chunkName(String.raw`C:\app\tasks\migrate.ts`)).toBe("_tasks/[name].mjs");
     expect(chunkName(String.raw`C:\app\.nitro\generated.mjs`)).toBe("_build/[name].mjs");
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "matches posix module paths with a backslash in the file name",
+    () => {
+      const handler = String.raw`/src/routes/example\:action.ts`;
+      const n = createNitro({
+        routing: {
+          routes: { routes: [{ data: [{ route: String.raw`/example\:action`, handler }] }] },
+        },
+      } as any);
+      expect(getChunkName(createChunk("route", [handler]), n)).toBe("_routes/example_action.mjs");
+    }
+  );
+
+  it("normalizes dot segments in posix module paths", () => {
+    const n = createNitro({
+      routing: {
+        routes: { routes: [{ data: [{ route: "/users", handler: "/src/routes/users.ts" }] }] },
+      },
+    } as any);
+    expect(getChunkName(createChunk("route", ["/src/lib/../routes/./users.ts"]), n)).toBe(
+      "_routes/users.mjs"
+    );
   });
 
   it("returns _routes/index.mjs for root route", () => {

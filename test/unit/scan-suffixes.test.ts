@@ -137,4 +137,15 @@ describe("scan suffixes", () => {
       "plugins/log.ts",
     ]);
   });
+
+  // Windows does not allow `\` or `:` in file names
+  it.skipIf(process.platform === "win32")(
+    "keeps an escaped literal colon in the route and handler path",
+    async () => {
+      write("routes/example\\:action.ts");
+      const [route] = await scanServerRoutes(nitro(), "routes");
+      expect(route.route).toBe("/example\\:action");
+      expect(route.handler).toBe(join(dir, "routes/example\\:action.ts"));
+    }
+  );
 });

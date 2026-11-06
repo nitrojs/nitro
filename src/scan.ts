@@ -1,3 +1,4 @@
+import { posix } from "node:path";
 import { glob } from "tinyglobby";
 import type { Nitro } from "nitro/types";
 import { join, relative } from "pathe";
@@ -20,6 +21,10 @@ const GLOB_MODULES_SCAN_PATTERN = [
   "*/index.{js,mjs,cjs,ts,mts,cts,tsx,jsx}",
 ];
 type FileInfo = { path: string; fullPath: string };
+
+// Outside of Windows a backslash is a valid file name character (e.g. `example\:action.ts`
+// for a literal colon in the route), so it must not be treated as a path separator.
+const relativePath = process.platform === "win32" ? relative : posix.relative;
 
 export async function scanAndSyncOptions(nitro: Nitro) {
   // Scan plugins
@@ -181,7 +186,7 @@ async function scanDir(
     .map((fullPath) => {
       return {
         fullPath,
-        path: relative(join(dir, name), fullPath),
+        path: relativePath(join(dir, name), fullPath),
       };
     })
     .sort((a, b) => a.path.localeCompare(b.path));

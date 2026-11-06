@@ -55,4 +55,14 @@ describe("virtual/routing with late-registered windows handler paths", () => {
       "C:/app/.nitro/workflow/handler.mjs",
     ]);
   });
+
+  it.skipIf(process.platform === "win32")("keeps backslashes in posix file names", async () => {
+    const nitro = createNitro();
+    const handler = String.raw`/app/routes/handler\:action.ts`;
+    nitro.options.handlers.push({ route: String.raw`/example\:action`, handler });
+    nitro.routing.sync();
+
+    expect(importSpecifiers(await routing(nitro).template())).toEqual([handler]);
+    expect(importSpecifiers(routingMeta(nitro).template())).toEqual([`${handler}?meta`]);
+  });
 });

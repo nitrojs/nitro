@@ -9,6 +9,7 @@ import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";
 import { joinURL } from "ufo";
 import { hash } from "./utils/hash.ts";
+import { isWindowsPath } from "./utils/fs.ts";
 
 const isGlobalMiddleware = (h: NitroEventHandler) => !h.method && (!h.route || h.route === "/**");
 
@@ -144,7 +145,7 @@ export function initNitroRouting(nitro: Nitro) {
 
 function handlerWithImportHash(h: NitroEventHandler) {
   // Handlers registered after options are resolved may still use windows separators
-  const handler = h.handler.replace(/\\/g, "/");
+  const handler = isWindowsPath(h.handler) ? h.handler.replace(/\\/g, "/") : h.handler;
   const id = (h.lazy ? "_lazy_" : "_") + hash(handler);
   return { ...h, handler, _importHash: id };
 }

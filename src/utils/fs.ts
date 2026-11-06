@@ -8,6 +8,14 @@ import { getProperty } from "dot-prop";
 import { relative, resolve } from "pathe";
 import { resolveAlias } from "pathe/utils";
 
+/**
+ * Whether `\` in a path is a separator. Outside of Windows it can be part of a file name
+ * (e.g. `example\:action.ts` for a route with a literal colon).
+ */
+export function isWindowsPath(path: string) {
+  return process.platform === "win32" || /^(?:[A-Za-z]:|\\\\)/.test(path);
+}
+
 export function prettyPath(p: string, highlight = true) {
   p = relative(process.cwd(), p);
   return highlight ? colors.cyan(p) : p;
