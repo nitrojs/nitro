@@ -102,6 +102,35 @@ describe("nitro.updateConfig", () => {
     expect(nitro.options.routeRules).toEqual({ ...initial, ...page });
   });
 
+  it("keeps the derived runtime config keys when updating `runtimeConfig`", async () => {
+    const nitro = await setup({
+      baseURL: "/base/",
+      experimental: { envExpansion: true },
+      routeRules: { "/foo": { headers: { "x-foo": "1" } } },
+      runtimeConfig: { foo: "bar" },
+    });
+    const initial = structuredClone(nitro.options.runtimeConfig);
+
+    await nitro.updateConfig({ runtimeConfig: { foo: "baz" } });
+    expect(nitro.options.runtimeConfig).toEqual({ ...initial, foo: "baz" });
+
+    await nitro.updateConfig({
+      routeRules: { "/foo": { headers: { "x-foo": "2" } } },
+      runtimeConfig: { foo: "bar" },
+    });
+    expect(nitro.options.runtimeConfig.foo).toBe("bar");
+    expect(nitro.options.runtimeConfig.nitro.routeRules).toEqual(
+      nitro.options.routeRules
+    );
+    expect(nitro.options.routeRules["/build/**"]).toMatchObject({
+      headers: immutable,
+    });
+
+    await nitro.updateConfig({ routeRules: {} });
+    expect(nitro.options.runtimeConfig.foo).toBe("bar");
+    expect(nitro.options.runtimeConfig.app.baseURL).toBe("/base/");
+  });
+
   it("resolves after the `rollup:reload` hook", async () => {
     const nitro = await setup();
     let reloaded = false;
