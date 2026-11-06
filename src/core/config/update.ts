@@ -1,4 +1,5 @@
 import consola from "consola";
+import { defu } from "defu";
 import type { Nitro, NitroDynamicConfig } from "nitropack/types";
 import { resolvePublicAssetsRouteRules } from "./resolvers/assets";
 import { normalizeRouteRules } from "./resolvers/route-rules";
@@ -9,7 +10,14 @@ export async function updateNitroConfig(
   config: NitroDynamicConfig
 ) {
   nitro.options.routeRules = normalizeRouteRules(
-    config.routeRules ? config : nitro.options
+    config.routeRules
+      ? {
+          routeRules: defu(
+            config.routeRules,
+            (nitro.options as any).routes || {}
+          ),
+        }
+      : nitro.options
   );
   resolvePublicAssetsRouteRules({
     routeRules: nitro.options.routeRules,

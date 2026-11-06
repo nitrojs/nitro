@@ -131,6 +131,18 @@ describe("nitro.updateConfig", () => {
     expect(nitro.options.runtimeConfig.app.baseURL).toBe("/base/");
   });
 
+  it("keeps the route rules from `routes`", async () => {
+    const nitro = await setup({
+      routes: { "/legacy": { headers: { "x-legacy": "1", "x-routes": "1" } } },
+    } as NitroConfig);
+    await nitro.updateConfig({
+      routeRules: { "/legacy": { headers: { "x-legacy": "2" } } },
+    });
+    expect(nitro.options.routeRules["/legacy"]).toMatchObject({
+      headers: { "x-legacy": "2", "x-routes": "1" },
+    });
+  });
+
   it("resolves after the `rollup:reload` hook", async () => {
     const nitro = await setup();
     let reloaded = false;
