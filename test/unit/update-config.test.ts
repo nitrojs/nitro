@@ -81,4 +81,15 @@ describe("nitro.updateConfig", () => {
     await nitro.updateConfig({ routeRules: { ...nitro.options.routeRules, ...page } });
     expect(nitro.options.routeRules).toEqual({ ...initial, ...page });
   });
+
+  it("resolves after the `build:reload` hook", async () => {
+    const nitro = await setup();
+    let reloaded = false;
+    nitro.hooks.hook("build:reload", async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      reloaded = true;
+    });
+    await nitro.updateConfig({});
+    expect(reloaded).toBe(true);
+  });
 });
