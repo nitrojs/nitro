@@ -10,9 +10,10 @@ export async function updateNitroConfig(nitro: Nitro, config: NitroDynamicConfig
     routeRules: nitro.options.routeRules,
     publicAssets: nitro.options.publicAssets.map((asset) => ({ ...asset })),
   });
-  nitro.options.runtimeConfig = normalizeRuntimeConfig(
-    config.runtimeConfig ? config : nitro.options
-  );
+  nitro.options.runtimeConfig = normalizeRuntimeConfig({
+    ...nitro.options,
+    runtimeConfig: config.runtimeConfig || nitro.options.runtimeConfig,
+  });
   await nitro.hooks.callHook("build:reload");
   consola.success("Nitro config hot reloaded!");
 }
