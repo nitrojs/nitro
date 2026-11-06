@@ -1,8 +1,9 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "pathe";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Nitro, NitroConfig } from "nitro/types";
+import { addClientAssetsDir } from "../../src/build/assets.ts";
 import { createNitro } from "../../src/nitro.ts";
 
 const instances: { nitro: Nitro; rootDir: string }[] = [];
@@ -105,6 +106,20 @@ describe("nitro.updateConfig", () => {
     await nitro.updateConfig({ routeRules: {} });
     expect(nitro.options.runtimeConfig.foo).toBe("bar");
     expect(nitro.options.runtimeConfig.app.baseURL).toBe("/base/");
+  });
+
+  it("keeps the route rules of client assets dirs", async () => {
+    const nitro = await setup({ publicAssets: [{ baseURL: "_assets", dir: "client" }] });
+    await mkdir(join(nitro.options.output.publicDir, "_assets"), { recursive: true });
+    addClientAssetsDir(nitro, "_assets");
+    const rule = { headers: { "cache-control": "public, max-age=31536000, immutable" } };
+    expect(nitro.options.routeRules["/_assets/**"]).toEqual(rule);
+
+    await nitro.updateConfig({ routeRules: {} });
+    expect(nitro.options.routeRules["/_assets/**"]).toEqual(rule);
+
+    await nitro.updateConfig({ routeRules: { "/_assets/**": { headers: false } } });
+    expect(nitro.options.routeRules["/_assets/**"]).toEqual({ headers: false });
   });
 
   it("resolves after the `build:reload` hook", async () => {
