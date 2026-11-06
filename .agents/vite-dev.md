@@ -219,6 +219,10 @@ a real Vite dev server and `fetch()`es with hand-set headers.
 - The `server.middlewares.stack` scan in `nitroDevMiddleware` skips requests
   whose path matches any other middleware's mounted `base` (#3805), with connect's matching
   (`matchesMiddlewareRoute()`: case-insensitive, path boundary, bare `use(fn)` ignored).
+- Vite's base middleware strips `base` from `req.url`, so the post catch-all
+  dispatches the URL recorded by the pre-pass (`_nitroURL`) instead. Dev app
+  middleware (`middleware: true` dev handlers, which `hasRoute()` does not
+  report) and the env then see the same path as a pre-pass dispatch.
 - `_nitroHandled` is a one-way latch set by the pre-pass (transparent
   catch-all asset) and by the post catch-all itself (re-entry guard). Never set
   it for a request a real or opaque handler should still see (#4252 root
