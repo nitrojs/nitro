@@ -2,7 +2,12 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { join } from "pathe";
-import { copyPublicAssets, createNitro, prepare, prerender } from "nitro/builder";
+import {
+  copyPublicAssets,
+  createNitro,
+  prepare,
+  prerender,
+} from "nitro/builder";
 import type { NitroConfig, PrerenderRoute } from "nitro/types";
 import { describe, expect, it } from "vitest";
 
@@ -10,27 +15,41 @@ const fixtureDir = fileURLToPath(new URL("./status-fixture", import.meta.url));
 
 describe("prerender failOnError", () => {
   it("fails the build when a route errors", async () => {
-    const { error } = await prerenderRoutes(["/", "/status/404"], { failOnError: true });
-    expect(error).toMatchObject({ message: "Exiting due to prerender errors." });
+    const { error } = await prerenderRoutes(["/", "/status/404"], {
+      failOnError: true,
+    });
+    expect(error).toMatchObject({
+      message: "Exiting due to prerender errors.",
+    });
   }, 120_000);
 
   it("does not fail the build for errors with an ignored status code", async () => {
-    const { error, nitro, failedRoutes } = await prerenderRoutes(["/", "/status/404"], {
-      failOnError: true,
-      ignoreStatusCodes: [404],
-    });
+    const { error, nitro, failedRoutes } = await prerenderRoutes(
+      ["/", "/status/404"],
+      {
+        failOnError: true,
+        ignoreStatusCodes: [404],
+      },
+    );
     expect(error).toBeUndefined();
     expect(nitro._prerenderedRoutes!.map((r) => r.route)).toEqual(["/"]);
     // the route is still reported as failed and not written
-    expect(failedRoutes.map((r) => [r.route, r.error?.status])).toEqual([["/status/404", 404]]);
+    expect(failedRoutes.map((r) => [r.route, r.error?.status])).toEqual([
+      ["/status/404", 404],
+    ]);
   }, 120_000);
 
   it("still fails the build for errors with other status codes", async () => {
-    const { error, logs } = await prerenderRoutes(["/", "/status/404", "/status/500"], {
-      failOnError: true,
-      ignoreStatusCodes: [404],
+    const { error, logs } = await prerenderRoutes(
+      ["/", "/status/404", "/status/500"],
+      {
+        failOnError: true,
+        ignoreStatusCodes: [404],
+      },
+    );
+    expect(error).toMatchObject({
+      message: "Exiting due to prerender errors.",
     });
-    expect(error).toMatchObject({ message: "Exiting due to prerender errors." });
     // only the routes failing the build are listed
     const summary = logs
       .slice(logs.findIndex((l) => l.includes("Errors prerendering:")))
@@ -38,9 +57,33 @@ describe("prerender failOnError", () => {
     expect(summary).toContain("/status/500");
     expect(summary).not.toContain("/status/404");
   }, 120_000);
+
+  it("fails the build and records in failedRoutes when route generation throws", async () => {
+    const { error, failedRoutes } = await prerenderRoutes(
+      ["/", "/about"],
+      { failOnError: true },
+      {
+        "prerender:generate"(route) {
+          if (route.route === "/about") {
+            throw new Error("boom (thrown)");
+          }
+        },
+      },
+    );
+    expect(error).toMatchObject({
+      message: "Exiting due to prerender errors.",
+    });
+    expect(failedRoutes.map((r) => [r.route, r.error?.message])).toEqual([
+      ["/about", "boom (thrown)"],
+    ]);
+  }, 120_000);
 });
 
-async function prerenderRoutes(routes: string[], options: NitroConfig["prerender"]) {
+async function prerenderRoutes(
+  routes: string[],
+  options: NitroConfig["prerender"],
+  hooks?: NitroConfig["hooks"],
+) {
   const outDir = await mkdtemp(join(tmpdir(), "nitro-prerender-errors-"));
 
   const nitro = await createNitro({
@@ -48,6 +91,7 @@ async function prerenderRoutes(routes: string[], options: NitroConfig["prerender
     preset: "static",
     output: { dir: outDir },
     prerender: { crawlLinks: false, routes, ...options },
+    hooks,
   });
 
   const logs: string[] = [];
