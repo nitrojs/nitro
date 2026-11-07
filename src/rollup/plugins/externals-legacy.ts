@@ -104,7 +104,13 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       }
 
       // Inline invalid node imports
-      if (!(await isValidNodeImport(resolved.id).catch(() => false))) {
+      // Comments are stripped before validation: a CJS entry that merely
+      // mentions ESM syntax in a comment is still a valid node import.
+      if (
+        !(await isValidNodeImport(resolved.id, { stripComments: true }).catch(
+          () => false
+        ))
+      ) {
         return null;
       }
 
