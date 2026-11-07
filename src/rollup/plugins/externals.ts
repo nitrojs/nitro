@@ -17,6 +17,61 @@ import { readPackageJSON, writePackageJSON } from "pkg-types";
 import type { Plugin } from "rollup";
 import semver from "semver";
 
+export type TracedFile = {
+  path: string;
+  subpath: string;
+  parents: string[];
+
+  pkgPath: string;
+  pkgName: string;
+  pkgVersion: string;
+};
+
+export type TracedPackage = {
+  name: string;
+  versions: Record<
+    string,
+    {
+      pkgJSON: PackageJson;
+      path: string;
+      files: string[];
+    }
+  >;
+};
+
+/**
+ * Find the packages that pulled in a given version of a traced package.
+ *
+ * The trace is produced incrementally, so an entry may reference a parent (or a
+ * file) that is not part of the final trace map. Those entries are skipped
+ * instead of crashing on `undefined.pkgName`.
+ */
+export function findPackageParents(
+  pkg: TracedPackage,
+  version: string,
+  tracedFiles: Record<string, TracedFile | undefined>
+): string[] {
+  const versionFiles = pkg.versions[version].files
+    .map((path) => tracedFiles[path])
+    .filter((file): file is TracedFile => file !== undefined);
+  const parentPkgs = [
+    ...new Set(
+      versionFiles.flatMap((file) =>
+        file.parents
+          .map((parentPath) => {
+            const parentFile = tracedFiles[parentPath];
+            if (!parentFile || parentFile.pkgName === pkg.name) {
+              return null;
+            }
+            return `${parentFile.pkgName}@${parentFile.pkgVersion}`;
+          })
+          .filter(Boolean)
+      ) as string[]
+    ),
+  ];
+  return parentPkgs;
+}
+
 export function externals(opts: NodeExternalsOptions): Plugin {
   const trackedExternals = new Set<string>();
   const resolveCache = new Map<string, string | undefined>();
@@ -210,15 +265,6 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       });
 
       // Resolve traced files
-      type TracedFile = {
-        path: string;
-        subpath: string;
-        parents: string[];
-
-        pkgPath: string;
-        pkgName: string;
-        pkgVersion: string;
-      };
       const _resolveTracedPath = (p: string) =>
         fsp.realpath(resolve(opts.traceOptions?.base || ".", p));
       const tracedFiles: Record<string, TracedFile> = Object.fromEntries(
@@ -260,17 +306,6 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       );
 
       // Resolve traced packages
-      type TracedPackage = {
-        name: string;
-        versions: Record<
-          string,
-          {
-            pkgJSON: PackageJson;
-            path: string;
-            files: string[];
-          }
-        >;
-      };
       const tracedPackages: Record<string, TracedPackage> = {};
       for (const tracedFile of Object.values(tracedFiles)) {
         // Use `node_modules/{name}` in path as name to support aliases
@@ -382,28 +417,10 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       };
 
       // Utility to find package parents
-      const findPackageParents = (pkg: TracedPackage, version: string) => {
-        // Try to find parent packages
-        const versionFiles: TracedFile[] = pkg.versions[version].files.map(
-          (path) => tracedFiles[path]
-        );
-        const parentPkgs = [
-          ...new Set(
-            versionFiles.flatMap((file) =>
-              file.parents
-                .map((parentPath) => {
-                  const parentFile = tracedFiles[parentPath];
-                  if (parentFile.pkgName === pkg.name) {
-                    return null;
-                  }
-                  return `${parentFile.pkgName}@${parentFile.pkgVersion}`;
-                })
-                .filter(Boolean)
-            ) as string[]
-          ),
-        ];
-        return parentPkgs;
-      };
+      const findPackageParentsForVersion = (
+        pkg: TracedPackage,
+        version: string
+      ) => findPackageParents(pkg, version, tracedFiles);
 
       // Analyze dependency tree
       const multiVersionPkgs: Record<string, { [version: string]: string[] }> =
@@ -417,10 +434,8 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         }
         multiVersionPkgs[tracedPackage.name] = {};
         for (const version of versions) {
-          multiVersionPkgs[tracedPackage.name][version] = findPackageParents(
-            tracedPackage,
-            version
-          );
+          multiVersionPkgs[tracedPackage.name][version] =
+            findPackageParentsForVersion(tracedPackage, version);
         }
       }
 
