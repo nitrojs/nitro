@@ -1,4 +1,4 @@
-import type { Nitro } from "nitro/types";
+import type { Nitro, RedirectRuleOptions } from "nitro/types";
 import type { WranglerConfig, CloudflarePagesRoutes } from "./types.ts";
 import { existsSync } from "node:fs";
 import { readFile, rename } from "node:fs/promises";
@@ -18,7 +18,13 @@ import {
 } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
 import { getPublicAssetCorsHeaders } from "../_utils/cors.ts";
-import { hasHeaders, routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
+import {
+  getRedirectRoutes,
+  hasHeaders,
+  routeToSplat,
+  skipUnsupportedRoute,
+  sortRoutes,
+} from "../_utils/routes.ts";
 import { extendEnv } from "../../build/env.ts";
 
 // https://github.com/nitrojs/nitro/issues/4527
@@ -189,17 +195,8 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
     : "";
   const contents: string[] = [];
 
-  // Most specific first, as the first matching rule wins
-  const routes = sortRoutes(Object.keys(nitro.options.routeRules));
-  const redirects = routes.filter((key) => nitro.options.routeRules[key].redirect);
-  for (const key of routes) {
-    const redirect = nitro.options.routeRules[key].redirect;
-    if (
-      !redirect ||
-      skipUnsupportedRoute(nitro, { route: key, file: "_redirects", routes: redirects })
-    ) {
-      continue;
-    }
+  for (const key of getRedirectRoutes(nitro)) {
+    const redirect = nitro.options.routeRules[key].redirect as RedirectRuleOptions;
     const code = redirect.status;
     const from = joinURL(nitro.options.baseURL, routeToSplat(key));
     const to = redirect.to.replaceAll("**", ":splat");

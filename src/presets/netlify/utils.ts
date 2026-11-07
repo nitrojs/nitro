@@ -1,25 +1,22 @@
 import { existsSync, promises as fsp } from "node:fs";
-import type { Nitro, PublicAssetDir } from "nitro/types";
+import type { Nitro, PublicAssetDir, RedirectRuleOptions } from "nitro/types";
 import { dirname, join } from "pathe";
 import { joinURL, withoutTrailingSlash } from "ufo";
 import { escapeRegExp } from "../../utils/regex.ts";
 import { getPublicAssetCorsHeaders } from "../_utils/cors.ts";
-import { hasHeaders, routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
+import {
+  getRedirectRoutes,
+  hasHeaders,
+  routeToSplat,
+  skipUnsupportedRoute,
+  sortRoutes,
+} from "../_utils/routes.ts";
 
 export async function writeRedirects(nitro: Nitro) {
   let contents = "";
 
-  // Most specific first, as the first matching rule wins
-  const routes = sortRoutes(Object.keys(nitro.options.routeRules));
-  const redirects = routes.filter((key) => nitro.options.routeRules[key].redirect);
-  for (const key of routes) {
-    const redirect = nitro.options.routeRules[key].redirect;
-    if (
-      !redirect ||
-      skipUnsupportedRoute(nitro, { route: key, file: "_redirects", routes: redirects })
-    ) {
-      continue;
-    }
+  for (const key of getRedirectRoutes(nitro)) {
+    const redirect = nitro.options.routeRules[key].redirect as RedirectRuleOptions;
     let code = redirect.status;
     // TODO: Remove map when netlify support 307/308
     // Netlify _redirects currently only supports 301, 302, 404, 200.
