@@ -4,7 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 import {
   applyProductionCondition,
   externals,
+  findPackageParents,
   normalizeMatcher,
+  type TracedFile,
+  type TracedPackage,
 } from "../../src/rollup/plugins/externals";
 
 vi.mock("node:url", async (importOriginal) => {
@@ -141,4 +144,70 @@ describe("externals:applyProductionCondition", () => {
       expect(t.in).toEqual(t.out);
     });
   }
+});
+
+describe("externals:findPackageParents", () => {
+  const tracedFile = (
+    pkgName: string,
+    pkgVersion: string,
+    parents: string[] = []
+  ): TracedFile => ({
+    path: `/project/node_modules/${pkgName}/index.js`,
+    subpath: ".",
+    parents,
+    pkgPath: `/project/node_modules/${pkgName}`,
+    pkgName,
+    pkgVersion,
+  });
+
+  const tracedPackage = (name: string, files: string[]): TracedPackage => ({
+    name,
+    versions: {
+      "1.0.0": {
+        pkgJSON: {} as any,
+        path: `/project/node_modules/${name}`,
+        files,
+      },
+    },
+  });
+
+  it("skips parents missing from the trace instead of crashing", () => {
+    // Trace boundary from the bug report: the traced child lists a parent that
+    // the tracer dropped, so `tracedFiles[parentPath]` is undefined.
+    const pkg = tracedPackage("dependency", ["child"]);
+    const tracedFiles: Record<string, TracedFile> = {
+      child: tracedFile("dependency", "1.0.0", ["missing", "known"]),
+      known: tracedFile("parent", "2.0.0"),
+    };
+
+    expect(findPackageParents(pkg, "1.0.0", tracedFiles)).toEqual([
+      "parent@2.0.0",
+    ]);
+  });
+
+  it("skips traced files missing from the map", () => {
+    const pkg = tracedPackage("dependency", ["child", "missing-file"]);
+    const tracedFiles: Record<string, TracedFile> = {
+      child: tracedFile("dependency", "1.0.0", ["parent-a"]),
+      "parent-a": tracedFile("parent", "2.0.0"),
+    };
+
+    expect(findPackageParents(pkg, "1.0.0", tracedFiles)).toEqual([
+      "parent@2.0.0",
+    ]);
+  });
+
+  it("ignores self-references and de-duplicates parents", () => {
+    const pkg = tracedPackage("dependency", ["child"]);
+    const tracedFiles: Record<string, TracedFile> = {
+      child: tracedFile("dependency", "1.0.0", ["self", "a", "b"]),
+      self: tracedFile("dependency", "0.9.0"),
+      a: tracedFile("parent", "2.0.0"),
+      b: tracedFile("parent", "2.0.0"),
+    };
+
+    expect(findPackageParents(pkg, "1.0.0", tracedFiles)).toEqual([
+      "parent@2.0.0",
+    ]);
+  });
 });
