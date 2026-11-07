@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveModulePath } from "exsolve";
 import { describe, expect, it, vi } from "vitest";
@@ -6,6 +9,7 @@ import {
   externals,
   normalizeMatcher,
 } from "../../src/rollup/plugins/externals";
+import { externals as legacyExternals } from "../../src/rollup/plugins/externals-legacy";
 
 vi.mock("node:url", async (importOriginal) => {
   const mod = await importOriginal<typeof import("node:url")>();
@@ -142,3 +146,74 @@ describe("externals:applyProductionCondition", () => {
     });
   }
 });
+
+function createPackage(files: Record<string, string>): {
+  root: string;
+  entry: string;
+} {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "nitro-externals-"));
+  const pkgDir = path.join(root, "node_modules", "comment-syntax");
+  fs.mkdirSync(pkgDir, { recursive: true });
+  for (const [name, content] of Object.entries(files)) {
+    fs.writeFileSync(path.join(pkgDir, name), content);
+  }
+  return { root, entry: path.join(pkgDir, "index.js") };
+}
+
+const externalsImplementations = [
+  ["externals", externals],
+  ["externals-legacy", legacyExternals],
+] as const;
+
+describe.each(externalsImplementations)(
+  "%s: comment syntax in CommonJS entries",
+  (_name, factory) => {
+    it("externalizes a CJS entry that only mentions ESM syntax in a comment", async () => {
+      const { root, entry } = createPackage({
+        "package.json": JSON.stringify({
+          name: "comment-syntax",
+          version: "1.0.0",
+          main: "index.js",
+        }),
+        "index.js": "/* export default example */\nmodule.exports = 42;\n",
+      });
+      const plugin = factory({
+        outDir: "",
+        moduleDirectories: [],
+        exportConditions: ["node", "import", "default"],
+        trace: false,
+      } as any);
+      const result = await (plugin.resolveId as any).call(
+        { resolve: () => null },
+        entry,
+        path.join(root, "server.mjs"),
+        {}
+      );
+      expect(result).toMatchObject({ external: true });
+    });
+
+    it("still inlines an entry with real mixed ESM and CJS syntax", async () => {
+      const { root, entry } = createPackage({
+        "package.json": JSON.stringify({
+          name: "comment-syntax",
+          version: "1.0.0",
+          main: "index.js",
+        }),
+        "index.js": "export default 1;\nmodule.exports = 2;\n",
+      });
+      const plugin = factory({
+        outDir: "",
+        moduleDirectories: [],
+        exportConditions: ["node", "import", "default"],
+        trace: false,
+      } as any);
+      const result = await (plugin.resolveId as any).call(
+        { resolve: () => null },
+        entry,
+        path.join(root, "server.mjs"),
+        {}
+      );
+      expect(result).toBeNull();
+    });
+  }
+);
