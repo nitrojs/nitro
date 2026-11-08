@@ -61,10 +61,6 @@ export function startScheduleRunner({
     return;
   }
 
-  const payload: TaskPayload = {
-    scheduledTime: Date.now(),
-  };
-
   const cronJobs: Cron[] = [];
   useNitroHooks().hook("close", () => {
     for (const job of cronJobs) {
@@ -85,6 +81,9 @@ export function startScheduleRunner({
           // Plugin initialization failed and was already reported
           return;
         }
+        const payload: TaskPayload = {
+          scheduledTime: Date.now(),
+        };
         await Promise.all(
           schedule.tasks.map((name) =>
             runTask(name, {

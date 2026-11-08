@@ -61,7 +61,9 @@ export default {
               context,
             },
           },
-          payload: {},
+          payload: {
+            scheduledTime: event.scheduledTime,
+          },
         })
       );
     }
