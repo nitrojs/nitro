@@ -85,9 +85,40 @@ async function echo(command: string, args: string[]) {
       ]),
       output
     ).toBe("graphql-transport-ws");
+
+    // #5052: WebSocket upgrades must be rejected on routes without WebSocket hooks
+    await expect(
+      expectUpgradeRejection(new URL("/non-existent", url!.replace(/^http/, "ws")).href)
+    ).resolves.toBeUndefined();
+    await expect(
+      expectUpgradeRejection(new URL("/http", url!.replace(/^http/, "ws")).href)
+    ).resolves.toBeUndefined();
   } finally {
     child.kill("SIGKILL");
   }
+}
+
+function expectUpgradeRejection(url: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    const timer = setTimeout(() => {
+      ws.close();
+      reject(new Error("Expected WebSocket upgrade to be rejected, but connection remained open"));
+    }, 5000);
+    ws.addEventListener("open", () => {
+      clearTimeout(timer);
+      ws.close();
+      reject(new Error("Expected WebSocket upgrade to be rejected, but connection opened"));
+    });
+    ws.addEventListener("error", () => {
+      clearTimeout(timer);
+      resolve();
+    });
+    ws.addEventListener("close", () => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
 }
 
 // Connects, sends one message and resolves with everything the server sent back.

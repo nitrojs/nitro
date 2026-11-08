@@ -68,7 +68,14 @@ export async function resolveWebsocketHooks(req: ServerRequest): Promise<Partial
   const carrier = req as unknown as Record<symbol, Partial<WebSocketHooks> | undefined> & {
     context?: Record<symbol, Partial<WebSocketHooks> | undefined>;
   };
-  return res.crossws ?? carrier[kWebSocketHooks] ?? carrier.context?.[kWebSocketHooks] ?? {};
+  const hooks = res.crossws ?? carrier[kWebSocketHooks] ?? carrier.context?.[kWebSocketHooks];
+  if (hooks) {
+    return hooks;
+  }
+  return {
+    upgrade: () =>
+      res instanceof Response ? res : new Response("Upgrade Required", { status: 426 }),
+  };
 }
 
 export function fetch(
