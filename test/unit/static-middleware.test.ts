@@ -17,12 +17,9 @@ vi.mock("#nitro/virtual/public-assets", () => ({
   readAsset,
 }));
 
-function createEvent(pathname: string, acceptEncoding = "", range = "") {
+function createEvent(pathname: string, acceptEncoding = "") {
   const event = mockEvent(`http://localhost${pathname}`, {
-    headers: {
-      ...(acceptEncoding && { "accept-encoding": acceptEncoding }),
-      ...(range && { range }),
-    },
+    headers: acceptEncoding ? { "accept-encoding": acceptEncoding } : undefined,
   });
   event.res.headers.set("Vary", "Origin");
   event.res.headers.set("Cache-Control", "max-age=3600");
@@ -106,14 +103,15 @@ describe("runtime static middleware", () => {
     );
     isPublicAssetURL.mockReturnValue(true);
     readAsset.mockResolvedValue(new Uint8Array());
-    const event = createEvent("/empty.txt", "", "bytes=-1");
+    const event = createEvent("/empty.txt");
+    event.req.headers.set("range", "bytes=-1");
 
     await expect(handler(event)).resolves.toEqual(new Uint8Array());
     expect(event.res.status).not.toBe(206);
     expect(event.res.headers.get("Content-Range")).toBeNull();
   });
 
-  it("serves a precompressed-only asset whole for a byte range request", async () => {
+  it("serves a compressed asset whole for a byte range request", async () => {
     getAsset.mockImplementation((id: string) =>
       id === "/foo.css.gz"
         ? { etag: '"test"', mtime: MTIME, type: "text/css", encoding: "gzip", size: 4 }
@@ -121,7 +119,8 @@ describe("runtime static middleware", () => {
     );
     isPublicAssetURL.mockReturnValue(true);
     readAsset.mockResolvedValue("body");
-    const event = createEvent("/foo.css", "gzip", "bytes=0-1");
+    const event = createEvent("/foo.css", "gzip");
+    event.req.headers.set("range", "bytes=0-1");
 
     await expect(handler(event)).resolves.toBe("body");
     expect(readAsset).toHaveBeenCalledWith("/foo.css.gz");

@@ -11,6 +11,8 @@ const EncodingMap = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
 // Opts missing assets out of the immutable `cache-control` route rule of asset dirs (h3js/h3#1612)
 const noCacheHeaders = { "cache-control": "no-store" };
 
+const RANGE_RE = /^bytes=(\d*)-(\d*)$/;
+
 export default defineHandler((event) => {
   if (event.req.method && !METHODS.has(event.req.method as HTTPMethod)) {
     return;
@@ -50,11 +52,7 @@ export default defineHandler((event) => {
     "",
   ];
 
-  // Byte ranges are served from the identity encoding when it exists
-  const wantsRange = event.req.headers.has("range");
-  const lookupEncodings = wantsRange ? ["", ...encodings] : encodings;
-
-  for (const encoding of lookupEncodings) {
+  for (const encoding of encodings) {
     for (const _id of [id + encoding, joinURL(id, "index.html" + encoding)]) {
       const _asset = getAsset(_id);
       if (_asset) {
@@ -62,9 +60,6 @@ export default defineHandler((event) => {
         id = _id;
         break;
       }
-    }
-    if (asset) {
-      break;
     }
   }
 
@@ -110,7 +105,7 @@ export default defineHandler((event) => {
     event.res.headers.set("Content-Encoding", asset.encoding);
   }
 
-  // Precompressed variants are always served whole
+  // Compressed variants are served whole
   let range: ByteRange | "unsatisfiable" | undefined;
   if (!asset.encoding) {
     event.res.headers.set("Accept-Ranges", "bytes");
@@ -158,7 +153,7 @@ function sliceAssetData(data: unknown, range: ByteRange | undefined) {
 
 // A single `bytes=` range (RFC 9110 14.1.2). Multiple, malformed or stale (`If-Range`) ranges serve the full asset.
 function getByteRange(event: H3Event, asset: PublicAsset): ByteRange | "unsatisfiable" | undefined {
-  const match = /^bytes=(\d*)-(\d*)$/.exec(event.req.headers.get("range") || "");
+  const match = RANGE_RE.exec(event.req.headers.get("range") || "");
   if (!match) {
     return;
   }

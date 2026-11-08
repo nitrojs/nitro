@@ -645,19 +645,15 @@ export function testNitro(
       expect(full.data).toEqual(file);
     });
 
-    it("serves byte ranges from the identity encoding of static assets", async () => {
-      const identity = await callHandler(
-        { url: "/_openapi.json", headers: { "Accept-Encoding": "identity" } },
-        { binary: true }
-      );
-      const { status, headers, data } = await callHandler(
-        { url: "/_openapi.json", headers: { "Accept-Encoding": "br", Range: "bytes=0-9" } },
-        { binary: true }
-      );
-      expect(status).toBe(206);
-      expect(headers["content-encoding"]).toBeUndefined();
-      expect(headers["content-range"]).toBe(`bytes 0-9/${identity.data.length}`);
-      expect(data).toEqual(identity.data.subarray(0, 10));
+    it("serves compressed static assets whole for byte range requests", async () => {
+      const { status, headers } = await callHandler({
+        url: "/_openapi.json",
+        headers: { "Accept-Encoding": "br", Range: "bytes=0-9" },
+      });
+      expect(status).toBe(200);
+      expect(headers["content-encoding"]).toBe("br");
+      expect(headers["content-range"]).toBeUndefined();
+      expect(headers["accept-ranges"]).toBeUndefined();
     });
 
     it("serve static asset via internal fetch", async () => {
