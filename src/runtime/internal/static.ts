@@ -1,5 +1,5 @@
 import { HTTPError, defineHandler } from "h3";
-import type { EventHandler, H3Event, HTTPMethod } from "h3";
+import type { EventHandler, HTTPMethod } from "h3";
 import type { PublicAsset } from "nitro/types";
 import { decodePath, joinURL, withLeadingSlash, withoutTrailingSlash } from "ufo";
 import { getAsset, hasAsset, isPublicAssetURL, readAsset } from "#nitro/virtual/public-assets";
@@ -105,12 +105,16 @@ export default defineHandler((event) => {
     event.res.headers.set("Content-Encoding", asset.encoding);
   }
 
-  // Compressed variants are served whole
-  let range: ByteRange | "unsatisfiable" | undefined;
   if (!asset.encoding) {
     event.res.headers.set("Accept-Ranges", "bytes");
-    range = getByteRange(event, asset);
   }
+
+  // Ranges apply to identity GET responses with a matching (or no) `If-Range`
+  const ifRange = event.req.headers.get("if-range");
+  const range =
+    event.req.method === "GET" && !asset.encoding && (!ifRange || ifRange === asset.etag)
+      ? parseRange(event.req.headers.get("range") || "", asset.size)
+      : undefined;
 
   if (range === "unsatisfiable") {
     throw new HTTPError({
@@ -129,7 +133,10 @@ export default defineHandler((event) => {
     event.res.headers.set("Content-Length", asset.size.toString());
   }
 
-  const toBody = (data: unknown) => sliceAssetData(assertAssetData(data), range);
+  const toBody = (data: unknown) => {
+    assertAssetData(data);
+    return range ? (data as Uint8Array).subarray(range.start, range.end + 1) : data;
+  };
   const data = readAsset(id);
   return typeof (data as { then?: unknown })?.then === "function"
     ? (data as Promise<unknown>).then(toBody)
@@ -145,50 +152,26 @@ function assertAssetData<T>(data: T): T {
   return data;
 }
 
-type ByteRange = { start: number; end: number };
-
-function sliceAssetData(data: unknown, range: ByteRange | undefined) {
-  return range ? (data as Uint8Array).subarray(range.start, range.end + 1) : data;
-}
-
-// A single `bytes=` range (RFC 9110 14.1.2). Multiple, malformed or stale (`If-Range`) ranges serve the full asset.
-function getByteRange(event: H3Event, asset: PublicAsset): ByteRange | "unsatisfiable" | undefined {
-  const match = RANGE_RE.exec(event.req.headers.get("range") || "");
-  if (!match) {
+// A single `bytes=` range (RFC 9110 14.1.2), like srvx's `staticMiddleware`; others serve the full asset
+function parseRange(header: string, size: number) {
+  const match = RANGE_RE.exec(header);
+  if (!match || size === 0) {
     return;
   }
-
-  const ifRange = event.req.headers.get("if-range");
-  if (ifRange && ifRange !== asset.etag) {
-    return;
-  }
-
-  if (asset.size === 0) {
-    return;
-  }
-
-  const [, startText, endText] = match;
-  const lastByte = asset.size - 1;
-
-  // `bytes=-N` asks for the last N bytes
-  if (!startText) {
-    if (!endText) {
+  const [, startStr, endStr] = match;
+  if (!startStr) {
+    if (!endStr) {
       return;
     }
-    const suffixLength = Number(endText);
-    if (suffixLength === 0) {
-      return "unsatisfiable";
-    }
-    return { start: Math.max(asset.size - suffixLength, 0), end: lastByte };
+    const n = Number(endStr);
+    return n === 0 ? "unsatisfiable" : { start: Math.max(size - n, 0), end: size - 1 };
   }
-
-  const start = Number(startText);
-  const end = endText ? Number(endText) : lastByte;
-  if (endText && end < start) {
+  const start = Number(startStr);
+  if (endStr && Number(endStr) < start) {
     return;
   }
-  if (start > lastByte) {
+  if (start >= size) {
     return "unsatisfiable";
   }
-  return { start, end: Math.min(end, lastByte) };
+  return { start, end: endStr ? Math.min(Number(endStr), size - 1) : size - 1 };
 }
