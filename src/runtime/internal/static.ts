@@ -1,5 +1,5 @@
 import { HTTPError, defineHandler } from "h3";
-import type { EventHandler, HTTPMethod } from "h3";
+import type { EventHandler, H3Event, HTTPMethod } from "h3";
 import type { PublicAsset } from "nitro/types";
 import { decodePath, joinURL, withLeadingSlash, withoutTrailingSlash } from "ufo";
 import { getAsset, hasAsset, isPublicAssetURL, readAsset } from "#nitro/virtual/public-assets";
@@ -50,7 +50,8 @@ export default defineHandler((event) => {
     "",
   ];
 
-  for (const encoding of encodings) {
+  // Byte ranges are served from the identity encoding
+  for (const encoding of event.req.headers.has("range") ? [""] : encodings) {
     for (const _id of [id + encoding, joinURL(id, "index.html" + encoding)]) {
       const _asset = getAsset(_id);
       if (_asset) {
@@ -103,21 +104,52 @@ export default defineHandler((event) => {
     event.res.headers.set("Content-Encoding", asset.encoding);
   }
 
+  const range = asset.encoding ? undefined : parseRange(event, asset);
+  if (!asset.encoding) {
+    event.res.headers.set("Accept-Ranges", "bytes");
+  }
+  if (range) {
+    if (range.start > range.end) {
+      throw new HTTPError({
+        status: 416,
+        headers: { "Content-Range": `bytes */${asset.size}` },
+      });
+    }
+    event.res.status = 206;
+    event.res.headers.set("Content-Range", `bytes ${range.start}-${range.end}/${asset.size}`);
+    event.res.headers.set("Content-Length", (range.end - range.start + 1).toString());
+  }
+
   if (asset.size > 0 && !event.res.headers.has("Content-Length")) {
     event.res.headers.set("Content-Length", asset.size.toString());
   }
 
   const data = readAsset(id);
   return typeof (data as { then?: unknown })?.then === "function"
-    ? (data as Promise<unknown>).then((resolved) => assertAssetData(resolved))
-    : assertAssetData(data);
+    ? (data as Promise<unknown>).then((resolved) => assertAssetData(resolved, range))
+    : assertAssetData(data, range);
 }) as EventHandler;
 
 // Readers resolve with `null`/`undefined` when the manifest entry has no data
 // backing it (file removed after build, missing inline payload).
-function assertAssetData<T>(data: T): T {
+function assertAssetData(data: unknown, range?: { start: number; end: number }) {
   if (data === null || data === undefined) {
     throw new HTTPError({ status: 404, headers: noCacheHeaders });
   }
-  return data;
+  return range ? (data as Uint8Array).subarray(range.start, range.end + 1) : data;
+}
+
+// A single `bytes=` range (RFC 9110 14.1.2). Multiple, malformed or stale (`If-Range`) ranges serve the full asset.
+function parseRange(event: H3Event, asset: PublicAsset) {
+  const match = /^bytes=(\d*)-(\d*)$/.exec(event.req.headers.get("range") || "");
+  const ifRange = event.req.headers.get("if-range");
+  if (!match || (!match[1] && !match[2]) || (ifRange && ifRange !== asset.etag)) {
+    return;
+  }
+  if (!match[1]) {
+    return { start: Math.max(asset.size - Number(match[2]), 0), end: asset.size - 1 };
+  }
+  const start = Number(match[1]);
+  const end = match[2] ? Number(match[2]) : Number.POSITIVE_INFINITY;
+  return end < start ? undefined : { start, end: Math.min(end, asset.size - 1) };
 }
