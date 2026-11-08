@@ -1,6 +1,6 @@
 import type { HTTPError, HTTPMethod, HTTPEvent, HTTPHandler } from "h3";
 import type { PresetName } from "../presets/index.ts";
-import type { OperationObject, OpenAPI3, Extensable } from "../types/openapi-ts.ts";
+import type { OperationObject, OpenAPI3, Extensible } from "../types/openapi-ts.ts";
 
 type MaybeArray<T> = T | T[];
 
@@ -12,7 +12,7 @@ type MaybeArray<T> = T | T[];
  */
 export interface NitroRouteMeta {
   openAPI?: OperationObject & {
-    $global?: Pick<OpenAPI3, "components"> & Extensable;
+    $global?: Pick<OpenAPI3, "components"> & Extensible;
   };
 }
 
