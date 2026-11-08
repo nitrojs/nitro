@@ -133,7 +133,10 @@ export default defineHandler((event) => {
 
   const toBody = (data: unknown) => {
     assertAssetData(data);
-    return range && data instanceof Uint8Array ? data.subarray(range.start, range.end + 1) : data;
+    if (!range || !(data instanceof Uint8Array)) {
+      return data;
+    }
+    return data.subarray(range.start, range.end + 1);
   };
   const data = readAsset(id);
   return typeof (data as { then?: unknown })?.then === "function"
@@ -163,8 +166,11 @@ function parseRange(header: string, size: number): ByteRange | "unsatisfiable" |
     if (!endStr) {
       return;
     }
-    const n = Number(endStr);
-    return n === 0 ? "unsatisfiable" : { start: Math.max(size - n, 0), end: size - 1 };
+    const suffix = Number(endStr);
+    if (suffix === 0) {
+      return "unsatisfiable";
+    }
+    return { start: Math.max(size - suffix, 0), end: size - 1 };
   }
   const start = Number(startStr);
   if (endStr && Number(endStr) < start) {
@@ -173,5 +179,6 @@ function parseRange(header: string, size: number): ByteRange | "unsatisfiable" |
   if (start >= size) {
     return "unsatisfiable";
   }
-  return { start, end: endStr ? Math.min(Number(endStr), size - 1) : size - 1 };
+  const end = endStr ? Math.min(Number(endStr), size - 1) : size - 1;
+  return { start, end };
 }
