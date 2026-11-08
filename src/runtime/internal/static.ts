@@ -105,16 +105,14 @@ export default defineHandler((event) => {
     event.res.headers.set("Content-Encoding", asset.encoding);
   }
 
+  let range: ByteRange | "unsatisfiable" | undefined;
   if (!asset.encoding) {
     event.res.headers.set("Accept-Ranges", "bytes");
+    const ifRange = event.req.headers.get("if-range");
+    if (event.req.method === "GET" && (!ifRange || ifRange === asset.etag)) {
+      range = parseRange(event.req.headers.get("range") || "", asset.size);
+    }
   }
-
-  // Ranges apply to identity GET responses with a matching (or no) `If-Range`
-  const ifRange = event.req.headers.get("if-range");
-  const range =
-    event.req.method === "GET" && !asset.encoding && (!ifRange || ifRange === asset.etag)
-      ? parseRange(event.req.headers.get("range") || "", asset.size)
-      : undefined;
 
   if (range === "unsatisfiable") {
     throw new HTTPError({
@@ -135,7 +133,7 @@ export default defineHandler((event) => {
 
   const toBody = (data: unknown) => {
     assertAssetData(data);
-    return range ? (data as Uint8Array).subarray(range.start, range.end + 1) : data;
+    return range && data instanceof Uint8Array ? data.subarray(range.start, range.end + 1) : data;
   };
   const data = readAsset(id);
   return typeof (data as { then?: unknown })?.then === "function"
@@ -152,8 +150,10 @@ function assertAssetData<T>(data: T): T {
   return data;
 }
 
+type ByteRange = { start: number; end: number };
+
 // A single `bytes=` range (RFC 9110 14.1.2), like srvx's `staticMiddleware`; others serve the full asset
-function parseRange(header: string, size: number) {
+function parseRange(header: string, size: number): ByteRange | "unsatisfiable" | undefined {
   const match = RANGE_RE.exec(header);
   if (!match || size === 0) {
     return;
