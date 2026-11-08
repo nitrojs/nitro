@@ -1,7 +1,7 @@
 import type { Nitro, RollupConfig } from "nitro/types";
 import type { RollupOptions, RollupWatcher } from "rollup";
 import { defu } from "defu";
-import { basename, join } from "pathe";
+import { basename, join, resolve } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
 import { createWatcher } from "../../utils/watch.ts";
@@ -89,7 +89,8 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
           if (nitro.options.logging.buildSuccess) {
             nitro.logger.success(`Server built`, start ? `in ${Date.now() - start}ms` : "");
           }
-          nitro.hooks.callHook("dev:reload");
+          const entry = resolve(nitro.options.output.serverDir, "index.mjs");
+          nitro.hooks.callHook("dev:reload", { entry });
           break;
         }
         case "ERROR": {

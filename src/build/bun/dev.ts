@@ -1,5 +1,5 @@
 import type { BunConfig, Nitro } from "nitro/types";
-import { basename, join } from "pathe";
+import { basename, join, resolve } from "pathe";
 import { debounce } from "perfect-debounce";
 import { formatCompatibilityDate } from "compatx";
 import { scanHandlers } from "../../scan.ts";
@@ -49,7 +49,8 @@ export async function watchDev(nitro: Nitro, config: BunConfig, container: Plugi
       if (nitro.options.logging.buildSuccess) {
         nitro.logger.success(`Server built in ${Date.now() - start}ms`);
       }
-      await nitro.hooks.callHook("dev:reload");
+      const entry = resolve(nitro.options.output.serverDir, "index.mjs");
+      await nitro.hooks.callHook("dev:reload", { entry });
     } catch (error) {
       // Files with errors may not be part of the last successful build (e.g. a new import)
       watch(errorFiles(error));
