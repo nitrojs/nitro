@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const { closeHookMock, cronMock, cronStopMock, virtualTasks } = vi.hoisted(() => {
   const cronStopMock = vi.fn();
   return {
-    virtualTasks: { scheduleRunner: true },
+    virtualTasks: { scheduleRunner: true, tasks: {} as Record<string, any> },
     closeHookMock: vi.fn(),
     cronMock: vi.fn(function () {
       return { stop: cronStopMock };
@@ -15,6 +15,7 @@ const { closeHookMock, cronMock, cronStopMock, virtualTasks } = vi.hoisted(() =>
 vi.mock("croner", () => ({ Cron: cronMock }));
 vi.mock("../../src/runtime/internal/app.ts", () => ({
   useNitroHooks: () => ({ hook: closeHookMock }),
+  useNitroApp: () => ({ ready: Promise.resolve() }),
 }));
 vi.mock("#nitro/virtual/tasks", () => ({
   scheduledTasks: [
@@ -24,20 +25,30 @@ vi.mock("#nitro/virtual/tasks", () => ({
   get scheduleRunner() {
     return virtualTasks.scheduleRunner;
   },
-  tasks: {},
+  get tasks() {
+    return virtualTasks.tasks;
+  },
 }));
 
-import { startScheduleRunner } from "../../src/runtime/internal/task.ts";
+import {
+  _resetTasksState,
+  runTask,
+  startScheduleRunner,
+  waitForRunningTasks,
+} from "../../src/runtime/internal/task.ts";
 import tasksTemplate from "../../src/build/virtual/tasks.ts";
 
 describe("startScheduleRunner", () => {
   beforeEach(() => {
     vi.stubEnv("TEST", "");
     vi.clearAllMocks();
+    _resetTasksState();
     virtualTasks.scheduleRunner = true;
+    virtualTasks.tasks = {};
   });
 
   afterEach(() => {
+    _resetTasksState();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
@@ -91,6 +102,57 @@ describe("startScheduleRunner", () => {
     expect(firstStopMock).toHaveBeenCalledOnce();
     expect(secondStopMock).toHaveBeenCalledOnce();
     expect(consoleErrorMock).toHaveBeenCalledWith("Error while stopping scheduled task", error);
+  });
+
+  it("awaits running tasks on close", async () => {
+    let taskCompleted = false;
+    virtualTasks.tasks = {
+      test: {
+        resolve: async () => ({
+          run: async () => {
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            taskCompleted = true;
+            return { result: "ok" };
+          },
+        }),
+      },
+    };
+
+    startScheduleRunner();
+    const taskPromise = runTask("test");
+
+    const closeScheduleRunner = closeHookMock.mock.calls[0]![1];
+    expect(taskCompleted).toBe(false);
+
+    await closeScheduleRunner();
+    expect(taskCompleted).toBe(true);
+    await taskPromise;
+  });
+
+  it("rejects new runTask calls once shutdown has started", async () => {
+    startScheduleRunner();
+    const closeScheduleRunner = closeHookMock.mock.calls[0]![1];
+    await closeScheduleRunner();
+
+    await expect(runTask("any")).rejects.toThrow("Server is shutting down");
+  });
+
+  it("bounds the wait by the shutdown timeout if a task is stuck", async () => {
+    virtualTasks.tasks = {
+      stuck: {
+        resolve: async () => ({
+          run: () => new Promise(() => {}),
+        }),
+      },
+    };
+
+    runTask("stuck");
+    const start = Date.now();
+    await waitForRunningTasks(50);
+    const duration = Date.now() - start;
+
+    expect(duration).toBeGreaterThanOrEqual(40);
+    expect(duration).toBeLessThan(500);
   });
 });
 

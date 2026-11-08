@@ -15,12 +15,72 @@ export function defineTask<RT = unknown>(def: Task<RT>): Task<RT> {
 }
 
 const __runningTasks__: { [name: string]: ReturnType<Task<any>["run"]> } = {};
+let isShuttingDown = false;
+let closeHookRegistered = false;
+
+function ensureCloseHook(): void {
+  if (closeHookRegistered) {
+    return;
+  }
+  closeHookRegistered = true;
+  useNitroHooks().hook("close", () => waitForRunningTasks());
+}
+
+/** @experimental */
+export async function waitForRunningTasks(timeoutMs?: number): Promise<void> {
+  isShuttingDown = true;
+  const running = Object.values(__runningTasks__);
+  if (running.length === 0) {
+    return;
+  }
+  const timeout =
+    typeof timeoutMs === "number"
+      ? timeoutMs
+      : (Number.parseInt(
+          process.env.NITRO_SHUTDOWN_TIMEOUT || process.env.SERVER_SHUTDOWN_TIMEOUT || ""
+        ) || 5) * 1000;
+
+  const waitPromise = Promise.allSettled(running);
+  if (timeout > 0) {
+    let timer: NodeJS.Timeout | undefined;
+    const timeoutPromise = new Promise<void>((resolve) => {
+      timer = setTimeout(resolve, timeout);
+    });
+    try {
+      await Promise.race([waitPromise, timeoutPromise]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  } else {
+    await waitPromise;
+  }
+}
+
+/** @internal */
+export function _resetTasksState(): void {
+  isShuttingDown = false;
+  closeHookRegistered = false;
+  for (const key of Object.keys(__runningTasks__)) {
+    delete __runningTasks__[key];
+  }
+}
 
 /** @experimental */
 export async function runTask<RT = unknown>(
   name: string,
   { payload = {}, context = {} }: { payload?: TaskPayload; context?: TaskContext } = {}
 ): Promise<TaskResult<RT>> {
+  if (isShuttingDown) {
+    throw new HTTPError({
+      message: "Server is shutting down",
+      status: 503,
+    });
+  }
+
+  ensureCloseHook();
+
   if (__runningTasks__[name]) {
     return __runningTasks__[name];
   }
@@ -39,12 +99,16 @@ export async function runTask<RT = unknown>(
     });
   }
 
-  const handler = (await tasks[name].resolve!()) as Task<RT>;
-  const taskEvent: TaskEvent = { name, payload, context };
-  __runningTasks__[name] = handler.run(taskEvent);
+  const taskPromise = (async () => {
+    const handler = (await tasks[name].resolve!()) as Task<RT>;
+    const taskEvent: TaskEvent = { name, payload, context };
+    return handler.run(taskEvent);
+  })();
+
+  __runningTasks__[name] = taskPromise;
 
   try {
-    const res = await __runningTasks__[name];
+    const res = await taskPromise;
     return res;
   } finally {
     delete __runningTasks__[name];
@@ -66,7 +130,9 @@ export function startScheduleRunner({
   };
 
   const cronJobs: Cron[] = [];
-  useNitroHooks().hook("close", () => {
+  closeHookRegistered = true;
+  useNitroHooks().hook("close", async () => {
+    isShuttingDown = true;
     for (const job of cronJobs) {
       try {
         job.stop();
@@ -74,6 +140,7 @@ export function startScheduleRunner({
         console.error("Error while stopping scheduled task", error);
       }
     }
+    await waitForRunningTasks();
   });
 
   for (const schedule of scheduledTasks) {
