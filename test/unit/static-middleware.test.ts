@@ -17,9 +17,12 @@ vi.mock("#nitro/virtual/public-assets", () => ({
   readAsset,
 }));
 
-function createEvent(pathname: string, acceptEncoding = "") {
+function createEvent(pathname: string, acceptEncoding = "", range = "") {
   const event = mockEvent(`http://localhost${pathname}`, {
-    headers: acceptEncoding ? { "accept-encoding": acceptEncoding } : undefined,
+    headers: {
+      ...(acceptEncoding && { "accept-encoding": acceptEncoding }),
+      ...(range && { range }),
+    },
   });
   event.res.headers.set("Vary", "Origin");
   event.res.headers.set("Cache-Control", "max-age=3600");
@@ -93,6 +96,38 @@ describe("runtime static middleware", () => {
     const event = createEvent("/empty.txt");
 
     await expect(handler(event)).resolves.toEqual(new Uint8Array());
+  });
+
+  it("ignores byte ranges on an empty asset", async () => {
+    getAsset.mockImplementation((id: string) =>
+      id === "/empty.txt"
+        ? { etag: '"test"', mtime: MTIME, type: "text/plain", size: 0 }
+        : undefined
+    );
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockResolvedValue(new Uint8Array());
+    const event = createEvent("/empty.txt", "", "bytes=-1");
+
+    await expect(handler(event)).resolves.toEqual(new Uint8Array());
+    expect(event.res.status).not.toBe(206);
+    expect(event.res.headers.get("Content-Range")).toBeNull();
+  });
+
+  it("serves a precompressed-only asset whole for a byte range request", async () => {
+    getAsset.mockImplementation((id: string) =>
+      id === "/foo.css.gz"
+        ? { etag: '"test"', mtime: MTIME, type: "text/css", encoding: "gzip", size: 4 }
+        : undefined
+    );
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockResolvedValue("body");
+    const event = createEvent("/foo.css", "gzip", "bytes=0-1");
+
+    await expect(handler(event)).resolves.toBe("body");
+    expect(readAsset).toHaveBeenCalledWith("/foo.css.gz");
+    expect(event.res.status).not.toBe(206);
+    expect(event.res.headers.get("Content-Encoding")).toBe("gzip");
+    expect(event.res.headers.get("Content-Range")).toBeNull();
   });
 
   it("skips requests for paths that are not public assets", () => {
