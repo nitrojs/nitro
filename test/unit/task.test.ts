@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { closeHookMock, cronMock, cronStopMock, virtualTasks } = vi.hoisted(() => {
+const { closeHookMock, cronMock, cronStopMock, virtualTasks, taskRunMock } = vi.hoisted(() => {
   const cronStopMock = vi.fn();
+  const taskRunMock = vi.fn();
   return {
     virtualTasks: { scheduleRunner: true },
     closeHookMock: vi.fn(),
@@ -9,11 +10,13 @@ const { closeHookMock, cronMock, cronStopMock, virtualTasks } = vi.hoisted(() =>
       return { stop: cronStopMock };
     }),
     cronStopMock,
+    taskRunMock,
   };
 });
 
 vi.mock("croner", () => ({ Cron: cronMock }));
 vi.mock("../../src/runtime/internal/app.ts", () => ({
+  useNitroApp: () => ({ ready: Promise.resolve() }),
   useNitroHooks: () => ({ hook: closeHookMock }),
 }));
 vi.mock("#nitro/virtual/tasks", () => ({
@@ -24,7 +27,11 @@ vi.mock("#nitro/virtual/tasks", () => ({
   get scheduleRunner() {
     return virtualTasks.scheduleRunner;
   },
-  tasks: {},
+  tasks: {
+    test: {
+      resolve: () => Promise.resolve({ run: taskRunMock }),
+    },
+  },
 }));
 
 import { startScheduleRunner } from "../../src/runtime/internal/task.ts";
@@ -91,6 +98,35 @@ describe("startScheduleRunner", () => {
     expect(firstStopMock).toHaveBeenCalledOnce();
     expect(secondStopMock).toHaveBeenCalledOnce();
     expect(consoleErrorMock).toHaveBeenCalledWith("Error while stopping scheduled task", error);
+  });
+
+  it("passes a fresh payload with current scheduledTime on each run", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1000);
+
+    startScheduleRunner();
+
+    const cronCallback = (cronMock.mock.calls[0] as any)[1];
+
+    await cronCallback();
+    expect(taskRunMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "test",
+        payload: { scheduledTime: 1000 },
+      })
+    );
+
+    // Advance time and simulate a second cron firing
+    vi.setSystemTime(5000);
+    await cronCallback();
+    expect(taskRunMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        name: "test",
+        payload: { scheduledTime: 5000 },
+      })
+    );
+
+    vi.useRealTimers();
   });
 });
 
