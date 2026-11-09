@@ -10,6 +10,7 @@ import { formatCompatibilityDate } from "compatx";
 import { importRollup } from "./_import.ts";
 
 export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
+  const entry = resolve(nitro.options.output.serverDir, "index.mjs");
   const rollup = await importRollup(nitro);
 
   let rollupWatcher: RollupWatcher;
@@ -89,7 +90,6 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
           if (nitro.options.logging.buildSuccess) {
             nitro.logger.success(`Server built`, start ? `in ${Date.now() - start}ms` : "");
           }
-          const entry = resolve(nitro.options.output.serverDir, "index.mjs");
           nitro.hooks.callHook("dev:reload", { entry });
           break;
         }

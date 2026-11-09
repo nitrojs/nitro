@@ -11,6 +11,7 @@ export async function watchDev(
   config: RolldownOptions,
   rolldown: typeof import("rolldown")
 ) {
+  const entry = resolve(nitro.options.output.serverDir, "index.mjs");
   let watcher: RolldownWatcher;
 
   async function load() {
@@ -83,7 +84,6 @@ export async function watchDev(
           if (nitro.options.logging.buildSuccess) {
             nitro.logger.success(`Server built`, start ? `in ${Date.now() - start}ms` : "");
           }
-          const entry = resolve(nitro.options.output.serverDir, "index.mjs");
           nitro.hooks.callHook("dev:reload", { entry });
           break;
         }
