@@ -202,12 +202,13 @@ async function runPreviewCommand(opts: {
   }
 
   // the group no longer shares a signal sent to this process's group
-  process.once("SIGTERM", () => {
+  const onSigterm = () => {
     killChild("SIGTERM");
     if (process.listenerCount("SIGTERM") === 0) {
       process.kill(process.pid, "SIGTERM");
     }
-  });
+  };
+  process.once("SIGTERM", onSigterm);
 
   child.once("exit", (code) => {
     if (code && code !== 0) {
@@ -216,6 +217,7 @@ async function runPreviewCommand(opts: {
   });
 
   await waitForPort(randomPort, { retries: 20, delay: 500, host: "localhost" }).catch((error) => {
+    process.off("SIGTERM", onSigterm);
     killChild("SIGKILL");
     throw error;
   });
@@ -238,6 +240,7 @@ async function runPreviewCommand(opts: {
         killChild("SIGKILL");
       }
       await exited;
+      process.off("SIGTERM", onSigterm);
     },
   };
 }

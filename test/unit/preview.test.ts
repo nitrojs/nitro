@@ -108,10 +108,12 @@ createServer((_req, res) => res.end("ok")).listen(Number(process.env.PORT));`
     );
     vi.spyOn(consola, "info").mockImplementation(() => {});
 
+    const sigtermListeners = process.listenerCount("SIGTERM");
     const preview = await startPreview({ rootDir });
     const pid = Number(await readFile(join(rootDir, "server.pid"), "utf8"));
     try {
       await preview.close();
+      expect(process.listenerCount("SIGTERM")).toBe(sigtermListeners);
       await expect.poll(() => isRunning(pid), { timeout: 2000 }).toBe(false);
     } finally {
       if (isRunning(pid)) {
