@@ -1,7 +1,7 @@
 import { defineHandler, getRequestURL } from "h3";
 import type { EventHandler, HTTPMethod } from "h3";
 import type {
-  Extensable,
+  Extensible,
   OpenAPI3,
   OperationObject,
   ParameterObject,
@@ -30,7 +30,7 @@ export default defineHandler((event) => {
     globals: { components, ...globalsRest },
   } = getHandlersMeta();
 
-  const extensible: Extensable = Object.fromEntries(
+  const extensible: Extensible = Object.fromEntries(
     Object.entries(globalsRest).filter(([key]) => key.startsWith("x-"))
   );
 
@@ -54,7 +54,7 @@ export default defineHandler((event) => {
   } satisfies OpenAPI3;
 }) as EventHandler;
 
-type OpenAPIGlobals = Pick<OpenAPI3, "components"> & Extensable;
+type OpenAPIGlobals = Pick<OpenAPI3, "components"> & Extensible;
 
 function getHandlersMeta(): {
   paths: PathsObject;
