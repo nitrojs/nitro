@@ -64,8 +64,8 @@ icon: i-simple-icons-trpc
       <div class="value" id="value">
         <script server>
           // Server-side Rendering
-          const { result } = await serverFetch("/trpc/get").then(r => r.json())
-          echo(result?.data?.value)
+          const { result } = await serverFetch("/trpc/get").then((r) => r.json());
+          echo(result?.data?.value);
         </script>
       </div>
       <button id="inc">Increment</button>
