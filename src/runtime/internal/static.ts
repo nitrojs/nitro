@@ -11,7 +11,8 @@ const EncodingMap = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
 // Opts missing assets out of the immutable `cache-control` route rule of asset dirs (h3js/h3#1612)
 const noCacheHeaders = { "cache-control": "no-store" };
 
-const RANGE_RE = /^bytes=(\d*)-(\d*)$/;
+// Range units are case-insensitive (RFC 9110 14.1)
+const RANGE_RE = /^bytes=(\d*)-(\d*)$/i;
 
 export default defineHandler((event) => {
   if (event.req.method && !METHODS.has(event.req.method as HTTPMethod)) {

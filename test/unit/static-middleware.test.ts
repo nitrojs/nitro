@@ -151,6 +151,7 @@ describe("runtime static middleware", () => {
       ["bytes=-3", 7, 9],
       ["bytes=5-100", 5, 9],
       ["bytes=-100", 0, 9],
+      ["Bytes=2-4", 2, 4],
     ])("serves %s", async (range, start, end) => {
       const event = rangeEvent({ range });
 
