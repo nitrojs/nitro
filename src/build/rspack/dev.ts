@@ -1,7 +1,7 @@
 import type { Nitro } from "nitro/types";
 import type { Compiler, Configuration, Stats, Watching } from "@rspack/core";
 import { existsSync } from "node:fs";
-import { basename, join, normalize } from "pathe";
+import { basename, join, normalize, resolve } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
 import { createWatcher } from "../../utils/watch.ts";
@@ -76,6 +76,7 @@ export function createDevWatch(
     outputChanged?: (stats: Stats) => boolean;
   }
 ): DevWatch {
+  const entry = resolve(nitro.options.output.serverDir, "index.mjs");
   const { pluginsHost } = opts;
   // Virtual modules are rendered again by the next build
   let stale = false;
@@ -198,7 +199,7 @@ export function createDevWatch(
       if (nitro.options.logging.buildSuccess) {
         nitro.logger.success(`Server built`, start ? `in ${Date.now() - start}ms` : "");
       }
-      nitro.hooks.callHook("dev:reload");
+      nitro.hooks.callHook("dev:reload", { entry });
     });
     compiler.hooks.failed.tap("nitro:dev", (error) => {
       reloaded = false;

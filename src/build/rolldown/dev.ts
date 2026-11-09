@@ -1,6 +1,6 @@
 import type { Nitro } from "nitro/types";
 import type { RolldownWatcher, RolldownOptions } from "rolldown";
-import { basename, join } from "pathe";
+import { basename, join, resolve } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
 import { createWatcher } from "../../utils/watch.ts";
@@ -11,6 +11,7 @@ export async function watchDev(
   config: RolldownOptions,
   rolldown: typeof import("rolldown")
 ) {
+  const entry = resolve(nitro.options.output.serverDir, "index.mjs");
   let watcher: RolldownWatcher;
 
   async function load() {
@@ -83,7 +84,7 @@ export async function watchDev(
           if (nitro.options.logging.buildSuccess) {
             nitro.logger.success(`Server built`, start ? `in ${Date.now() - start}ms` : "");
           }
-          nitro.hooks.callHook("dev:reload");
+          nitro.hooks.callHook("dev:reload", { entry });
           break;
         }
         case "ERROR": {
