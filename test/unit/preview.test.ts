@@ -72,52 +72,62 @@ describe("preview", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it.skipIf(process.platform === "win32")(
-    "stops processes the preview command started under a shell",
-    async () => {
-      await mkdir(join(rootDir, ".output"), { recursive: true });
-      await writeFile(
-        join(rootDir, ".output/nitro.json"),
-        JSON.stringify({
-          date: new Date(Date.now() + 60_000).toJSON(),
-          preset: "cloudflare-module",
-          versions: { nitro: "3" },
-          commands: { preview: "node launcher.mjs" },
-        })
-      );
-      // like `npx` under `dash`: `sh` does not hand the signal on to the server
-      await writeFile(
-        join(rootDir, "launcher.mjs"),
-        `import { spawn } from "node:child_process";
-spawn("sh", ["-c", "node server.mjs; :"], { stdio: "inherit" });`
-      );
-      await writeFile(
-        join(rootDir, "server.mjs"),
-        `import { createServer } from "node:http";
-import { writeFileSync } from "node:fs";
-writeFileSync("server.pid", String(process.pid));
-createServer((_req, res) => res.end("ok")).listen(Number(process.env.PORT), "localhost");`
-      );
-      vi.spyOn(consola, "info").mockImplementation(() => {});
+  const isRunning = (pid: number) => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-      const preview = await startPreview({ rootDir });
-      const pid = Number(await readFile(join(rootDir, "server.pid"), "utf8"));
-      const isRunning = () => {
-        try {
-          process.kill(pid, 0);
-          return true;
-        } catch {
-          return false;
-        }
-      };
-      try {
-        await preview.close();
-        await expect.poll(isRunning, { timeout: 2000 }).toBe(false);
-      } finally {
-        if (isRunning()) {
-          process.kill(pid, "SIGKILL");
-        }
+  async function closeShellPreview(serverSetup = "") {
+    await mkdir(join(rootDir, ".output"), { recursive: true });
+    await writeFile(
+      join(rootDir, ".output/nitro.json"),
+      JSON.stringify({
+        date: new Date(Date.now() + 60_000).toJSON(),
+        preset: "cloudflare-module",
+        versions: { nitro: "3" },
+        commands: { preview: "node launcher.mjs" },
+      })
+    );
+    // like `npx` under `dash`: `sh` does not hand the signal on to the server
+    await writeFile(
+      join(rootDir, "launcher.mjs"),
+      `import { spawn } from "node:child_process";
+spawn("sh", ["-c", "node server.mjs; :"], { stdio: "inherit" });`
+    );
+    await writeFile(
+      join(rootDir, "server.mjs"),
+      `import { createServer } from "node:http";
+import { writeFileSync } from "node:fs";
+${serverSetup}
+writeFileSync("server.pid", String(process.pid));
+createServer((_req, res) => res.end("ok")).listen(Number(process.env.PORT));`
+    );
+    vi.spyOn(consola, "info").mockImplementation(() => {});
+
+    const preview = await startPreview({ rootDir });
+    const pid = Number(await readFile(join(rootDir, "server.pid"), "utf8"));
+    try {
+      await preview.close();
+      await expect.poll(() => isRunning(pid), { timeout: 2000 }).toBe(false);
+    } finally {
+      if (isRunning(pid)) {
+        process.kill(pid, "SIGKILL");
       }
     }
+  }
+
+  it.skipIf(process.platform === "win32")(
+    "stops processes the preview command started under a shell",
+    () => closeShellPreview()
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "kills processes in the group that ignore SIGTERM",
+    () => closeShellPreview(`process.on("SIGTERM", () => {});`),
+    10_000
   );
 });

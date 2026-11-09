@@ -138,6 +138,7 @@ async function loadPreviewDotEnv(root: string): Promise<[string, string][]> {
 
 /** How long `close()` waits for the preview command to stop before killing it. */
 const PREVIEW_CLOSE_TIMEOUT = 5000;
+const PREVIEW_CLOSE_POLL_INTERVAL = 50;
 
 async function runPreviewCommand(opts: {
   command: string;
@@ -182,11 +183,31 @@ async function runPreviewCommand(opts: {
     }
   };
 
+  const isStopped = () => {
+    if (!killGroup || !child.pid) {
+      return child.exitCode !== null || child.signalCode !== null;
+    }
+    try {
+      process.kill(-child.pid, 0);
+      return false;
+    } catch (error) {
+      return (error as NodeJS.ErrnoException).code === "ESRCH";
+    }
+  };
+
   for (const sig of ["SIGINT", "SIGHUP"] as const) {
     process.once(sig, () => {
       killChild(sig);
     });
   }
+
+  // the group no longer shares a signal sent to this process's group
+  process.once("SIGTERM", () => {
+    killChild("SIGTERM");
+    if (process.listenerCount("SIGTERM") === 0) {
+      process.kill(process.pid, "SIGTERM");
+    }
+  });
 
   child.once("exit", (code) => {
     if (code && code !== 0) {
@@ -194,7 +215,10 @@ async function runPreviewCommand(opts: {
     }
   });
 
-  await waitForPort(randomPort, { retries: 20, delay: 500, host: "localhost" });
+  await waitForPort(randomPort, { retries: 20, delay: 500, host: "localhost" }).catch((error) => {
+    killChild("SIGKILL");
+    throw error;
+  });
 
   return {
     fetch(req: ServerRequest) {
@@ -205,9 +229,15 @@ async function runPreviewCommand(opts: {
     },
     async close() {
       killChild("SIGTERM");
-      const timeout = setTimeout(() => killChild("SIGKILL"), PREVIEW_CLOSE_TIMEOUT);
+      // members of the group can outlive the command itself
+      const deadline = Date.now() + PREVIEW_CLOSE_TIMEOUT;
+      while (!isStopped() && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, PREVIEW_CLOSE_POLL_INTERVAL));
+      }
+      if (!isStopped()) {
+        killChild("SIGKILL");
+      }
       await exited;
-      clearTimeout(timeout);
     },
   };
 }
