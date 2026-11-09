@@ -4,7 +4,8 @@ import { join, relative, resolve } from "pathe";
 import { version as nitroVersion } from "#nitro/meta";
 import { presetsWithConfig } from "../presets/_types.gen.ts";
 import { writeFile } from "../utils/fs.ts";
-import { mkdir, readFile, stat } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
+import { mkdir, readFile, rename, rm, stat } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { RolldownOutput } from "rolldown";
 import type { RollupOutput } from "rollup";
@@ -121,7 +122,15 @@ export async function writeDevBuildInfo(
       ...dev,
     },
   };
-  await writeFile(buildInfoPath, JSON.stringify(buildInfo, null, 2));
+  // Atomically, so that CLI commands (`nitro fetch`) never read a partial file
+  const tmpPath = `${buildInfoPath}.${randomBytes(4).toString("hex")}.tmp`;
+  try {
+    await writeFile(tmpPath, JSON.stringify(buildInfo, null, 2));
+    await rename(tmpPath, buildInfoPath);
+  } catch (error) {
+    await rm(tmpPath, { force: true }).catch(() => {});
+    throw error;
+  }
 }
 
 /** Build info of the dev server of the project, if its process is still running. */
