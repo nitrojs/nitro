@@ -116,6 +116,38 @@ export default defineConfig({
 
 Route patterns support wildcards via [rou3](https://github.com/h3js/rou3) matching (e.g., `/api/slow/**` matches all routes under `/api/slow/`).
 
+### Excluding files from functions
+
+Each `functionRules` route gets a full copy of the server output. Use `excludeFiles` to remove large dependencies a function never loads.
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  vercel: {
+    functions: {
+      // Removed from the main function and every `functionRules` function
+      excludeFiles: ["node_modules/@scope/native-binary-*/**"],
+    },
+    functionRules: {
+      // Replaces the base value, so this function keeps every file
+      "/api/agent": { maxDuration: "max", excludeFiles: [] },
+    },
+  },
+});
+```
+
+- Patterns match the built function output (`index.mjs`, `_chunks/`, `node_modules/`), not source paths.
+- `!pattern` keeps files, and a directory name (e.g. `node_modules/sharp`) removes all of it.
+- A rule's value replaces the base value instead of merging with it.
+- Matching the handler (`index.mjs`) fails the build, and a pattern that matches nothing logs a warning.
+- Symlinks are not followed. A package bundled in several versions lives in `node_modules/.nf3/<name>@<version>/`, so match both (e.g. `node_modules/{,.nf3/}@scope/pkg{,@*}/**`).
+- Dependencies that only an excluded package imports are kept. List them too.
+
+::warning
+Make sure a function never loads a file excluded from it at runtime.
+::
+
 ## Proxy route rules
 
 Nitro automatically optimizes `proxy` route rules on Vercel by generating [CDN-level rewrites](https://vercel.com/docs/rewrites) at build time. This means matching requests are proxied at the edge without invoking a serverless function, reducing latency and cost.
