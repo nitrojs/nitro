@@ -5,6 +5,7 @@ import type { Nitro, NitroOptions } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { withoutTrailingSlash } from "ufo";
 import { compressPublicAssets } from "../utils/compress.ts";
+import { addClientAssetsRouteRule } from "../config/resolvers/assets.ts";
 
 const NEGATION_RE = /^(!?)(.*)$/;
 const PARENT_DIR_GLOB_RE = /!?\.\.\//;
@@ -56,11 +57,8 @@ export function addClientAssetsDir(nitro: Nitro, base: string | undefined) {
   if (baseURL === "/" || !existsSync(dir)) {
     return;
   }
-  const rule = (nitro.options.routeRules[`${baseURL}/**`] ??= {});
-  const immutable = rule.headers !== false && !rule.headers?.["cache-control"];
-  if (immutable) {
-    rule.headers = { ...rule.headers, "cache-control": "public, max-age=31536000, immutable" };
-  }
+  (nitro._clientAssetsDirs ??= new Set()).add(baseURL);
+  const immutable = addClientAssetsRouteRule(nitro.options.routeRules, baseURL);
   if (!nitro.options.publicAssets.some((asset) => normalizeBase(asset.baseURL) === baseURL)) {
     nitro.options.publicAssets.push({
       dir,

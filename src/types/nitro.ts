@@ -69,6 +69,13 @@ export interface Nitro {
    * @internal
    */
   _serviceLoader?: (name: string) => NitroServiceLoader;
+
+  /**
+   * Base URLs of the hashed client assets dirs added by the builder.
+   *
+   * @internal
+   */
+  _clientAssetsDirs?: Set<string>;
 }
 
 /**

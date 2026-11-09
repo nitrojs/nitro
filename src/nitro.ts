@@ -45,7 +45,7 @@ export async function createNitro(
     },
     close: () => (closePromise ??= Promise.resolve(nitro.hooks.callHook("close"))),
     async updateConfig(config: NitroDynamicConfig) {
-      updateNitroConfig(nitro, config);
+      await updateNitroConfig(nitro, config);
     },
   };
 
