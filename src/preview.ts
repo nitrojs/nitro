@@ -136,6 +136,9 @@ async function loadPreviewDotEnv(root: string): Promise<[string, string][]> {
   return Object.entries(env).filter(([_key, val]) => val) as [string, string][];
 }
 
+/** How long `close()` waits for the preview command to stop before killing it. */
+const PREVIEW_CLOSE_TIMEOUT = 5000;
+
 async function runPreviewCommand(opts: {
   command: string;
   rootDir: string;
@@ -149,18 +152,32 @@ async function runPreviewCommand(opts: {
 
   const { getRandomPort, waitForPort } = await import("get-port-please");
   const randomPort = await getRandomPort();
+  // `npx` runs the command through `sh -c`, and `dash` does not forward signals to it.
+  // Start it in its own process group so the whole group can be stopped.
+  const killGroup = process.platform !== "win32";
   const child = spawn(arg0, [...args, "--port", String(randomPort), "--host", "localhost"], {
     stdio: "inherit",
     cwd: opts.rootDir,
+    detached: killGroup,
     env: {
       ...process.env,
       ...Object.fromEntries(opts.env ?? []),
       PORT: String(randomPort),
     },
   });
+  const exited = new Promise<void>((resolve) => child.once("exit", () => resolve()));
 
   const killChild = (signal: NodeJS.Signals) => {
-    if (child && !child.killed) {
+    // the rest of the group can outlive the command itself
+    if (killGroup && child.pid) {
+      try {
+        process.kill(-child.pid, signal);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
+          throw error;
+        }
+      }
+    } else if (child.exitCode === null && child.signalCode === null) {
       child.kill(signal);
     }
   };
@@ -188,6 +205,9 @@ async function runPreviewCommand(opts: {
     },
     async close() {
       killChild("SIGTERM");
+      const timeout = setTimeout(() => killChild("SIGKILL"), PREVIEW_CLOSE_TIMEOUT);
+      await exited;
+      clearTimeout(timeout);
     },
   };
 }
