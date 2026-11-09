@@ -1,7 +1,6 @@
 import consola from "consola";
 import type { Nitro, NitroDynamicConfig } from "nitro/types";
-import { resolveClientAssetsRouteRules } from "../build/assets.ts";
-import { resolvePublicAssetsRouteRules } from "./resolvers/assets.ts";
+import { addClientAssetsRouteRule, resolvePublicAssetsRouteRules } from "./resolvers/assets.ts";
 import { normalizeRouteRules } from "./resolvers/route-rules.ts";
 import { normalizeRuntimeConfig } from "./resolvers/runtime-config.ts";
 
@@ -11,7 +10,9 @@ export async function updateNitroConfig(nitro: Nitro, config: NitroDynamicConfig
     routeRules: nitro.options.routeRules,
     publicAssets: nitro.options.publicAssets.map((asset) => ({ ...asset })),
   });
-  resolveClientAssetsRouteRules(nitro);
+  for (const baseURL of nitro._clientAssetsDirs || []) {
+    addClientAssetsRouteRule(nitro.options.routeRules, baseURL);
+  }
   nitro.options.runtimeConfig = normalizeRuntimeConfig({
     ...nitro.options,
     runtimeConfig: config.runtimeConfig || nitro.options.runtimeConfig,

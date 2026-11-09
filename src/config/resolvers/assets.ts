@@ -56,3 +56,16 @@ export function resolvePublicAssetsRouteRules(
     }
   }
 }
+
+/**
+ * Adds the immutable `cache-control` rule of a hashed client assets dir,
+ * unless a route rule sets its own `cache-control` (or `headers: false`).
+ */
+export function addClientAssetsRouteRule(routeRules: NitroOptions["routeRules"], baseURL: string) {
+  const rule = (routeRules[`${baseURL}/**`] ??= {});
+  const immutable = rule.headers !== false && !rule.headers?.["cache-control"];
+  if (immutable) {
+    rule.headers = { ...rule.headers, "cache-control": "public, max-age=31536000, immutable" };
+  }
+  return immutable;
+}

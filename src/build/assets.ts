@@ -5,6 +5,7 @@ import type { Nitro, NitroOptions } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { withoutTrailingSlash } from "ufo";
 import { compressPublicAssets } from "../utils/compress.ts";
+import { addClientAssetsRouteRule } from "../config/resolvers/assets.ts";
 
 const NEGATION_RE = /^(!?)(.*)$/;
 const PARENT_DIR_GLOB_RE = /!?\.\.\//;
@@ -68,13 +69,6 @@ export function addClientAssetsDir(nitro: Nitro, base: string | undefined) {
   }
 }
 
-/** Adds the route rules of the client assets dirs to `nitro.options.routeRules` again. */
-export function resolveClientAssetsRouteRules(nitro: Nitro) {
-  for (const baseURL of nitro._clientAssetsDirs || []) {
-    addClientAssetsRouteRule(nitro.options.routeRules, baseURL);
-  }
-}
-
 /** Files of a public asset directory (relative paths), without the ignored ones. */
 export async function globPublicAssets(
   nitro: Nitro,
@@ -109,15 +103,6 @@ function getIncludePatterns(
       );
     }),
   ].filter((p) => !PARENT_DIR_GLOB_RE.test(p));
-}
-
-function addClientAssetsRouteRule(routeRules: NitroOptions["routeRules"], baseURL: string) {
-  const rule = (routeRules[`${baseURL}/**`] ??= {});
-  const immutable = rule.headers !== false && !rule.headers?.["cache-control"];
-  if (immutable) {
-    rule.headers = { ...rule.headers, "cache-control": "public, max-age=31536000, immutable" };
-  }
-  return immutable;
 }
 
 function normalizeBase(base: string = "/"): string {
