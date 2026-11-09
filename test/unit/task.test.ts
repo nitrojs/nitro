@@ -1,19 +1,29 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { closeHookMock, cronMock, cronStopMock, virtualTasks } = vi.hoisted(() => {
+const { closeHookMock, cronMock, cronStopMock, virtualTasks, runTaskMock } = vi.hoisted(() => {
   const cronStopMock = vi.fn();
+  const runTaskMock = vi.fn();
   return {
-    virtualTasks: { scheduleRunner: true },
+    virtualTasks: {
+      scheduleRunner: true,
+      tasks: {
+        test: {
+          resolve: () => ({ run: runTaskMock }),
+        },
+      } as Record<string, any>,
+    },
     closeHookMock: vi.fn(),
     cronMock: vi.fn(function () {
       return { stop: cronStopMock };
     }),
     cronStopMock,
+    runTaskMock,
   };
 });
 
 vi.mock("croner", () => ({ Cron: cronMock }));
 vi.mock("../../src/runtime/internal/app.ts", () => ({
+  useNitroApp: () => ({ ready: Promise.resolve() }),
   useNitroHooks: () => ({ hook: closeHookMock }),
 }));
 vi.mock("#nitro/virtual/tasks", () => ({
@@ -24,7 +34,9 @@ vi.mock("#nitro/virtual/tasks", () => ({
   get scheduleRunner() {
     return virtualTasks.scheduleRunner;
   },
-  tasks: {},
+  get tasks() {
+    return virtualTasks.tasks;
+  },
 }));
 
 import { startScheduleRunner } from "../../src/runtime/internal/task.ts";
@@ -91,6 +103,34 @@ describe("startScheduleRunner", () => {
     expect(firstStopMock).toHaveBeenCalledOnce();
     expect(secondStopMock).toHaveBeenCalledOnce();
     expect(consoleErrorMock).toHaveBeenCalledWith("Error while stopping scheduled task", error);
+  });
+
+  it("generates a fresh payload with its own scheduledTime on each run", async () => {
+    let now = 1_000_000;
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+
+    startScheduleRunner();
+
+    const cronCallback = (cronMock.mock.calls as any)[0][1] as () => Promise<void>;
+
+    // First run
+    await cronCallback();
+    expect(runTaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "test",
+        payload: { scheduledTime: 1_000_000 },
+      })
+    );
+
+    // Second run with updated time
+    now = 2_000_000;
+    await cronCallback();
+    expect(runTaskMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        name: "test",
+        payload: { scheduledTime: 2_000_000 },
+      })
+    );
   });
 });
 

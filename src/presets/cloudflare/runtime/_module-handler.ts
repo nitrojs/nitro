@@ -59,7 +59,9 @@ export function createHandler<Env>(hooks: {
                 context,
               },
             },
-            payload: {},
+            payload: {
+              scheduledTime: controller.scheduledTime,
+            },
           })
         );
       }
