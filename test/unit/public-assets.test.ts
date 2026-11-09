@@ -1,6 +1,8 @@
+import * as nodeFsp from "node:fs/promises";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
+import { Readable } from "node:stream";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join, normalize, resolve } from "pathe";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Nitro } from "nitro/types";
@@ -43,9 +45,13 @@ function nodeReaderTemplate(): string {
 
 // Evaluate the generated `readAsset` template against the real node helpers it
 // imports, recording the filesystem target it asks `fs` to read.
-function loadReadAsset(template: string, readFile?: () => Promise<unknown>) {
+function loadReadAsset(
+  template: string,
+  readFile?: () => Promise<unknown>,
+  { fs, main = SERVER_MAIN, assets = ASSETS }: { fs?: unknown; main?: string; assets?: object } = {}
+) {
   const reads: string[] = [];
-  const fsp = {
+  const fsp = fs ?? {
     readFile: (p: string | URL) => {
       reads.push(typeof p === "string" ? p : fileURLToPath(p));
       return readFile ? readFile() : Promise.resolve(new Uint8Array());
@@ -53,15 +59,19 @@ function loadReadAsset(template: string, readFile?: () => Promise<unknown>) {
   };
   // Strip the (single-line) imports and bridge their bindings in as args instead.
   const body = template.replace(/^\s*import\s.*$/gm, "").replace(/export\s+function/, "function");
-  (globalThis as any).__nitro_main__ = SERVER_MAIN;
+  (globalThis as any).__nitro_main__ = main;
   const readAsset = new Function(
     "fsp",
+    "Readable",
     "fileURLToPath",
     "resolve",
     "dirname",
     "assets",
     `${body}\nreturn readAsset;`
-  )(fsp, fileURLToPath, resolve, dirname, ASSETS) as (id: string) => Promise<unknown>;
+  )(fsp, Readable, fileURLToPath, resolve, dirname, assets) as (
+    id: string,
+    range?: { start: number; end: number }
+  ) => Promise<unknown>;
   return { readAsset, reads };
 }
 
@@ -104,6 +114,26 @@ describe("virtual/public-assets node reader", () => {
     );
 
     await expect(readAsset("/index.html")).rejects.toThrow("EACCES");
+  });
+
+  it("streams only the requested range of a file", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nitro-read-range-"));
+    try {
+      await mkdir(join(dir, "public"));
+      await writeFile(join(dir, "public/file.bin"), "0123456789");
+      const { readAsset } = loadReadAsset(nodeReaderTemplate(), undefined, {
+        fs: nodeFsp,
+        main: pathToFileURL(join(dir, "server/index.mjs")).href,
+        assets: { "/file.bin": { path: "../public/file.bin" }, "/gone.bin": { path: "../gone" } },
+      });
+
+      const stream = await readAsset("/file.bin", { start: 2, end: 4 });
+      expect(stream).toBeInstanceOf(ReadableStream);
+      expect(await new Response(stream as ReadableStream).text()).toBe("234");
+      await expect(readAsset("/gone.bin", { start: 0, end: 1 })).resolves.toBeUndefined();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });
 

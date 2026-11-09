@@ -616,6 +616,49 @@ export function testNitro(
       expect(headers["content-type"]).toBe("text/plain; charset=utf-8");
     });
 
+    it("serves byte ranges of static assets", async () => {
+      const file = await fsp.readFile(resolve(fixtureDir, "public/favicon.ico"));
+      const size = file.length;
+      const fetchRange = (range: string) =>
+        callHandler({ url: "/favicon.ico", headers: { Range: range } }, { binary: true });
+
+      for (const [range, start, end] of [
+        ["bytes=0-99", 0, 99],
+        ["bytes=-10", size - 10, size - 1],
+        [`bytes=${size - 20}-`, size - 20, size - 1],
+      ] as const) {
+        const { status, headers, data } = await fetchRange(range);
+        expect(status).toBe(206);
+        expect(headers["accept-ranges"]).toBe("bytes");
+        expect(headers["content-range"]).toBe(`bytes ${start}-${end}/${size}`);
+        // Bun sends streamed bodies chunked, without `Content-Length`
+        if (ctx.preset !== "bun") {
+          expect(headers["content-length"]).toBe(String(end - start + 1));
+        }
+        expect(data).toEqual(file.subarray(start, end + 1));
+      }
+
+      const unsatisfiable = await fetchRange(`bytes=${size}-`);
+      expect(unsatisfiable.status).toBe(416);
+      expect(unsatisfiable.headers["content-range"]).toBe(`bytes */${size}`);
+
+      const full = await callHandler({ url: "/favicon.ico" }, { binary: true });
+      expect(full.status).toBe(200);
+      expect(full.headers["content-length"]).toBe(String(size));
+      expect(full.data).toEqual(file);
+    });
+
+    it("serves compressed static assets whole for byte range requests", async () => {
+      const { status, headers } = await callHandler({
+        url: "/_openapi.json",
+        headers: { "Accept-Encoding": "br", Range: "bytes=0-9" },
+      });
+      expect(status).toBe(200);
+      expect(headers["content-encoding"]).toBe("br");
+      expect(headers["content-range"]).toBeUndefined();
+      expect(headers["accept-ranges"]).toBeUndefined();
+    });
+
     it("serve static asset via internal fetch", async () => {
       const { data } = await callHandler({ url: "/fetch-public-asset" });
       expect(data.status).toBe(200);

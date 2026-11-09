@@ -11,6 +11,9 @@ const EncodingMap = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
 // Opts missing assets out of the immutable `cache-control` route rule of asset dirs (h3js/h3#1612)
 const noCacheHeaders = { "cache-control": "no-store" };
 
+// Range units are case-insensitive (RFC 9110 14.1)
+const RANGE_RE = /^bytes=(\d*)-(\d*)$/i;
+
 export default defineHandler((event) => {
   if (event.req.method && !METHODS.has(event.req.method as HTTPMethod)) {
     return;
@@ -103,14 +106,48 @@ export default defineHandler((event) => {
     event.res.headers.set("Content-Encoding", asset.encoding);
   }
 
+  let range: ByteRange | "unsatisfiable" | undefined;
+  if (!asset.encoding && asset.size > 0) {
+    event.res.headers.set("Accept-Ranges", "bytes");
+    // `If-Range` needs a strong validator match (RFC 9110 13.1.5)
+    const ifRange = event.req.headers.get("if-range");
+    if (
+      event.req.method === "GET" &&
+      (!ifRange || (ifRange === asset.etag && !ifRange.startsWith("W/")))
+    ) {
+      range = parseRange(event.req.headers.get("range") || "", asset.size);
+    }
+  }
+
+  if (range === "unsatisfiable") {
+    throw new HTTPError({
+      status: 416,
+      headers: { ...noCacheHeaders, "Content-Range": `bytes */${asset.size}` },
+    });
+  }
+
   if (asset.size > 0 && !event.res.headers.has("Content-Length")) {
     event.res.headers.set("Content-Length", asset.size.toString());
   }
 
-  const data = readAsset(id);
+  const toBody = (data: unknown) => {
+    assertAssetData(data);
+    if (!range) {
+      return data;
+    }
+    const length = range.end - range.start + 1;
+    event.res.status = 206;
+    event.res.headers.set("Content-Range", `bytes ${range.start}-${range.end}/${asset.size}`);
+    event.res.headers.set("Content-Length", length.toString());
+    // Readers return either the requested range (node stream) or the full asset bytes (inline)
+    return data instanceof Uint8Array && data.byteLength > length
+      ? data.subarray(range.start, range.end + 1)
+      : data;
+  };
+  const data = range ? readAsset(id, range) : readAsset(id);
   return typeof (data as { then?: unknown })?.then === "function"
-    ? (data as Promise<unknown>).then((resolved) => assertAssetData(resolved))
-    : assertAssetData(data);
+    ? (data as Promise<unknown>).then(toBody)
+    : toBody(data);
 }) as EventHandler;
 
 // Readers resolve with `null`/`undefined` when the manifest entry has no data
@@ -120,4 +157,34 @@ function assertAssetData<T>(data: T): T {
     throw new HTTPError({ status: 404, headers: noCacheHeaders });
   }
   return data;
+}
+
+type ByteRange = { start: number; end: number };
+
+// A single `bytes=` range (RFC 9110 14.1.2), like srvx's `staticMiddleware`; others serve the full asset
+function parseRange(header: string, size: number): ByteRange | "unsatisfiable" | undefined {
+  const match = RANGE_RE.exec(header);
+  if (!match || size === 0) {
+    return;
+  }
+  const [, startStr, endStr] = match;
+  if (!startStr) {
+    if (!endStr) {
+      return;
+    }
+    const suffix = Number(endStr);
+    if (suffix === 0) {
+      return "unsatisfiable";
+    }
+    return { start: Math.max(size - suffix, 0), end: size - 1 };
+  }
+  const start = Number(startStr);
+  if (endStr && Number(endStr) < start) {
+    return;
+  }
+  if (start >= size) {
+    return "unsatisfiable";
+  }
+  const end = endStr ? Math.min(Number(endStr), size - 1) : size - 1;
+  return { start, end };
 }
