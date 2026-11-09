@@ -84,9 +84,13 @@ export async function writeConfig(nitro: Nitro, configPath: string) {
   await fsp.writeFile(configPath, JSON.stringify(netlify!.config), "utf8");
 }
 
+// `/.netlify/*` is reserved for Netlify's own functions and services.
+// TODO: should this be also be prefixed with baseURL?
+const netlifyPaths = ["/.netlify/*"];
+
 export function getStaticPaths(publicAssets: PublicAssetDir[], baseURL: string): string[] {
   return [
-    "/.netlify/*", // TODO: should this be also be prefixed with baseURL?
+    ...netlifyPaths,
     ...publicAssets
       .filter((a) => a.fallthrough !== true && a.baseURL && a.baseURL !== "/")
       .map((a) => joinURL(baseURL, a.baseURL!, "*")),
@@ -97,6 +101,12 @@ export function getStaticPaths(publicAssets: PublicAssetDir[], baseURL: string):
 // along with its config. We do this instead of compiling the entrypoint directly because
 // the Netlify platform actually statically analyzes the function file to read the config;
 // if we compiled the entrypoint directly, it would be chunked and wouldn't be analyzable.
+//
+// Public asset dirs are intentionally not excluded from the server function: with
+// `preferStatic`, existing assets are still served by the CDN, while missing ones
+// reach the function, which answers them with a `no-store` 404. Excluding them would
+// make Netlify answer with its own 404 page, served with the `_headers` rules of the
+// asset dir (https://github.com/nitrojs/nitro/issues/5035).
 export function generateNetlifyFunction(nitro: Nitro) {
   return /* js */ `
 export { default } from "./main.mjs";
@@ -106,7 +116,7 @@ export const config = {
   path: "/*",
   nodeBundler: "none",
   includedFiles: ["**"],
-  excludedPath: ${JSON.stringify(getStaticPaths(nitro.options.publicAssets, nitro.options.baseURL))},
+  excludedPath: ${JSON.stringify(netlifyPaths)},
   preferStatic: true,
 };
     `.trim();
