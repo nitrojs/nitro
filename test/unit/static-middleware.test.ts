@@ -205,14 +205,38 @@ describe("runtime static middleware", () => {
       expect(event.res.headers.get("Content-Length")).toBe("10");
     });
 
-    it("serves the full asset when the reader does not return bytes", async () => {
+    it("passes through a stream of the range", async () => {
       const event = rangeEvent({ range: "bytes=2-4" });
-      readAsset.mockResolvedValue("0123456789");
+      const stream = new Blob([file.subarray(2, 5)]).stream();
+      readAsset.mockResolvedValue(stream);
 
-      expect(await handler(event)).toBe("0123456789");
-      expect(event.res.status).not.toBe(206);
-      expect(event.res.headers.get("Content-Length")).toBe("10");
-      expect(event.res.headers.get("Content-Range")).toBeNull();
+      expect(await handler(event)).toBe(stream);
+      expect(event.res.status).toBe(206);
+      expect(event.res.headers.get("Content-Length")).toBe("3");
+    });
+
+    it("keeps validators and Accept-Ranges on a 206", async () => {
+      const event = rangeEvent({ range: "bytes=2-4" });
+
+      await handler(event);
+      expect(event.res.headers.get("Accept-Ranges")).toBe("bytes");
+      expect(event.res.headers.get("ETag")).toBe('"v1"');
+      expect(event.res.headers.get("Last-Modified")).toBe(new Date(MTIME).toUTCString());
+    });
+
+    it("prefers a matching If-None-Match over the range", async () => {
+      const event = rangeEvent({ range: "bytes=2-4", "if-none-match": '"v1"' });
+
+      expect(await handler(event)).toBe("");
+      expect(event.res.status).toBe(304);
+      expect(readAsset).not.toHaveBeenCalled();
+    });
+
+    it("responds 404 without caching when the file is gone", async () => {
+      const event = rangeEvent({ range: "bytes=2-4" });
+      readAsset.mockResolvedValue(undefined);
+
+      expectNoStore(await (handler(event) as Promise<unknown>).catch((error) => error));
     });
   });
 

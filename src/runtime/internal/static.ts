@@ -131,16 +131,17 @@ export default defineHandler((event) => {
 
   const toBody = (data: unknown) => {
     assertAssetData(data);
-    // A reader that does not hand back bytes serves the full asset
-    if (!range || !(data instanceof Uint8Array)) {
+    if (!range) {
       return data;
     }
     const length = range.end - range.start + 1;
     event.res.status = 206;
     event.res.headers.set("Content-Range", `bytes ${range.start}-${range.end}/${asset.size}`);
     event.res.headers.set("Content-Length", length.toString());
-    // Readers may return only the requested range (node) or the full asset (inline)
-    return data.byteLength > length ? data.subarray(range.start, range.end + 1) : data;
+    // Readers return either the requested range (node stream) or the full asset bytes (inline)
+    return data instanceof Uint8Array && data.byteLength > length
+      ? data.subarray(range.start, range.end + 1)
+      : data;
   };
   const data = range ? readAsset(id, range) : readAsset(id);
   return typeof (data as { then?: unknown })?.then === "function"

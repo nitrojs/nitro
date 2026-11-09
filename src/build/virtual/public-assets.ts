@@ -168,6 +168,7 @@ export function hasAsset (id = '') {
       template: () => {
         return /* js */ `
 import { promises as fsp } from 'node:fs'
+import { Readable } from 'node:stream'
 import { fileURLToPath } from 'node:url'
 import { resolve, dirname } from 'node:path'
 import assets from '#nitro/virtual/public-assets-data'
@@ -180,15 +181,10 @@ export function readAsset (id, range) {
     if (error?.code !== 'ENOENT') { throw error }
   })
 }
+// Opened before streaming so a missing file still reads as absent
 async function readRange (path, { start, end }) {
   const handle = await fsp.open(path)
-  try {
-    const length = end - start + 1
-    const { buffer, bytesRead } = await handle.read(Buffer.alloc(length), 0, length, start)
-    return buffer.subarray(0, bytesRead)
-  } finally {
-    await handle.close()
-  }
+  return Readable.toWeb(handle.createReadStream({ start, end }))
 }`;
       },
     },

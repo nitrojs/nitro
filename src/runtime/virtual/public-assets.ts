@@ -10,7 +10,7 @@ export const getPublicAssetMeta: (id: string) => { maxAge?: number } | null = ()
 export const readAsset: (
   id: string,
   range?: { start: number; end: number }
-) => Promise<Buffer> = async () => {
+) => Promise<Buffer | ReadableStream<Uint8Array>> = async () => {
   throw new Error("Asset not found");
 };
 

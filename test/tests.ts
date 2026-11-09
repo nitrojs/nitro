@@ -631,7 +631,10 @@ export function testNitro(
         expect(status).toBe(206);
         expect(headers["accept-ranges"]).toBe("bytes");
         expect(headers["content-range"]).toBe(`bytes ${start}-${end}/${size}`);
-        expect(headers["content-length"]).toBe(String(end - start + 1));
+        // Bun sends streamed bodies chunked, without `Content-Length`
+        if (ctx.preset !== "bun") {
+          expect(headers["content-length"]).toBe(String(end - start + 1));
+        }
         expect(data).toEqual(file.subarray(start, end + 1));
       }
 
