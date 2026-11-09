@@ -129,6 +129,93 @@ describe("runtime static middleware", () => {
     expect(event.res.headers.get("Content-Range")).toBeNull();
   });
 
+  describe("byte ranges", () => {
+    const file = new TextEncoder().encode("0123456789");
+
+    function rangeEvent(headers: Record<string, string>, method = "GET", etag = '"v1"') {
+      getAsset.mockImplementation((id: string) =>
+        id === "/file.bin"
+          ? { etag, mtime: MTIME, type: "application/octet-stream", size: file.length }
+          : undefined
+      );
+      isPublicAssetURL.mockReturnValue(true);
+      readAsset.mockReturnValue(file);
+      const event = mockEvent("http://localhost/file.bin", { method, headers });
+      event.res.headers.set("Cache-Control", "public, max-age=31536000, immutable");
+      return event;
+    }
+
+    it.each([
+      ["bytes=2-4", 2, 4],
+      ["bytes=7-", 7, 9],
+      ["bytes=-3", 7, 9],
+      ["bytes=5-100", 5, 9],
+      ["bytes=-100", 0, 9],
+    ])("serves %s", async (range, start, end) => {
+      const event = rangeEvent({ range });
+
+      expect(await handler(event)).toEqual(file.subarray(start, end + 1));
+      expect(event.res.status).toBe(206);
+      expect(readAsset).toHaveBeenCalledWith("/file.bin", { start, end });
+      expect(event.res.headers.get("Content-Range")).toBe(`bytes ${start}-${end}/10`);
+      expect(event.res.headers.get("Content-Length")).toBe(String(end - start + 1));
+    });
+
+    it("uses the bytes of a reader that returns only the range", async () => {
+      const event = rangeEvent({ range: "bytes=2-4" });
+      readAsset.mockResolvedValue(file.subarray(2, 5));
+
+      expect(await handler(event)).toEqual(file.subarray(2, 5));
+      expect(event.res.status).toBe(206);
+    });
+
+    it.each(["bytes=10-", "bytes=-0"])("responds 416 without caching for %s", (range) => {
+      const error = catchError(() => handler(rangeEvent({ range })));
+
+      expectNoStore(error, 416);
+      expect((error as HTTPError).headers?.get("Content-Range")).toBe("bytes */10");
+    });
+
+    it.each([
+      ["a reversed range", { range: "bytes=5-2" }],
+      ["multiple ranges", { range: "bytes=0-1,4-5" }],
+      ["a mismatched If-Range", { range: "bytes=2-4", "if-range": '"v0"' }],
+      ["a weak If-Range", { range: "bytes=2-4", "if-range": 'W/"v1"' }, 'W/"v1"'],
+    ])("serves the full asset for %s", async (_, headers, etag?: string) => {
+      const event = rangeEvent(headers, "GET", etag);
+
+      expect(await handler(event)).toEqual(file);
+      expect(event.res.status).not.toBe(206);
+      expect(event.res.headers.get("Content-Length")).toBe("10");
+      expect(event.res.headers.get("Content-Range")).toBeNull();
+    });
+
+    it("serves a range for a matching If-Range", async () => {
+      const event = rangeEvent({ range: "bytes=2-4", "if-range": '"v1"' });
+
+      expect(await handler(event)).toEqual(file.subarray(2, 5));
+      expect(event.res.status).toBe(206);
+    });
+
+    it("ignores ranges for HEAD requests", async () => {
+      const event = rangeEvent({ range: "bytes=2-4" }, "HEAD");
+
+      await handler(event);
+      expect(event.res.status).not.toBe(206);
+      expect(event.res.headers.get("Content-Length")).toBe("10");
+    });
+
+    it("serves the full asset when the reader does not return bytes", async () => {
+      const event = rangeEvent({ range: "bytes=2-4" });
+      readAsset.mockResolvedValue("0123456789");
+
+      expect(await handler(event)).toBe("0123456789");
+      expect(event.res.status).not.toBe(206);
+      expect(event.res.headers.get("Content-Length")).toBe("10");
+      expect(event.res.headers.get("Content-Range")).toBeNull();
+    });
+  });
+
   it("skips requests for paths that are not public assets", () => {
     getAsset.mockReturnValue(undefined);
     isPublicAssetURL.mockReturnValue(false);
@@ -290,8 +377,8 @@ function catchError(fn: () => unknown): unknown {
 }
 
 // Missing assets opt out of the immutable `cache-control` route rule (h3js/h3#1612)
-function expectNoStore(error: unknown) {
+function expectNoStore(error: unknown, status = 404) {
   expect(error).toBeInstanceOf(HTTPError);
-  expect((error as HTTPError).status).toBe(404);
+  expect((error as HTTPError).status).toBe(status);
   expect((error as HTTPError).headers?.get("cache-control")).toBe("no-store");
 }

@@ -171,13 +171,24 @@ import { promises as fsp } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { resolve, dirname } from 'node:path'
 import assets from '#nitro/virtual/public-assets-data'
-export function readAsset (id) {
+export function readAsset (id, range) {
   const serverDir = dirname(fileURLToPath(globalThis.__nitro_main__))
+  const path = resolve(serverDir, assets[id].path)
   // Public dirs might be pruned after the build (uploaded to a CDN, sourcemaps
   // stripped), so a manifest entry with no file behind it reads as absent, not broken.
-  return fsp.readFile(resolve(serverDir, assets[id].path)).catch((error) => {
+  return (range ? readRange(path, range) : fsp.readFile(path)).catch((error) => {
     if (error?.code !== 'ENOENT') { throw error }
   })
+}
+async function readRange (path, { start, end }) {
+  const handle = await fsp.open(path)
+  try {
+    const length = end - start + 1
+    const { buffer, bytesRead } = await handle.read(Buffer.alloc(length), 0, length, start)
+    return buffer.subarray(0, bytesRead)
+  } finally {
+    await handle.close()
+  }
 }`;
       },
     },

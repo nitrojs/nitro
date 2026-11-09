@@ -106,10 +106,14 @@ export default defineHandler((event) => {
   }
 
   let range: ByteRange | "unsatisfiable" | undefined;
-  if (!asset.encoding) {
+  if (!asset.encoding && asset.size > 0) {
     event.res.headers.set("Accept-Ranges", "bytes");
+    // `If-Range` needs a strong validator match (RFC 9110 13.1.5)
     const ifRange = event.req.headers.get("if-range");
-    if (event.req.method === "GET" && (!ifRange || ifRange === asset.etag)) {
+    if (
+      event.req.method === "GET" &&
+      (!ifRange || (ifRange === asset.etag && !ifRange.startsWith("W/")))
+    ) {
       range = parseRange(event.req.headers.get("range") || "", asset.size);
     }
   }
@@ -117,14 +121,8 @@ export default defineHandler((event) => {
   if (range === "unsatisfiable") {
     throw new HTTPError({
       status: 416,
-      headers: { "Content-Range": `bytes */${asset.size}` },
+      headers: { ...noCacheHeaders, "Content-Range": `bytes */${asset.size}` },
     });
-  }
-
-  if (range) {
-    event.res.status = 206;
-    event.res.headers.set("Content-Range", `bytes ${range.start}-${range.end}/${asset.size}`);
-    event.res.headers.set("Content-Length", (range.end - range.start + 1).toString());
   }
 
   if (asset.size > 0 && !event.res.headers.has("Content-Length")) {
@@ -133,12 +131,18 @@ export default defineHandler((event) => {
 
   const toBody = (data: unknown) => {
     assertAssetData(data);
+    // A reader that does not hand back bytes serves the full asset
     if (!range || !(data instanceof Uint8Array)) {
       return data;
     }
-    return data.subarray(range.start, range.end + 1);
+    const length = range.end - range.start + 1;
+    event.res.status = 206;
+    event.res.headers.set("Content-Range", `bytes ${range.start}-${range.end}/${asset.size}`);
+    event.res.headers.set("Content-Length", length.toString());
+    // Readers may return only the requested range (node) or the full asset (inline)
+    return data.byteLength > length ? data.subarray(range.start, range.end + 1) : data;
   };
-  const data = readAsset(id);
+  const data = range ? readAsset(id, range) : readAsset(id);
   return typeof (data as { then?: unknown })?.then === "function"
     ? (data as Promise<unknown>).then(toBody)
     : toBody(data);
