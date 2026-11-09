@@ -75,16 +75,19 @@ export default defineHandler((event) => {
     event.res.headers.append("Vary", "Accept-Encoding");
   }
 
-  const ifNotMatch = event.req.headers.get("if-none-match") === asset.etag;
-  if (ifNotMatch) {
-    event.res.status = 304;
-    event.res.statusText = "Not Modified";
-    return "";
+  if (asset.etag && !event.res.headers.has("ETag")) {
+    event.res.headers.set("ETag", asset.etag);
   }
 
-  const ifModifiedSinceH = event.req.headers.get("if-modified-since");
-  const mtimeDate = new Date(asset.mtime);
-  if (ifModifiedSinceH && asset.mtime && new Date(ifModifiedSinceH) >= mtimeDate) {
+  if (asset.mtime && !event.res.headers.has("Last-Modified")) {
+    event.res.headers.set("Last-Modified", new Date(asset.mtime).toUTCString());
+  }
+
+  const precondition = evaluatePreconditions(event.req.headers, asset);
+  if (precondition === 412) {
+    throw new HTTPError({ status: 412, headers: noCacheHeaders });
+  }
+  if (precondition === 304) {
     event.res.status = 304;
     event.res.statusText = "Not Modified";
     return "";
@@ -92,14 +95,6 @@ export default defineHandler((event) => {
 
   if (asset.type) {
     event.res.headers.set("Content-Type", asset.type);
-  }
-
-  if (asset.etag && !event.res.headers.has("ETag")) {
-    event.res.headers.set("ETag", asset.etag);
-  }
-
-  if (asset.mtime && !event.res.headers.has("Last-Modified")) {
-    event.res.headers.set("Last-Modified", mtimeDate.toUTCString());
   }
 
   if (asset.encoding && !event.res.headers.has("Content-Encoding")) {
@@ -157,6 +152,51 @@ function assertAssetData<T>(data: T): T {
     throw new HTTPError({ status: 404, headers: noCacheHeaders });
   }
   return data;
+}
+
+// Precedence of RFC 9110 13.2.2 for GET and HEAD
+function evaluatePreconditions(headers: Headers, asset: PublicAsset): 304 | 412 | undefined {
+  const ifMatch = headers.get("if-match");
+  if (
+    ifMatch === null
+      ? isModifiedSince(asset.mtime, headers.get("if-unmodified-since"))
+      : !matchesETag(ifMatch, asset.etag, true)
+  ) {
+    return 412;
+  }
+  const ifNoneMatch = headers.get("if-none-match");
+  if (
+    ifNoneMatch === null
+      ? isModifiedSince(asset.mtime, headers.get("if-modified-since")) === false
+      : matchesETag(ifNoneMatch, asset.etag, false)
+  ) {
+    return 304;
+  }
+}
+
+// Strong comparison for `If-Match`, weak for `If-None-Match` (RFC 9110 8.8.3.2)
+function matchesETag(header: string, etag: string, strong: boolean): boolean {
+  if (header.trim() === "*") {
+    return true;
+  }
+  if (!etag || (strong && etag.startsWith("W/"))) {
+    return false;
+  }
+  const opaque = etag.replace(/^W\//, "");
+  return header.split(",").some((candidate) => {
+    candidate = candidate.trim();
+    return strong ? candidate === etag : candidate.replace(/^W\//, "") === opaque;
+  });
+}
+
+// `undefined` for a missing or invalid date; HTTP dates have a one second resolution
+function isModifiedSince(mtime: string, header: string | null): boolean | undefined {
+  const since = Date.parse(header || "");
+  const modified = Date.parse(mtime);
+  if (Number.isNaN(since) || Number.isNaN(modified)) {
+    return;
+  }
+  return Math.floor(modified / 1000) * 1000 > since;
 }
 
 type ByteRange = { start: number; end: number };
