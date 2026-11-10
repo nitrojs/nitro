@@ -116,6 +116,17 @@ describe("scan suffixes", () => {
     await expect(scanMiddleware(nitro())).rejects.toThrow("not supported in `middleware/`");
   });
 
+  it("escapes router syntax in literal file names", async () => {
+    write("routes/(group)/a(1)+b.ts", "routes/[id]/{c}.get.ts");
+    expect(await routes()).toEqual([[String.raw`/a\(1\)\+b`], [String.raw`/:id/\{c\}`, "get"]]);
+  });
+
+  // Windows does not allow `:`, `*` or `?` in file names
+  it.skipIf(process.platform === "win32")("escapes a literal colon and star", async () => {
+    write("routes/example:action.ts", "routes/[...slug]/a*b.ts");
+    expect(await routes()).toEqual([[String.raw`/:slug(.*)/a\*b`], [String.raw`/example\:action`]]);
+  });
+
   it("logs and skips invalid files in dev", async () => {
     write("routes/ok.ts", "routes/hello.world.ts");
     const n = nitro({ dev: true });

@@ -392,6 +392,13 @@ export function testNitro(
     expect(apiStatus).toBe(200);
   });
 
+  it("matches router syntax in file names literally", async () => {
+    const { status, data } = await callHandler({ url: "/literal(v1)+" });
+    expect(status).toBe(200);
+    expect(data).toBe("literal");
+    expect((await callHandler({ url: "/literalv1" })).status).toBe(404);
+  });
+
   it("Handle 404 not found", async () => {
     const res = await callHandler({ url: "/api/not-found" });
     expect(res.status).toBe(404);

@@ -407,6 +407,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/modules\\/?$",
               },
               {
+                "dest": "/literal--v1----",
+                "src": "^\\/literal\\(v1\\)\\+\\/?$",
+              },
+              {
                 "dest": "/jsx",
                 "src": "^\\/jsx\\/?$",
               },
@@ -849,6 +853,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/import-attributes.func (symlink)",
             "functions/imports.func (symlink)",
             "functions/jsx.func (symlink)",
+            "functions/literal--v1----.func (symlink)",
             "functions/modules.func (symlink)",
             "functions/node-compat.func (symlink)",
             "functions/raw.func (symlink)",

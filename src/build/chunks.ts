@@ -144,6 +144,7 @@ export function routeToFsPath(route: string) {
       .slice(1)
       .map((s) =>
         s
+          .replace(/\\./g, "_")
           .replace(/^:(\w+)\(\.\*\)$/, "[...$1]")
           .replace(/:(\w+)/g, "[$1]")
           .replace(/\*+/g, "[...]")
