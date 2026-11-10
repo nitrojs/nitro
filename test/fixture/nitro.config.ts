@@ -130,6 +130,9 @@ export default defineNitroConfig({
   scheduledTasks: {
     "* * * * *": "test",
   },
+  vercel: {
+    immutableStaticFiles: true,
+  },
   cloudflare: {
     pages: {
       routes: {

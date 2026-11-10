@@ -1,6 +1,7 @@
 import { promises as fsp } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve, join, basename, normalize } from "pathe";
+import { joinURL } from "ufo";
 import { describe, expect, it, afterAll } from "vitest";
 import {
   setupTest,
@@ -11,6 +12,14 @@ import {
 } from "../tests";
 
 describe("nitro:preset:vercel", async () => {
+  const TEST_HASH_SALT = "initial";
+
+  // Example salt used to exercise `VERCEL_HASH_SALT` namespacing of immutable
+  // static files. Set around the (build-time) `setupTest` below and restored
+  // immediately after so it does not leak into other builds.
+  const prevHashSalt = process.env.VERCEL_HASH_SALT;
+  process.env.VERCEL_HASH_SALT = TEST_HASH_SALT;
+
   const ctx = await setupTest("vercel", {
     config: {
       handlers: [
@@ -27,11 +36,31 @@ describe("nitro:preset:vercel", async () => {
         // trailing slash on purpose (#4392)
         routes: ["/slash/"],
       },
+      // Stand-in for a client build (e.g. Nuxt) emitting assets under the
+      // immutable `buildAssetsDir`
+      publicAssets: [
+        {
+          dir: fileURLToPath(
+            new URL("fixtures/immutable-assets", import.meta.url)
+          ),
+          baseURL: `_vercel/immutable/${TEST_HASH_SALT}/nitro`,
+        },
+      ],
     },
   });
+
+  if (prevHashSalt === undefined) {
+    delete process.env.VERCEL_HASH_SALT;
+  } else {
+    process.env.VERCEL_HASH_SALT = prevHashSalt;
+  }
+
   // Read now: the other vercel groups below build into the same output dir
   const ownBuildConfig = JSON.parse(
     await fsp.readFile(resolve(ctx.outDir, "config.json"), "utf8")
+  );
+  const ownImmutableManifest = JSON.parse(
+    await fsp.readFile(resolve(ctx.outDir, "immutable.json"), "utf8")
   );
   testNitro(
     ctx,
@@ -504,6 +533,26 @@ describe("nitro:preset:vercel", async () => {
             "version": 3,
           }
         `);
+      });
+
+      it("should apply immutable buildAssetsDir and write manifest", async () => {
+        // `vercel.immutableStaticFiles` relocates build assets under the
+        // reserved `_vercel/immutable` base (namespaced by the optional
+        // `VERCEL_HASH_SALT` and the framework name) and emits an
+        // `immutable.json` manifest mapping each file to its full content hash.
+        const expectedDir = joinURL(
+          "_vercel/immutable",
+          TEST_HASH_SALT,
+          ctx.nitro!.options.framework.name || ""
+        );
+        expect(ctx.nitro!.options.buildAssetsDir).toBe(expectedDir);
+        expect(expectedDir).toBe(`_vercel/immutable/${TEST_HASH_SALT}/nitro`);
+
+        const assetURL = `/${expectedDir}/entry-0123456789abcdef.js`;
+        expect(ownImmutableManifest).toEqual({
+          version: 1,
+          hashes: { [assetURL]: assetURL },
+        });
       });
 
       it("should order header-only rules from least to most specific", async () => {
