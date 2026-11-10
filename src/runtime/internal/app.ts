@@ -148,11 +148,11 @@ export function createRoutedMiddleware(
       return next();
     }
     let node = root;
-    for (const entry of matched) {
-      let child = node.children.get(entry);
+    for (const { data } of matched) {
+      let child = node.children.get(data);
       if (!child) {
         child = { children: new Map() };
-        node.children.set(entry, child);
+        node.children.set(data, child);
       }
       node = child;
     }
