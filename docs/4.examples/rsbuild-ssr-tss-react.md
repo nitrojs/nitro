@@ -22,14 +22,14 @@ icon: i-simple-icons-tanstack
   },
   "dependencies": {
     "@tanstack/react-router": "^1.170.46",
-    "@tanstack/react-router-devtools": "^1.167.2",
-    "@tanstack/react-start": "^1.169.4",
+    "@tanstack/react-router-devtools": "^1.167.3",
+    "@tanstack/react-start": "^1.169.5",
     "nitro": "latest",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
-    "@rsbuild/core": "^2.3.0",
+    "@rsbuild/core": "^2.3.1",
     "@rsbuild/plugin-react": "^2.1.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0"

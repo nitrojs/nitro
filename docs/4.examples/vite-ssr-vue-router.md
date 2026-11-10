@@ -26,7 +26,7 @@ icon: i-logos-vue
     "unhead": "^3.4.3",
     "vite": "latest",
     "vite-plugin-devtools-json": "^1.1.2",
-    "vue": "^3.5.44",
+    "vue": "^3.5.45",
     "vue-router": "^5.4.0"
   }
 }

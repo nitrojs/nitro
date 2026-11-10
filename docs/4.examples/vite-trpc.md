@@ -64,8 +64,8 @@ icon: i-simple-icons-trpc
       <div class="value" id="value">
         <script server>
           // Server-side Rendering
-          const { result } = await serverFetch("/trpc/get").then(r => r.json())
-          echo(result?.data?.value)
+          const { result } = await serverFetch("/trpc/get").then((r) => r.json());
+          echo(result?.data?.value);
         </script>
       </div>
       <button id="inc">Increment</button>
@@ -111,8 +111,8 @@ icon: i-simple-icons-trpc
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@trpc/client": "^11.22.1",
-    "@trpc/server": "^11.22.1",
+    "@trpc/client": "^11.25.2",
+    "@trpc/server": "^11.25.2",
     "nitro": "latest",
     "vite": "latest",
     "zod": "^4.6.7"

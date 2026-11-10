@@ -37,7 +37,7 @@ icon: i-material-symbols-html
     "preview": "rsbuild preview"
   },
   "devDependencies": {
-    "@rsbuild/core": "^2.3.0",
+    "@rsbuild/core": "^2.3.1",
     "nitro": "latest"
   }
 }

@@ -22,11 +22,11 @@ icon: i-logos-preact
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.6",
-    "@tailwindcss/vite": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.5",
     "nitro": "latest",
-    "preact": "^11.1.1",
+    "preact": "^11.2.0",
     "preact-render-to-string": "^6.8.2",
-    "tailwindcss": "^4.3.3",
+    "tailwindcss": "^4.3.5",
     "vite": "latest"
   }
 }

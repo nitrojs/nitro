@@ -21,7 +21,7 @@ icon: i-logos-react
     "preview": "rsbuild preview"
   },
   "devDependencies": {
-    "@rsbuild/core": "^2.3.0",
+    "@rsbuild/core": "^2.3.1",
     "@rsbuild/plugin-react": "^2.1.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

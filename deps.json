@@ -32,7 +32,7 @@
       "dev": false,
       "projectOnly": true
     },
-    "@vercel/queue": { "version": "^0.10.0", "reason": "Vercel Queues", "types": true },
+    "@vercel/queue": { "version": "^0.11.0", "reason": "Vercel Queues", "types": true },
     "xml2js": {
       "version": "^0.6.2",
       "reason": "merging a custom `web.config` for the IIS preset"

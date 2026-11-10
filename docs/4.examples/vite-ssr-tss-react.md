@@ -22,8 +22,8 @@ icon: i-simple-icons-tanstack
   },
   "dependencies": {
     "@tanstack/react-router": "^1.170.46",
-    "@tanstack/react-router-devtools": "^1.167.2",
-    "@tanstack/react-start": "^1.169.4",
+    "@tanstack/react-router-devtools": "^1.167.3",
+    "@tanstack/react-start": "^1.169.5",
     "nitro": "latest",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -31,12 +31,12 @@ icon: i-simple-icons-tanstack
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.5",
     "@types/node": "latest",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.2.1",
-    "tailwindcss": "^4.3.3",
+    "@vitejs/plugin-react": "^6.3.0",
+    "tailwindcss": "^4.3.5",
     "typescript": "^7.0.2",
     "vite": "latest"
   }
