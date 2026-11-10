@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { Nitro } from "nitro/types";
 
 import publicAssets from "../../src/build/virtual/public-assets.ts";
+import { loadPublicAssets } from "./_public-assets.ts";
 
 // Simulated runtime layout of a built bundle.
 const SERVER_MAIN = "file:///app/server/index.ts";
@@ -41,28 +42,6 @@ function nodeReaderTemplate(): string {
     throw new Error("node reader template not found");
   }
   return reader() as string;
-}
-
-function loadPublicAssets(
-  assets: object,
-  { publicAssets: dirs = [] }: { publicAssets?: { baseURL: string }[] } = {}
-) {
-  const nitro = {
-    options: { serveStatic: true, baseURL: "/", publicAssets: dirs },
-  } as unknown as Nitro;
-  const template = publicAssets(nitro).find((t) => t.id === "#nitro/virtual/public-assets")!
-    .template as () => string;
-  const body = template()
-    .replace(/^\s*(import|export \{).*$/gm, "")
-    .replace(/^export /gm, "");
-  return new Function(
-    "assets",
-    `${body}\nreturn { hasAsset, isPublicAssetURL, isPublicAssetBaseURL };`
-  )(assets) as {
-    hasAsset: (id: string) => boolean;
-    isPublicAssetURL: (id: string) => boolean;
-    isPublicAssetBaseURL: (id: string) => boolean;
-  };
 }
 
 // Evaluate the generated `readAsset` template against the real node helpers it
@@ -161,7 +140,7 @@ describe("virtual/public-assets node reader", () => {
 
 describe("virtual/public-assets lookup", () => {
   const asset = { type: "text/plain", etag: "", mtime: "", size: 1, path: "" };
-  const { hasAsset, isPublicAssetURL, isPublicAssetBaseURL } = loadPublicAssets(
+  const { hasAsset, resolveAsset, isPublicAssetURL, isPublicAssetBaseURL } = loadPublicAssets(
     Object.fromEntries(
       [
         "/index.html",
@@ -172,6 +151,11 @@ describe("virtual/public-assets lookup", () => {
         "/archive.tgz",
         "/docs/index.html",
         "/blog/index.html.br",
+        "/page",
+        "/page/index.html",
+        "/page/index.html.gz",
+        "/a.gz",
+        "/a.gz.br",
         "/a b/ü.txt",
         "/_nuxt/entry.js",
       ].map((id) => [id, asset])
@@ -212,6 +196,41 @@ describe("virtual/public-assets lookup", () => {
     "",
   ])("does not have %s", (id) => {
     expect(hasAsset(id)).toBe(false);
+  });
+
+  const ALL = [".br", ".gz", ".zst", ""];
+  it.each([
+    ["/foo.css", ALL, "/foo.css.br"],
+    ["/foo.css", [".gz", ".br", ""], "/foo.css.gz"],
+    ["/foo.css", [".zst", ""], undefined],
+    ["/foo.css.br", ALL, "/foo.css.br"],
+    ["/bar.js", ALL, "/bar.js.zst"],
+    ["/robots.txt", ALL, "/robots.txt"],
+    ["/", ALL, "/index.html"],
+    ["/docs", ALL, "/docs/index.html"],
+    ["/docs/", ALL, "/docs/index.html"],
+    ["/blog", ALL, "/blog/index.html.br"],
+    ["/blog", [""], undefined],
+    ["/blog/index.html", ALL, "/blog/index.html.br"],
+    // A file named like the request wins over its `index.html`, for the same encoding
+    ["/page", [""], "/page"],
+    ["/page", ALL, "/page/index.html.gz"],
+    ["/api/hello", ALL, undefined],
+    ["/foo.css/", ALL, undefined],
+    // A user-shipped compressed file is a plain file with its own variants
+    ["/a", ALL, "/a.gz"],
+    ["/a.gz", ALL, "/a.gz.br"],
+    ["/a.gz", [""], "/a.gz"],
+    ["/bar.js", ["x-unknown", ""], undefined],
+  ])("resolves %s for %j to %s", (id, encodings, expected) => {
+    expect(resolveAsset(id, encodings)).toBe(expected);
+  });
+
+  it("resolves a root that only exists compressed", () => {
+    const root = loadPublicAssets({ "/index.html.br": asset });
+    expect(root.hasAsset("/")).toBe(true);
+    expect(root.resolveAsset("/", ALL)).toBe("/index.html.br");
+    expect(root.resolveAsset("/", [""])).toBeUndefined();
   });
 
   it("treats unknown ids under a public asset base as public", () => {

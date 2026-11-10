@@ -1,25 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HTTPError, mockEvent } from "h3";
 import handler from "../../src/runtime/internal/static.ts";
+import { loadPublicAssets } from "./_public-assets.ts";
+import type { PublicAssetsLookup } from "./_public-assets.ts";
 
 const MTIME = "2024-01-01T00:00:00.000Z";
 
-const { getAsset, isPublicAssetURL, readAsset } = vi.hoisted(() => ({
-  getAsset: vi.fn(),
+// Manifest lookups run the generated template; public asset bases and reads are mocked
+const { lookup, isPublicAssetURL, readAsset } = vi.hoisted(() => ({
+  lookup: {} as { current?: PublicAssetsLookup },
   isPublicAssetURL: vi.fn(),
   readAsset: vi.fn(),
 }));
 
 vi.mock("#nitro/virtual/public-assets", () => ({
-  getAsset,
-  hasAsset: (id: string) =>
-    [id, `${id.replace(/\/$/, "")}/index.html`].some((i) =>
-      [i, `${i}.gz`, `${i}.br`, `${i}.zst`].some((j) => getAsset(j))
-    ),
+  getAsset: (id: string) => lookup.current!.getAsset(id),
+  hasAsset: (id: string) => lookup.current!.hasAsset(id),
+  resolveAsset: (id: string, encodings: string[]) => lookup.current!.resolveAsset(id, encodings),
   isPublicAssetURL,
   isPublicAssetBaseURL: (id: string) => isPublicAssetURL(id),
   readAsset,
 }));
+
+function setAssets(assets: Record<string, object>) {
+  lookup.current = loadPublicAssets(assets);
+}
 
 function createEvent(pathname: string, acceptEncoding = "") {
   const event = mockEvent(`http://localhost${pathname}`, {
@@ -32,13 +37,13 @@ function createEvent(pathname: string, acceptEncoding = "") {
 
 describe("runtime static middleware", () => {
   beforeEach(() => {
-    getAsset.mockReset();
+    setAssets({});
     isPublicAssetURL.mockReset();
     readAsset.mockReset();
   });
 
   it("does not append Accept-Encoding vary when no asset is matched", async () => {
-    getAsset.mockReturnValue(undefined);
+    setAssets({});
     isPublicAssetURL.mockReturnValue(true);
     const event = createEvent("/foo-missing.css", "gzip");
 
@@ -47,11 +52,9 @@ describe("runtime static middleware", () => {
   });
 
   it("responds with 404 when a matched asset has no data behind it", async () => {
-    getAsset.mockImplementation((id: string) =>
-      id === "/favicon.ico"
-        ? { etag: '"test"', mtime: Date.now(), type: "image/x-icon", size: 1 }
-        : undefined
-    );
+    setAssets({
+      "/favicon.ico": { etag: '"test"', mtime: Date.now(), type: "image/x-icon", size: 1 },
+    });
     isPublicAssetURL.mockReturnValue(true);
     readAsset.mockResolvedValue(undefined);
     const event = createEvent("/favicon.ico");
@@ -61,11 +64,9 @@ describe("runtime static middleware", () => {
 
   // The `inline` reader hands back its payload without a promise.
   it("responds with 404 when a synchronous reader has no data", () => {
-    getAsset.mockImplementation((id: string) =>
-      id === "/favicon.ico"
-        ? { etag: '"test"', mtime: Date.now(), type: "image/x-icon", size: 1 }
-        : undefined
-    );
+    setAssets({
+      "/favicon.ico": { etag: '"test"', mtime: Date.now(), type: "image/x-icon", size: 1 },
+    });
     isPublicAssetURL.mockReturnValue(true);
     readAsset.mockReturnValue(undefined);
     const event = createEvent("/favicon.ico");
@@ -74,11 +75,9 @@ describe("runtime static middleware", () => {
   });
 
   it("propagates reader errors", async () => {
-    getAsset.mockImplementation((id: string) =>
-      id === "/favicon.ico"
-        ? { etag: '"test"', mtime: Date.now(), type: "image/x-icon", size: 1 }
-        : undefined
-    );
+    setAssets({
+      "/favicon.ico": { etag: '"test"', mtime: Date.now(), type: "image/x-icon", size: 1 },
+    });
     isPublicAssetURL.mockReturnValue(true);
     readAsset.mockRejectedValue(Object.assign(new Error("EACCES"), { code: "EACCES" }));
     const event = createEvent("/favicon.ico");
@@ -87,11 +86,7 @@ describe("runtime static middleware", () => {
   });
 
   it("serves an empty asset instead of treating it as missing", async () => {
-    getAsset.mockImplementation((id: string) =>
-      id === "/empty.txt"
-        ? { etag: '"test"', mtime: Date.now(), type: "text/plain", size: 0 }
-        : undefined
-    );
+    setAssets({ "/empty.txt": { etag: '"test"', mtime: Date.now(), type: "text/plain", size: 0 } });
     isPublicAssetURL.mockReturnValue(true);
     readAsset.mockResolvedValue(new Uint8Array());
     const event = createEvent("/empty.txt");
@@ -100,11 +95,7 @@ describe("runtime static middleware", () => {
   });
 
   it("ignores byte ranges on an empty asset", async () => {
-    getAsset.mockImplementation((id: string) =>
-      id === "/empty.txt"
-        ? { etag: '"test"', mtime: MTIME, type: "text/plain", size: 0 }
-        : undefined
-    );
+    setAssets({ "/empty.txt": { etag: '"test"', mtime: MTIME, type: "text/plain", size: 0 } });
     isPublicAssetURL.mockReturnValue(true);
     readAsset.mockResolvedValue(new Uint8Array());
     const event = createEvent("/empty.txt");
@@ -116,11 +107,9 @@ describe("runtime static middleware", () => {
   });
 
   it("serves a compressed asset whole for a byte range request", async () => {
-    getAsset.mockImplementation((id: string) =>
-      id === "/foo.css.gz"
-        ? { etag: '"test"', mtime: MTIME, type: "text/css", encoding: "gzip", size: 4 }
-        : undefined
-    );
+    setAssets({
+      "/foo.css.gz": { etag: '"test"', mtime: MTIME, type: "text/css", encoding: "gzip", size: 4 },
+    });
     isPublicAssetURL.mockReturnValue(true);
     readAsset.mockResolvedValue("body");
     const event = createEvent("/foo.css", "gzip");
@@ -137,11 +126,9 @@ describe("runtime static middleware", () => {
     const file = new TextEncoder().encode("0123456789");
 
     function rangeEvent(headers: Record<string, string>, method = "GET", etag = '"v1"') {
-      getAsset.mockImplementation((id: string) =>
-        id === "/file.bin"
-          ? { etag, mtime: MTIME, type: "application/octet-stream", size: file.length }
-          : undefined
-      );
+      setAssets({
+        "/file.bin": { etag, mtime: MTIME, type: "application/octet-stream", size: file.length },
+      });
       isPublicAssetURL.mockReturnValue(true);
       readAsset.mockReturnValue(file);
       const event = mockEvent("http://localhost/file.bin", { method, headers });
@@ -246,25 +233,27 @@ describe("runtime static middleware", () => {
   });
 
   it("skips requests for paths that are not public assets", () => {
-    getAsset.mockReturnValue(undefined);
+    setAssets({});
     isPublicAssetURL.mockReturnValue(false);
     const event = createEvent("/api/hello", "gzip, br");
     const getHeader = vi.spyOn(event.req.headers, "get");
 
     expect(handler(event)).toBeUndefined();
     expect(getHeader).not.toHaveBeenCalledWith("accept-encoding");
-    expect(getAsset).toHaveBeenCalledWith("/api/hello");
-    expect(getAsset).toHaveBeenCalledWith("/api/hello/index.html");
     expect(readAsset).not.toHaveBeenCalled();
     expect(event.res.headers.get("Vary")).toBe("Origin");
   });
 
   it("serves assets that only exist compressed outside of public asset bases", async () => {
-    getAsset.mockImplementation((id: string) =>
-      id === "/docs/index.html.br"
-        ? { etag: '"test"', mtime: MTIME, type: "text/html", encoding: "br", size: 1 }
-        : undefined
-    );
+    setAssets({
+      "/docs/index.html.br": {
+        etag: '"test"',
+        mtime: MTIME,
+        type: "text/html",
+        encoding: "br",
+        size: 1,
+      },
+    });
     isPublicAssetURL.mockReturnValue(false);
     readAsset.mockResolvedValue("body");
     const event = createEvent("/docs/", "br");
@@ -276,17 +265,8 @@ describe("runtime static middleware", () => {
   });
 
   it("appends Accept-Encoding vary when a compressed asset is matched", async () => {
-    getAsset.mockImplementation((id: string) => {
-      if (id === "/foo.css.gz") {
-        return {
-          etag: '"test"',
-          mtime: MTIME,
-          type: "text/css",
-          encoding: "gzip",
-          size: 1,
-        };
-      }
-      return undefined;
+    setAssets({
+      "/foo.css.gz": { etag: '"test"', mtime: MTIME, type: "text/css", encoding: "gzip", size: 1 },
     });
     isPublicAssetURL.mockReturnValue(true);
     readAsset.mockResolvedValue("body");
@@ -301,17 +281,10 @@ describe("runtime static middleware", () => {
   // Both `gzip` and `q` are case-insensitive, and both have to be recognised
   // for `.gz` to outrank the alphabetically-earlier `.br`.
   it("matches compressed assets when the encoding name and q key differ in case", async () => {
-    getAsset.mockImplementation((id: string) =>
-      id === "/foo.css.gz" || id === "/foo.css.br"
-        ? {
-            etag: '"test"',
-            mtime: MTIME,
-            type: "text/css",
-            encoding: id.endsWith(".gz") ? "gzip" : "br",
-            size: 1,
-          }
-        : undefined
-    );
+    setAssets({
+      "/foo.css.gz": { etag: '"test"', mtime: MTIME, type: "text/css", encoding: "gzip", size: 1 },
+      "/foo.css.br": { etag: '"test"', mtime: MTIME, type: "text/css", encoding: "br", size: 1 },
+    });
     isPublicAssetURL.mockReturnValue(true);
     readAsset.mockResolvedValue("body");
     const event = createEvent("/foo.css", "GZIP; q=1.0, br; Q=0.9");
@@ -323,17 +296,10 @@ describe("runtime static middleware", () => {
   });
 
   it("prefers the encoding with the highest quality value", async () => {
-    getAsset.mockImplementation((id: string) =>
-      id === "/foo.css.gz" || id === "/foo.css.br"
-        ? {
-            etag: '"test"',
-            mtime: MTIME,
-            type: "text/css",
-            encoding: id.endsWith(".gz") ? "gzip" : "br",
-            size: 1,
-          }
-        : undefined
-    );
+    setAssets({
+      "/foo.css.gz": { etag: '"test"', mtime: MTIME, type: "text/css", encoding: "gzip", size: 1 },
+      "/foo.css.br": { etag: '"test"', mtime: MTIME, type: "text/css", encoding: "br", size: 1 },
+    });
     isPublicAssetURL.mockReturnValue(true);
     readAsset.mockResolvedValue("body");
     const event = createEvent("/foo.css", "br;q=0.5, gzip;q=1.0");
@@ -345,17 +311,10 @@ describe("runtime static middleware", () => {
   });
 
   it("keeps the default preference when no quality values are sent", async () => {
-    getAsset.mockImplementation((id: string) =>
-      id === "/foo.css.gz" || id === "/foo.css.br"
-        ? {
-            etag: '"test"',
-            mtime: MTIME,
-            type: "text/css",
-            encoding: id.endsWith(".gz") ? "gzip" : "br",
-            size: 1,
-          }
-        : undefined
-    );
+    setAssets({
+      "/foo.css.gz": { etag: '"test"', mtime: MTIME, type: "text/css", encoding: "gzip", size: 1 },
+      "/foo.css.br": { etag: '"test"', mtime: MTIME, type: "text/css", encoding: "br", size: 1 },
+    });
     isPublicAssetURL.mockReturnValue(true);
     readAsset.mockResolvedValue("body");
     const event = createEvent("/foo.css", "gzip, deflate, br, zstd");
@@ -367,25 +326,15 @@ describe("runtime static middleware", () => {
   });
 
   it("does not match compressed assets with zero quality", async () => {
-    getAsset.mockImplementation((id: string) => {
-      if (id === "/foo.css.gz") {
-        return {
-          etag: '"compressed"',
-          mtime: MTIME,
-          size: 4,
-          type: "text/css",
-          encoding: "gzip",
-        };
-      }
-      if (id === "/foo.css") {
-        return {
-          etag: '"plain"',
-          mtime: MTIME,
-          size: 4,
-          type: "text/css",
-        };
-      }
-      return undefined;
+    setAssets({
+      "/foo.css.gz": {
+        etag: '"compressed"',
+        mtime: MTIME,
+        size: 4,
+        type: "text/css",
+        encoding: "gzip",
+      },
+      "/foo.css": { etag: '"plain"', mtime: MTIME, size: 4, type: "text/css" },
     });
     readAsset.mockResolvedValue("body");
     const event = createEvent("/foo.css", "gzip; q=0.0");
@@ -394,6 +343,40 @@ describe("runtime static middleware", () => {
 
     expect(readAsset).toHaveBeenCalledWith("/foo.css");
     expect(event.res.headers.get("Content-Encoding")).toBeNull();
+  });
+
+  // Parsed `Accept-Encoding` values are cached with a bounded size
+  it("negotiates each Accept-Encoding value on its own", async () => {
+    setAssets({
+      "/foo.css": { etag: '"plain"', mtime: MTIME, type: "text/css", size: 1 },
+      "/foo.css.gz": { etag: '"gz"', mtime: MTIME, type: "text/css", encoding: "gzip", size: 1 },
+      "/foo.css.br": { etag: '"br"', mtime: MTIME, type: "text/css", encoding: "br", size: 1 },
+    });
+    readAsset.mockReturnValue("body");
+    const servedFor = (acceptEncoding: string) => {
+      handler(createEvent("/foo.css", acceptEncoding));
+      return readAsset.mock.lastCall?.[0];
+    };
+
+    for (let i = 0; i < 100; i++) {
+      expect(servedFor(`br;q=0.5, gzip, x-${i}`)).toBe("/foo.css.gz");
+    }
+    expect(servedFor("gzip;q=0")).toBe("/foo.css");
+    expect(servedFor("br;q=0.5, gzip, x-0")).toBe("/foo.css.gz");
+    const long = `${"x-padding, ".repeat(30)}br`;
+    expect(servedFor(long)).toBe("/foo.css.br");
+    expect(servedFor(long)).toBe("/foo.css.br");
+  });
+
+  it("sends the same Last-Modified on repeated hits", () => {
+    setAssets({ "/foo.css": { etag: '"plain"', mtime: MTIME, type: "text/css", size: 1 } });
+    readAsset.mockReturnValue("body");
+
+    for (let i = 0; i < 2; i++) {
+      const event = createEvent("/foo.css");
+      handler(event);
+      expect(event.res.headers.get("Last-Modified")).toBe(new Date(MTIME).toUTCString());
+    }
   });
 });
 
