@@ -36,6 +36,16 @@ describe("nitro:preset:vercel", async () => {
         // trailing slash on purpose (#4392)
         routes: ["/slash/"],
       },
+      // Stand-in for a client build (e.g. Nuxt) emitting assets under the
+      // immutable `buildAssetsDir`
+      publicAssets: [
+        {
+          dir: fileURLToPath(
+            new URL("fixtures/immutable-assets", import.meta.url)
+          ),
+          baseURL: `_vercel/immutable/${TEST_HASH_SALT}/nitro`,
+        },
+      ],
     },
   });
 
@@ -48,6 +58,9 @@ describe("nitro:preset:vercel", async () => {
   // Read now: the other vercel groups below build into the same output dir
   const ownBuildConfig = JSON.parse(
     await fsp.readFile(resolve(ctx.outDir, "config.json"), "utf8")
+  );
+  const ownImmutableManifest = JSON.parse(
+    await fsp.readFile(resolve(ctx.outDir, "immutable.json"), "utf8")
   );
   testNitro(
     ctx,
@@ -535,11 +548,11 @@ describe("nitro:preset:vercel", async () => {
         expect(ctx.nitro!.options.buildAssetsDir).toBe(expectedDir);
         expect(expectedDir).toBe(`_vercel/immutable/${TEST_HASH_SALT}/nitro`);
 
-        const manifest = await fsp
-          .readFile(resolve(ctx.outDir, "immutable.json"), "utf8")
-          .then((r) => JSON.parse(r));
-        expect(manifest.version).toBe(1);
-        expect(manifest.hashes).toBeTypeOf("object");
+        const assetURL = `/${expectedDir}/entry-0123456789abcdef.js`;
+        expect(ownImmutableManifest).toEqual({
+          version: 1,
+          hashes: { [assetURL]: assetURL },
+        });
       });
 
       it("should order header-only rules from least to most specific", async () => {

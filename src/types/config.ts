@@ -84,10 +84,10 @@ export interface NitroOptions extends PresetOptions {
   /**
    * Directory (relative to the served base) for generated build assets.
    *
-   * Applied as the bundler `assetsDir` for client and SSR environments, so
-   * generated assets are emitted and referenced under this path. Presets can
-   * use it to relocate content-addressed assets (e.g. Vercel immutable static
-   * files under `_vercel/immutable`).
+   * Presets can set it to relocate content-addressed client assets (e.g.
+   * Vercel immutable static files under `_vercel/immutable`). Nitro does not
+   * build the client itself, so frameworks must read it after Nitro is created
+   * and apply it as their client bundler's assets directory.
    */
   buildAssetsDir?: string;
 

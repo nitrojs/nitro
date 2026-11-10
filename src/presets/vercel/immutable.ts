@@ -78,6 +78,18 @@ export async function generateImmutableManifest(nitro: Nitro) {
     return;
   }
 
+  // `buildAssetsDir` is resolved by `setupImmutableStaticFiles` during
+  // `createNitro`. If the option was turned on later (e.g. from `nitro:init`),
+  // nothing was relocated, so skip instead of writing a bogus manifest.
+  if (!nitro.options.buildAssetsDir) {
+    nitro.logger
+      .withTag("vercel")
+      .warn(
+        "Immutable static files were enabled after Nitro was initialized, so no `buildAssetsDir` was set. Set `vercel.immutableStaticFiles` in the Nitro config instead. Skipping immutable static files output."
+      );
+    return;
+  }
+
   const publicDir = nitro.options.output.publicDir;
   const files = await globby(`${nitro.options.buildAssetsDir}/**`, {
     cwd: publicDir,

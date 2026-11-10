@@ -4,7 +4,10 @@ import { join } from "pathe";
 import { describe, expect, it, vi } from "vitest";
 import type { Nitro } from "nitropack/types";
 import { createNitro as createRealNitro } from "../../src/core/nitro";
-import { setupImmutableStaticFiles } from "../../src/presets/vercel/immutable";
+import {
+  generateImmutableManifest,
+  setupImmutableStaticFiles,
+} from "../../src/presets/vercel/immutable";
 
 function createNitro(options: {
   baseURL: string;
@@ -61,6 +64,18 @@ describe("vercel: setupImmutableStaticFiles", () => {
       }
     }
   );
+
+  it("skips the manifest when enabled after init (no buildAssetsDir)", async () => {
+    const { nitro, warn } = createNitro({ baseURL: "/" });
+    (nitro.options as any).output = {
+      dir: "/nonexistent",
+      publicDir: "/nonexistent",
+    };
+    await generateImmutableManifest(nitro);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("enabled after Nitro was initialized")
+    );
+  });
 
   it("is a no-op when not enabled", () => {
     const { nitro, warn } = createNitro({
