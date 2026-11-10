@@ -189,6 +189,25 @@ describeIf(supported, "nitro:preset:nitro-dev", async () => {
             { name: "param", in: "path", required: true, schema: { type: "string" } },
           ]);
         });
+
+        it("keeps inferred path params alongside configured params", () => {
+          expect(spec.paths?.["/api/param/{test_id}"]?.get?.parameters).toEqual([
+            { name: "test_id", in: "path", required: true, schema: { type: "string" } },
+            { name: "format", in: "query", schema: { type: "string" } },
+          ]);
+        });
+
+        it("configured path params replace inferred ones", () => {
+          expect(spec.paths?.["/single-headers/{id}"]?.get?.parameters).toEqual([
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              description: "Item id",
+              schema: { type: "string" },
+            },
+          ]);
+        });
       });
     }
   );

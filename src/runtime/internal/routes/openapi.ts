@@ -72,11 +72,11 @@ function getHandlersMeta(): {
     const item: PathItemObject = {
       [method]: {
         tags,
-        parameters,
         responses: {
           200: { description: "OK" },
         },
         ...openAPI,
+        parameters: mergeParameters(parameters, openAPI.parameters),
       } as OperationObject,
     };
 
@@ -137,4 +137,19 @@ function defaultTags(route: string) {
   }
 
   return tags;
+}
+
+function mergeParameters(
+  inferred: ParameterObject[],
+  configured: OperationObject["parameters"]
+): OperationObject["parameters"] {
+  if (!configured?.length) {
+    return inferred;
+  }
+  return [
+    ...inferred.filter(
+      (p) => !configured.some((c) => "name" in c && c.name === p.name && c.in === p.in)
+    ),
+    ...configured,
+  ];
 }
