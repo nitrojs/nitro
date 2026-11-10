@@ -166,10 +166,17 @@ const cloudflareModule = defineNitroPreset(
         await enableNodeCompat(nitro);
 
         if (!nitro.options.cloudflare?.deployConfig) {
-          nitro.options.commands.preview =
-            "npx wrangler dev {{ output.serverDir }}/index.mjs --assets {{ output.publicDir }}";
-          nitro.options.commands.deploy =
-            "npx wrangler deploy {{ output.serverDir }}/index.mjs --assets {{ output.publicDir }}";
+          if (nitro.options.static) {
+            nitro.options.commands.preview =
+              "npx wrangler dev --assets {{ output.publicDir }}";
+            nitro.options.commands.deploy =
+              "npx wrangler deploy --assets {{ output.publicDir }}";
+          } else {
+            nitro.options.commands.preview =
+              "npx wrangler dev {{ output.serverDir }}/index.mjs --assets {{ output.publicDir }}";
+            nitro.options.commands.deploy =
+              "npx wrangler deploy {{ output.serverDir }}/index.mjs --assets {{ output.publicDir }}";
+          }
         }
       },
       async compiled(nitro: Nitro) {

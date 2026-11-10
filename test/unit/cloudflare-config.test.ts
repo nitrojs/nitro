@@ -157,3 +157,34 @@ describe("Cloudflare module assets directory", () => {
     }
   );
 });
+
+describe("Cloudflare module wrangler entry", () => {
+  it.each([
+    { static: false, main: "index.mjs", binding: "ASSETS" },
+    { static: true, main: undefined, binding: undefined },
+  ])("static: $static", async ({ static: isStatic, main, binding }) => {
+    const rootDir = await mkdtemp(join(tmpdir(), "nitro-wrangler-static-"));
+    const nitro = await createNitro({
+      rootDir,
+      static: isStatic,
+      preset: "cloudflare-module",
+      compatibilityDate: "2026-09-30",
+      cloudflare: { deployConfig: true },
+    });
+    try {
+      await nitro.hooks.callHook("compiled", nitro);
+      const generated = JSON.parse(
+        await readFile(
+          join(nitro.options.output.serverDir, "wrangler.json"),
+          "utf8"
+        )
+      );
+      expect(generated.main).toBe(main);
+      expect(generated.assets.binding).toBe(binding);
+      expect(generated.assets.directory).toBe("../public");
+    } finally {
+      await nitro.close();
+      await rm(rootDir, { recursive: true, force: true });
+    }
+  });
+});
