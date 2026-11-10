@@ -31,6 +31,9 @@ function defaultCacheOptions() {
   } as const;
 }
 
+// Max time a settled resolution is reused while its storage write is in flight
+const MAX_WRITE_HOLD_MS = 30_000;
+
 type ResolvedCacheEntry<T> = CacheEntry<T> & { value: T };
 
 type InternalCacheOptions<T> = CacheOptions<T> & {
@@ -45,6 +48,8 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
   opts = { ...defaultCacheOptions(), ...opts };
 
   const pending: { [key: string]: Promise<T> } = {};
+  // Settled resolutions kept in `pending` while their storage write is in flight
+  const heldUntil = new WeakMap<Promise<T>, number>();
 
   // Normalize cache params
   const group = opts.group || "nitro/functions";
@@ -92,7 +97,17 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
       validate(entry) === false;
 
     const _resolve = async () => {
-      const isPending = pending[key];
+      let isPending: Promise<T> | undefined = pending[key];
+      if (
+        isPending &&
+        heldUntil.has(isPending) &&
+        (shouldInvalidateCache || Date.now() > heldUntil.get(isPending)!)
+      ) {
+        // Settled resolution only held for its in-flight storage write: a
+        // forced call wants a fresh value, and an expired hold is released.
+        delete pending[key];
+        isPending = undefined;
+      }
       if (!isPending) {
         if (
           entry.value !== undefined &&
@@ -105,58 +120,87 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
           entry.mtime = undefined;
           entry.expires = undefined;
         }
-        pending[key] = Promise.resolve(resolver());
+        // Always a new promise (even if `resolver` returns a shared one) so
+        // `heldUntil` and `release` only ever match this resolution
+        pending[key] = (async () => resolver())();
       }
 
+      const current = pending[key];
+      // Only release our own resolution, never a newer one for the same key
+      const release = () => {
+        if (pending[key] === current) {
+          delete pending[key];
+        }
+      };
+
       try {
-        entry.value = await pending[key];
+        entry.value = await current;
       } catch (error) {
         // Make sure entries that reject get removed.
         if (!isPending) {
-          delete pending[key];
+          release();
         }
         // Re-throw error to make sure the caller knows the task failed.
         throw error;
       }
 
       if (!isPending) {
-        // Update mtime, integrity + validate and set the value in cache only the first time the request is made.
-        entry.mtime = Date.now();
-        entry.integrity = integrity;
-        if (validate(entry) === false) {
-          delete pending[key];
-          if (
-            (opts as InternalCacheOptions<T>)._removeStaleOnInvalid?.(entry)
-          ) {
-            // Fresh result must not be cached: drop any previously stored entry
-            // so that it is not served (stale) anymore.
+        let isWriting = false;
+        try {
+          // Update mtime, integrity + validate and set the value in cache only the first time the request is made.
+          entry.mtime = Date.now();
+          entry.integrity = integrity;
+          if (validate(entry) === false) {
+            if (
+              (opts as InternalCacheOptions<T>)._removeStaleOnInvalid?.(entry)
+            ) {
+              // Fresh result must not be cached: drop any previously stored entry
+              // so that it is not served (stale) anymore.
+              const promise = useStorage()
+                .removeItem(cacheKey)
+                .catch((error) => {
+                  console.error(`[cache] Cache remove error.`, error);
+                  useNitroApp().captureError(error, {
+                    event,
+                    tags: ["cache"],
+                  });
+                });
+              if (event?.waitUntil) {
+                event.waitUntil(promise);
+              }
+            }
+          } else {
+            // Keep the pending resolution until the write lands: requests read
+            // storage before checking `pending`, so a request that missed the
+            // in-flight write follows this resolution instead of running the
+            // function again (#4660). The hold is capped (checked lazily by the
+            // next request) so a write that never settles can't pin the key.
+            // Note: a read that starts before the write lands and finishes after
+            // the release can still miss both, so dedup is not airtight.
+            heldUntil.set(
+              current,
+              entry.mtime + Math.min(MAX_WRITE_HOLD_MS, ttl || Infinity)
+            );
+            let setOpts: TransactionOptions | undefined;
+            if (opts.maxAge && !opts.swr /* TODO: respect staleMaxAge */) {
+              setOpts = { ttl: opts.maxAge };
+            }
             const promise = useStorage()
-              .removeItem(cacheKey)
+              .setItem(cacheKey, entry, setOpts)
               .catch((error) => {
-                console.error(`[cache] Cache remove error.`, error);
+                console.error(`[cache] Cache write error.`, error);
                 useNitroApp().captureError(error, { event, tags: ["cache"] });
-              });
+              })
+              .finally(release);
+            isWriting = true;
             if (event?.waitUntil) {
               event.waitUntil(promise);
             }
           }
-        } else {
-          let setOpts: TransactionOptions | undefined;
-          if (opts.maxAge && !opts.swr /* TODO: respect staleMaxAge */) {
-            setOpts = { ttl: opts.maxAge };
-          }
-          const promise = useStorage()
-            .setItem(cacheKey, entry, setOpts)
-            .then(() => {
-              delete pending[key];
-            })
-            .catch((error) => {
-              delete pending[key];
-              console.error(`[cache] Cache write error.`, error);
-              useNitroApp().captureError(error, { event, tags: ["cache"] });
-            });
-          if (event?.waitUntil) {
-            event.waitUntil(promise);
+        } finally {
+          // Nothing is written (or `validate` threw): release right away
+          if (!isWriting) {
+            release();
           }
         }
       }
