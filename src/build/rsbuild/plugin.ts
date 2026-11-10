@@ -9,6 +9,7 @@ import { setupBuild } from "./_prod.ts";
 import { setupPreview } from "./_preview.ts";
 import { setupClientOutputs } from "./_client.ts";
 import { setupAssetsImport } from "./_assets.ts";
+import { setupRstest } from "./_rstest.ts";
 
 export interface NitroRsbuildPluginConfig extends NitroConfig {
   /**
@@ -28,6 +29,13 @@ export function nitro(pluginConfig: NitroRsbuildPluginConfig = {}): RsbuildPlugi
     setup(api) {
       if (api.context.action === "preview") {
         return setupPreview(api);
+      }
+      if (api.context.callerName === "rstest") {
+        return setupRstest(
+          api,
+          async () =>
+            pluginConfig._nitro || initNitro(api.context.rootPath, pluginConfig, { dev: true })
+        );
       }
       const ctx: NitroRsbuildContext = {
         dev: api.context.action === "dev",
@@ -110,7 +118,12 @@ async function initNitro(
 }
 
 function resolveRsbuildRspack(rootDir: string): string | undefined {
-  const rsbuildPath = resolveModulePath("@rsbuild/core", { from: `${rootDir}/`, try: true });
+  // Rstest projects have Rsbuild as a dependency of Rstest
+  const rstestPath = resolveModulePath("@rstest/core", { from: `${rootDir}/`, try: true });
+  const rsbuildPath = resolveModulePath("@rsbuild/core", {
+    from: [`${rootDir}/`, ...(rstestPath ? [rstestPath] : [])],
+    try: true,
+  });
   if (rsbuildPath) {
     return resolveModulePath("@rspack/core", { from: rsbuildPath, try: true });
   }
