@@ -1,49 +1,9 @@
-# Nitro
+# Nitro v2 has moved
 
-<!-- automd:badges -->
+Nitro v2 (`nitropack`) is now maintained in its own repository: **[nitrojs/nitro-v2](https://github.com/nitrojs/nitro-v2)**.
 
-[![npm version](https://img.shields.io/npm/v/nitropack)](https://npmjs.com/package/nitropack)
-[![npm downloads](https://img.shields.io/npm/dm/nitropack)](https://npm.chart.dev/nitropack)
+- 🐛 v2 issues, bug fixes and preset updates: [nitrojs/nitro-v2](https://github.com/nitrojs/nitro-v2)
+- 📖 v2 documentation: [v2.nitro.build](https://v2.nitro.build)
+- 🚀 Current development (Nitro v3+): [`main`](https://github.com/nitrojs/nitro) branch of this repository
 
-<!-- /automd -->
-
-Create web servers that run anywhere! 📖 [**documentation**](https://nitro.build)
-
-> [!NOTE]
-> You are on the **v2 support branch.** Checkout the [v3](https://github.com/nitrojs/nitro/tree/v3) branch for the current development.
-
-## Contribution
-
-<details>
-  <summary>Local development</summary>
-
-- Clone this repository
-- Install the latest LTS version of [Node.js](https://nodejs.org/en/)
-- Enable [Corepack](https://github.com/nodejs/corepack) using `corepack enable`
-- Install dependencies using `pnpm install`
-- Run tests using `pnpm dev` or `pnpm test`
-
-</details>
-
-<!-- /automd -->
-
-## License
-
-<!-- automd:contributors license=MIT author="pi0" -->
-
-Published under the [MIT](https://github.com/nitrojs/nitro/blob/main/LICENSE) license.
-Made by [@pi0](https://github.com/pi0) and [community](https://github.com/nitrojs/nitro/graphs/contributors) 💛
-<br><br>
-<a href="https://github.com/nitrojs/nitro/graphs/contributors">
-<img src="https://contrib.rocks/image?repo=nitrojs/nitro" />
-</a>
-
-<!-- /automd -->
-
-<!-- automd:with-automd -->
-
----
-
-_🤖 auto updated with [automd](https://automd.unjs.io)_
-
-<!-- /automd -->
+The full history of this branch is preserved in [nitrojs/nitro-v2](https://github.com/nitrojs/nitro-v2).

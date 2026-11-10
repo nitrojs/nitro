@@ -1,2 +1,0 @@
-This file shouldn't be under "exclude" in the _routes.json outputted by Cloudflare Pages builds.
-It's covered by the "/cf-pages-exclude/*" wildcard.
