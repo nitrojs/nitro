@@ -28,7 +28,9 @@ interface ImmutableManifest {
   hashes: Record<string, string>;
 }
 
-// Opt-in guard for immutable static files, run from `build:before`.
+// Opt-in guard for immutable static files, registered as a preset module so it
+// runs during `createNitro`. Frameworks that build the client before Nitro
+// (e.g. Nuxt) can then read `nitro.options.buildAssetsDir` right after init.
 //
 // Immutable static files are opt-in via `vercel.immutableStaticFiles` (defaulting
 // to the `NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED` env var). When running on

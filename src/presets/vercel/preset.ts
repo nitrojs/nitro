@@ -34,11 +34,11 @@ const vercel = defineNitroPreset(
       preview: "",
       deploy: "npx vercel deploy --prebuilt",
     },
+    // Immutable static files (opt-in, guarded by Vercel platform support).
+    // Runs as a module (during `createNitro`) so `buildAssetsDir` is resolved
+    // before frameworks (e.g. Nuxt) run their client build.
+    modules: [setupImmutableStaticFiles],
     hooks: {
-      "build:before": (nitro: Nitro) => {
-        // Immutable static files (opt-in, guarded by Vercel platform support)
-        setupImmutableStaticFiles(nitro);
-      },
       "rollup:before": (nitro: Nitro) => {
         deprecateSWR(nitro);
       },
@@ -120,11 +120,9 @@ const vercelStatic = defineNitroPreset(
       preview: "npx serve {{ output.publicDir }}",
       deploy: "npx vercel deploy --prebuilt",
     },
+    // Immutable static files (see `vercel` preset)
+    modules: [setupImmutableStaticFiles],
     hooks: {
-      "build:before": (nitro: Nitro) => {
-        // Immutable static files (opt-in, guarded by Vercel platform support)
-        setupImmutableStaticFiles(nitro);
-      },
       "rollup:before": (nitro: Nitro) => {
         deprecateSWR(nitro);
       },
