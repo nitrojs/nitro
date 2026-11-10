@@ -77,7 +77,7 @@ async function _loadUserConfig(
   configOverrides = klona(configOverrides);
 
   // @ts-ignore
-  globalThis.defineNitroConfig = globalThis.defineNitroConfig || ((c) => c);
+  globalThis.defineNitroConfig ||= defineNitroConfig;
 
   // Compatibility date
   let compatibilityDate: CompatibilityDateSpec | undefined =
@@ -247,3 +247,5 @@ function resolveLayers(c12: ResolvedConfig<NitroConfig>): NitroConfigLayer[] {
       })),
   ];
 }
+
+const defineNitroConfig = <T>(config: T): T => config;
