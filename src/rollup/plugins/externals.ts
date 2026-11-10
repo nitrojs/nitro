@@ -120,7 +120,8 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         return null;
       }
 
-      if (URI_SCHEME_RE.test(originalId)) {
+      // `file:` ids (e.g. `#build` on Windows) still need resolving
+      if (URI_SCHEME_RE.test(originalId) && !originalId.startsWith("file:")) {
         if (
           originalId.startsWith("node:") &&
           !isExplicitInline(originalId, importer)
