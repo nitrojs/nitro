@@ -69,7 +69,7 @@ export async function scanHandlers(nitro: Nitro) {
   nitro.scannedHandlers = [
     ...middleware,
     ...handlers.filter((h) => {
-      const key = `${h.route}\0${h.method}\0${h.env}`;
+      const key = `${h.route}\0${h.method}\0${h.ws}\0${h.env}`;
       return seenHandlers.has(key) ? false : (seenHandlers.add(key), true);
     }),
   ];
@@ -117,6 +117,7 @@ export async function scanServerRoutes(nitro: Nitro, dir: string, prefix = "/") 
       middleware: false,
       route,
       method: file.method,
+      ws: file.ws,
       env: file.env,
     };
   });

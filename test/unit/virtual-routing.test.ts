@@ -32,6 +32,10 @@ function createNitroStub(
         compileToString: ({ serialize }: { serialize: (h: unknown) => string }) =>
           `{"/foo":${serialize(handler)}}`,
       },
+      webSocketRoutes: {
+        routes: [],
+        compileToString: () => `{}`,
+      },
       routedMiddleware: {
         routes: [],
         compileToString: () => `{}`,

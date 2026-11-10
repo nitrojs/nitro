@@ -31,6 +31,7 @@ export default defineCommand({
     let preset = args.preset;
     let envName = args.envName;
     let outputDir: string | undefined;
+    let savedDeployCommand: string | undefined;
     if (args.prebuilt) {
       const lastBuild = await getBuildInfo({ rootDir });
       if (!lastBuild.buildInfo) {
@@ -52,6 +53,7 @@ export default defineCommand({
         envName = lastBuild.buildInfo.envName;
       }
       outputDir = lastBuild.outputDir;
+      savedDeployCommand = lastBuild.buildInfo.commands?.deploy;
     }
 
     const nitro = await createNitro(
@@ -62,6 +64,7 @@ export default defineCommand({
         preset,
         builder: args.builder as "rollup" | "rolldown" | "rspack" | "vite" | "bun",
         output: outputDir ? { dir: outputDir } : undefined,
+        commands: savedDeployCommand ? { deploy: savedDeployCommand } : undefined,
       },
       {
         compatibilityDate: args.compatibilityDate as DateString,

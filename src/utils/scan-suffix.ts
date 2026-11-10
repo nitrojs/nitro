@@ -2,14 +2,14 @@ import type { Nitro, NitroEventHandler } from "nitro/types";
 import mime from "mime";
 
 // prettier-ignore
-const methodSuffixes = new Set(["connect", "delete", "get", "head", "options", "patch", "post", "put", "query", "trace"]);
+const methodSuffixes = new Set(["connect", "delete", "get", "head", "options", "patch", "post", "put", "query", "trace", "ws"]);
 const envSuffixes = new Set(["dev", "prod", "prerender"]);
 
 const lastSuffixRe = /(?<=[^/])\.([a-z]+)$/;
 const orderPrefixRe = /(?:^|\/)\d+$/;
 
 export type ScanSuffixOptions = {
-  /** Allow a `.<method>` suffix (e.g. `.get`). */
+  /** Allow a `.<method>` suffix (e.g. `.get`), or `.ws` for WebSocket routes. */
   method?: boolean;
   /** Allow a `.<env>` suffix (e.g. `.dev`), placed after the method suffix. */
   env?: boolean;
@@ -19,11 +19,12 @@ export type ParsedScanPath = {
   /** File path without its extension and Nitro suffixes. */
   name: string;
   method?: NitroEventHandler["method"];
+  ws?: boolean;
   env?: "dev" | "prod" | "prerender";
 };
 
 /**
- * Splits Nitro suffixes (`.<method>.<env>`) from a scanned file path.
+ * Splits Nitro suffixes (`.<method|ws>.<env>`) from a scanned file path.
  *
  * Any other trailing lowercase suffix is reserved for Nitro, unless it is a known file extension
  * (`.json`, `.md`, ...), listed in `scanSuffixes` or the name after a numeric order prefix
@@ -44,8 +45,17 @@ export function parseScanPath(
   }
 
   const method = result.name.match(lastSuffixRe)?.[1];
-  if (opts.method && method && methodSuffixes.has(method)) {
-    result.method = method as ParsedScanPath["method"];
+  if (
+    opts.method &&
+    method &&
+    methodSuffixes.has(method) &&
+    !(method === "ws" && nitro.options.scanSuffixes?.includes(method))
+  ) {
+    if (method === "ws") {
+      result.ws = true;
+    } else {
+      result.method = method as ParsedScanPath["method"];
+    }
     result.name = result.name.slice(0, -method.length - 1);
   }
 

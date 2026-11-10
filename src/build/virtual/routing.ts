@@ -8,6 +8,7 @@ export default function routing(nitro: Nitro) {
     template: async () => {
       const handlers = [
         ...Object.values(nitro.routing.routes.routes).flatMap((h) => h.data),
+        ...Object.values(nitro.routing.webSocketRoutes.routes).map((h) => h.data),
         ...Object.values(nitro.routing.routedMiddleware.routes).map((h) => h.data),
         ...nitro.routing.globalMiddleware,
       ];
@@ -60,6 +61,8 @@ ${allHandlers
   .join("\n")}
 
 export const findRoute = ${nitro.routing.routes.compileToString({ serialize: (h) => serializeHandler(h, { tracing: traceH3 }) })}
+
+export const findWebSocketRoute = ${nitro.routing.webSocketRoutes.compileToString({ serialize: (h) => serializeHandler(h, { tracing: traceH3 }) })}
 
 export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: serializeHandlerFn, matchAll: true })};
 

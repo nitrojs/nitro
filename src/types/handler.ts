@@ -59,6 +59,13 @@ export type EventHandlerFormat = "web" | "node";
  */
 export interface NitroEventHandler extends NitroHandlerCommon {
   /**
+   * Match only WebSocket upgrade requests, so the route can share its path with an HTTP handler.
+   *
+   * The handler should be defined with `defineWebSocketHandler()`. Takes precedence over `method`.
+   */
+  ws?: boolean;
+
+  /**
    * Use lazy loading to import handler.
    */
   lazy?: boolean;

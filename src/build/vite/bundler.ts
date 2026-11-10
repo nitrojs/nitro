@@ -1,6 +1,6 @@
 import { defu } from "defu";
 import { baseBuildConfig, type BaseBuildConfig } from "../config.ts";
-import { getChunkName, libChunkName, libChunksGroup, NODE_MODULES_RE } from "../chunks.ts";
+import { getChunkName, libChunksGroup, libManualChunks } from "../chunks.ts";
 import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
 import { assetUrls } from "../plugins/asset-urls.ts";
 import { builtinExternals } from "../plugins/builtins.ts";
@@ -100,11 +100,7 @@ export const getBundlerConfig = async (
           generatedCode: {
             constBindings: true,
           },
-          manualChunks(id: string) {
-            if (NODE_MODULES_RE.test(id)) {
-              return libChunkName(id);
-            }
-          },
+          manualChunks: libManualChunks,
         },
       } satisfies RollupConfig,
       nitro.options.rolldownConfig as RollupConfig, // Added for backward compatibility

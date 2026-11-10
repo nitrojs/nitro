@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
+import { request } from "node:http";
 import { execa } from "execa";
 import { getRandomPort } from "get-port-please";
 import { resolve } from "pathe";
@@ -80,6 +81,9 @@ describe("nitro:preset:node-server", async () => {
       handlers: [
         { route: "/_ws", handler: resolve(presetFixturesDir, "websocket.ts") },
         { route: "/_ws-protocol", handler: resolve(presetFixturesDir, "websocket-protocol.ts") },
+        { route: "/_ws-denied", handler: resolve(presetFixturesDir, "websocket-denied.ts") },
+        { route: "/_ws-flag/**", ws: true, handler: resolve(presetFixturesDir, "websocket.ts") },
+        { route: "/_ws-flag/http", handler: resolve(presetFixturesDir, "http.ts") },
       ],
     },
   });
@@ -126,6 +130,58 @@ describe("nitro:preset:node-server", async () => {
         await expect(
           negotiateProtocol(`ws://127.0.0.1:${port}/_ws`, ["graphql-transport-ws"])
         ).rejects.toThrow("WebSocket handshake failed");
+      } finally {
+        child.kill("SIGKILL");
+      }
+    },
+    40_000
+  );
+
+  // #5052: upgrades to routes without WebSocket hooks must be rejected, not opened with no-op hooks
+  it.skipIf(isBun)(
+    "rejects WebSocket upgrades on routes without WebSocket hooks",
+    async () => {
+      const port = await getRandomPort();
+      const child = execa(process.execPath, [resolve(ctx.outDir, "server/index.mjs")], {
+        env: { NITRO_PORT: String(port), NITRO_HOST: "127.0.0.1" },
+        stdio: process.env.TEST_DEBUG ? "inherit" : "ignore",
+        reject: false,
+      });
+      try {
+        await waitForServer(`http://127.0.0.1:${port}/`, child.nodeChildProcess);
+        expect(await upgradeStatus(port, "/_ws")).toBe(101);
+        expect(await upgradeStatus(port, "/api/hello")).toBe(200);
+        expect(await upgradeStatus(port, "/_does-not-exist")).toBe(404);
+        expect(await upgradeStatus(port, "/_ws-denied")).toBe(403);
+      } finally {
+        child.kill("SIGKILL");
+      }
+    },
+    40_000
+  );
+
+  it.skipIf(isBun || typeof WebSocket !== "function")(
+    "matches WebSocket routes (`.ws` and `ws: true`) for upgrade requests only",
+    async () => {
+      const port = await getRandomPort();
+      const child = execa(process.execPath, [resolve(ctx.outDir, "server/index.mjs")], {
+        env: { NITRO_PORT: String(port), NITRO_HOST: "127.0.0.1" },
+        stdio: process.env.TEST_DEBUG ? "inherit" : "ignore",
+        reject: false,
+      });
+      try {
+        await waitForServer(`http://127.0.0.1:${port}/`, child.nodeChildProcess);
+        await expect(firstMessage(`ws://127.0.0.1:${port}/ws-shared`)).resolves.toBe("ws");
+        expect(await fetch(`http://127.0.0.1:${port}/ws-shared`).then((r) => r.text())).toBe(
+          "http"
+        );
+        await expect(firstMessage(`ws://127.0.0.1:${port}/_ws-flag/x`)).resolves.toBe("ready");
+        expect((await fetch(`http://127.0.0.1:${port}/_ws-flag/x`)).status).toBe(404);
+        // A more specific method-agnostic route does not hide the WebSocket route
+        await expect(firstMessage(`ws://127.0.0.1:${port}/_ws-flag/http`)).resolves.toBe("ready");
+        expect(await fetch(`http://127.0.0.1:${port}/_ws-flag/http`).then((r) => r.text())).toBe(
+          "http"
+        );
       } finally {
         child.kill("SIGKILL");
       }
@@ -210,6 +266,56 @@ function negotiateProtocol(url: string, protocols: string[]): Promise<string> {
     ws.addEventListener("open", () => {
       clearTimeout(timer);
       resolve(ws.protocol);
+      ws.close();
+    });
+    ws.addEventListener("error", () => {
+      clearTimeout(timer);
+      reject(new Error("WebSocket handshake failed"));
+    });
+  });
+}
+
+// Sends a WebSocket upgrade request and resolves with the response status (101 when upgraded).
+function upgradeStatus(port: number, path: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const req = request({
+      host: "127.0.0.1",
+      port,
+      path,
+      headers: {
+        connection: "Upgrade",
+        upgrade: "websocket",
+        "sec-websocket-key": "dGhlIHNhbXBsZSBub25jZQ==",
+        "sec-websocket-version": "13",
+      },
+    });
+    req.setTimeout(5000, () =>
+      req.destroy(new Error("Timed out waiting for the upgrade response"))
+    );
+    req.on("upgrade", (res, socket) => {
+      socket.destroy();
+      resolve(res.statusCode!);
+    });
+    req.on("response", (res) => {
+      res.resume();
+      resolve(res.statusCode!);
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+// Opens a connection and resolves with the first message sent by the server.
+function firstMessage(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    const timer = setTimeout(() => {
+      ws.close();
+      reject(new Error("Timed out waiting for a WebSocket message"));
+    }, 5000);
+    ws.addEventListener("message", (event) => {
+      clearTimeout(timer);
+      resolve(String(event.data));
       ws.close();
     });
     ws.addEventListener("error", () => {
