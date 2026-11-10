@@ -6,6 +6,7 @@ import { resolveModulePath } from "exsolve";
 import { dirname, join } from "pathe";
 import type { CodeSplittingOptions } from "rolldown";
 import { glob } from "tinyglobby";
+import { rewriteSelfImports } from "./scripts/_dts-self-imports.ts";
 import { deps } from "./src/utils/_deps.ts";
 import type { DepMeta } from "./src/utils/_deps.ts";
 
@@ -231,6 +232,18 @@ export default defineBuildConfig({
         "dist/rsbuild.d.mts",
         `import "nitro/rsbuild/types";\n${await readFile("dist/rsbuild.d.mts", "utf8")}`
       );
+
+      // Self imports of build code types (also `declare module` augmentations), relative so that they
+      // do not depend on the package name (runtime types import `nitro/*` like the runtime code)
+      for (const file of await glob("dist/**/*.d.mts", {
+        ignore: ["dist/runtime/**", "dist/presets/*/runtime/**"],
+      })) {
+        const code = await readFile(file, "utf8");
+        const updated = rewriteSelfImports(code, { file, exports: pkg.exports });
+        if (updated !== code) {
+          await writeFile(file, updated);
+        }
+      }
     },
   },
 });

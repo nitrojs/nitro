@@ -10,7 +10,7 @@ import {
   getBuildInfo,
   prepare,
   prerender,
-} from "nitro/builder";
+} from "../../builder.ts";
 import { buildArgs } from "./build.ts";
 
 export default defineCommand({
