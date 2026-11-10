@@ -71,7 +71,6 @@ describe("dev server devProxy websocket upgrades", () => {
   let nitroDevServer: NitroDevServer;
   let server: Server;
   let port: number;
-  let workerUpgrades = 0;
 
   beforeAll(async () => {
     const targetPort = await listen(target);
@@ -96,18 +95,12 @@ describe("dev server devProxy websocket upgrades", () => {
       },
     } as unknown as Nitro;
     nitroDevServer = createDevServer(nitro);
-    // No worker will ever be available, so upgrades that reach it fail fast
+    // No worker will ever be available, so upgrades that reach it get a 503
     await nitro.hooks.callHook("dev:error", new Error("no worker"));
 
     server = createServer((_req, res) => res.end("dev"));
     server.on("upgrade", (req, socket, head) => {
-      // Upgrades that reach the worker reject with "No worker available."
-      Promise.resolve(
-        nitroDevServer.upgrade(req, socket as Socket, head)
-      ).catch(() => {
-        workerUpgrades++;
-        socket.destroy();
-      });
+      nitroDevServer.upgrade(req, socket as Socket, head);
     });
     port = await listen(server);
   });
@@ -141,10 +134,12 @@ describe("dev server devProxy websocket upgrades", () => {
 
   it("falls through to the worker when no `ws` rule matches", async () => {
     upgrades.length = 0;
-    workerUpgrades = 0;
-    await expect(upgradeRequest(port, "/proxy/http")).rejects.toThrow();
-    await expect(upgradeRequest(port, "/other")).rejects.toThrow();
-    expect(workerUpgrades).toBe(2);
+    await expect(upgradeRequest(port, "/proxy/http")).rejects.toThrow(
+      "unexpected HTTP response: 503"
+    );
+    await expect(upgradeRequest(port, "/other")).rejects.toThrow(
+      "unexpected HTTP response: 503"
+    );
     expect(upgrades).toEqual([]);
   });
 });
