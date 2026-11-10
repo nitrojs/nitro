@@ -154,24 +154,62 @@ export function getAsset (id) {
   return assets[id]
 }
 
-let _servableIds
+// Encoding extensions by flag bit (\`EncodingMap\` of the static middleware must not add others)
+const _exts = ['', '.br', '.gz', '.zst']
+// Bit offset of the \`id/index.html + ext\` flags, after the \`id + ext\` ones
+const _INDEX = _exts.length
 
-export function hasAsset (id = '') {
-  if (!_servableIds) {
-    _servableIds = new Set()
+let _servable
+
+// Request ids to flags of the files that serve them
+function _getServable () {
+  if (!_servable) {
+    const servable = new Map()
     for (const assetId in assets) {
       const plainId = assetId.replace(/\\.(gz|br|zst)$/, '')
-      _servableIds.add(assetId).add(plainId)
+      const ext = _exts.indexOf(assetId.slice(plainId.length))
+      _flag(servable, assetId, 1)
+      if (ext) {
+        _flag(servable, plainId, 1 << ext)
+      }
       if (plainId.endsWith('/index.html')) {
-        const dir = plainId.slice(0, -10 /* index.html */)
-        _servableIds.add(dir)
+        const dir = plainId.slice(0, -'index.html'.length)
+        _flag(servable, dir, 1 << (_INDEX + ext))
         if (dir !== '/') {
-          _servableIds.add(dir.slice(0, -1))
+          _flag(servable, dir.slice(0, -1), 1 << (_INDEX + ext))
         }
       }
     }
+    _servable = servable
   }
-  return _servableIds.has(id)
+  return _servable
+}
+
+function _flag (servable, id, flag) {
+  servable.set(id, (servable.get(id) || 0) | flag)
+}
+
+export function hasAsset (id = '') {
+  return _getServable().has(id)
+}
+
+// Asset id for the first encoding extension (most preferred first) that has a file
+export function resolveAsset (id, encodings) {
+  const flags = _getServable().get(id)
+  if (flags) {
+    for (const encoding of encodings) {
+      const ext = _exts.indexOf(encoding)
+      if (ext < 0) {
+        continue
+      }
+      if (flags & (1 << ext)) {
+        return id + encoding
+      }
+      if (flags & (1 << (_INDEX + ext))) {
+        return (id.endsWith('/') ? id : id + '/') + 'index.html' + encoding
+      }
+    }
+  }
 }
 `;
       },

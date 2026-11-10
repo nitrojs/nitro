@@ -1,21 +1,28 @@
 import { HTTPError, defineHandler } from "h3";
 import type { EventHandler, HTTPMethod } from "h3";
 import type { PublicAsset } from "nitro/types";
-import { decodePath, joinURL, withLeadingSlash, withoutTrailingSlash } from "ufo";
+import { decodePath, withLeadingSlash, withoutTrailingSlash } from "ufo";
 import {
   getAsset,
   hasAsset,
   isPublicAssetBaseURL,
   isPublicAssetURL,
   readAsset,
+  resolveAsset,
 } from "#nitro/virtual/public-assets";
 
 const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 
+// Must match `_exts` of the `#nitro/virtual/public-assets` template: others are never served
 const EncodingMap = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
+
+// Clients send only a few distinct `Accept-Encoding` values
+const encodingsCache = new Map<string, readonly string[]>();
 
 // Opts missing assets out of the immutable `cache-control` route rule of asset dirs (h3js/h3#1612)
 const noCacheHeaders = { "cache-control": "no-store" };
+
+type CachedAsset = PublicAsset & { _lastModified?: string };
 
 // Range units are case-insensitive (RFC 9110 14.1)
 const RANGE_RE = /^bytes=(\d*)-(\d*)$/i;
@@ -33,42 +40,9 @@ export default defineHandler((event) => {
     return;
   }
 
-  let asset: PublicAsset | undefined;
-
-  const encodingHeader = event.req.headers.get("accept-encoding") || "";
-  const encodings = [
-    ...encodingHeader
-      .split(",")
-      .map((entry) => {
-        const [name, ...parameters] = entry.split(";");
-        const quality = parameters
-          .map((parameter) => parameter.trim().split("="))
-          .find(([key]) => key.toLowerCase() === "q")?.[1];
-        const weight = quality === undefined ? 1 : Number.parseFloat(quality);
-        return {
-          ext: EncodingMap[name.trim().toLowerCase() as keyof typeof EncodingMap],
-          // An unparsable weight is an invalid parameter, not a rejection
-          weight: Number.isNaN(weight) ? 1 : weight,
-        };
-      })
-      // `q=0` means "not acceptable" (RFC 9110 12.4.2)
-      .filter((entry) => entry.ext && entry.weight > 0)
-      // Highest client weight wins, then our own (alphabetical) preference
-      .sort((a, b) => b.weight - a.weight || (a.ext < b.ext ? -1 : a.ext > b.ext ? 1 : 0))
-      .map((entry) => entry.ext),
-    "",
-  ];
-
-  for (const encoding of encodings) {
-    for (const _id of [id + encoding, joinURL(id, "index.html" + encoding)]) {
-      const _asset = getAsset(_id);
-      if (_asset) {
-        asset = _asset;
-        id = _id;
-        break;
-      }
-    }
-  }
+  const encodings = getEncodings(event.req.headers.get("accept-encoding") || "");
+  const assetId = resolveAsset(id, encodings);
+  const asset = assetId ? getAsset(assetId) : undefined;
 
   if (!asset) {
     if (isPublicAssetURL(id)) {
@@ -76,6 +50,7 @@ export default defineHandler((event) => {
     }
     return;
   }
+  id = assetId!;
 
   if (encodings.length > 1) {
     event.res.headers.append("Vary", "Accept-Encoding");
@@ -86,7 +61,10 @@ export default defineHandler((event) => {
   }
 
   if (asset.mtime && !event.res.headers.has("Last-Modified")) {
-    event.res.headers.set("Last-Modified", new Date(asset.mtime).toUTCString());
+    event.res.headers.set(
+      "Last-Modified",
+      ((asset as CachedAsset)._lastModified ??= new Date(asset.mtime).toUTCString())
+    );
   }
 
   const precondition = evaluatePreconditions(event.req.headers, asset);
@@ -197,12 +175,56 @@ function matchesETag(header: string, etag: string, strong: boolean): boolean {
 
 // `undefined` for a missing or invalid date; HTTP dates have a one second resolution
 function isModifiedSince(mtime: string, header: string | null): boolean | undefined {
-  const since = Date.parse(header || "");
+  if (!header) {
+    return;
+  }
+  const since = Date.parse(header);
   const modified = Date.parse(mtime);
   if (Number.isNaN(since) || Number.isNaN(modified)) {
     return;
   }
   return Math.floor(modified / 1000) * 1000 > since;
+}
+
+// Accepted encoding extensions, most preferred first, ending with the identity
+function getEncodings(header: string): readonly string[] {
+  let encodings = encodingsCache.get(header);
+  if (!encodings) {
+    encodings = parseAcceptEncoding(header);
+    if (header.length > 256) {
+      return encodings;
+    }
+    if (encodingsCache.size >= 64) {
+      encodingsCache.delete(encodingsCache.keys().next().value!);
+    }
+    encodingsCache.set(header, encodings);
+  }
+  return encodings;
+}
+
+function parseAcceptEncoding(header: string): string[] {
+  return [
+    ...header
+      .split(",")
+      .map((entry) => {
+        const [name, ...parameters] = entry.split(";");
+        const quality = parameters
+          .map((parameter) => parameter.trim().split("="))
+          .find(([key]) => key.toLowerCase() === "q")?.[1];
+        const weight = quality === undefined ? 1 : Number.parseFloat(quality);
+        return {
+          ext: EncodingMap[name.trim().toLowerCase() as keyof typeof EncodingMap],
+          // An unparsable weight is an invalid parameter, not a rejection
+          weight: Number.isNaN(weight) ? 1 : weight,
+        };
+      })
+      // `q=0` means "not acceptable" (RFC 9110 12.4.2)
+      .filter((entry) => entry.ext && entry.weight > 0)
+      // Highest client weight wins, then our own (alphabetical) preference
+      .sort((a, b) => b.weight - a.weight || (a.ext < b.ext ? -1 : a.ext > b.ext ? 1 : 0))
+      .map((entry) => entry.ext),
+    "",
+  ];
 }
 
 type ByteRange = { start: number; end: number };
