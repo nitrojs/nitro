@@ -1,4 +1,5 @@
 import type { Nitro } from "nitro/types";
+import type { GetManualChunk } from "rollup";
 import { isAbsolute, normalize } from "pathe";
 
 // Tests in @test/unit/chunks.test.ts
@@ -13,6 +14,27 @@ export function libChunkName(id: string) {
   const pkgName = pathToPkgName(id);
   return pkgName ? `_libs/${pkgName}` : undefined;
 }
+
+/** Rollup `manualChunks` for library (`node_modules`) chunks. */
+export const libManualChunks: GetManualChunk = (id, { getModuleInfo }) => {
+  if (!NODE_MODULES_RE.test(id)) {
+    return;
+  }
+  // Rollup passes every loaded module, including ones only loaded by plugins via `this.load()`
+  // (e.g. commonjs probing an import that is then externalized). Their imports are never linked,
+  // and assigning them to a chunk crashes rendering (nitrojs/nitro#4471).
+  const info = getModuleInfo(id);
+  if (
+    info &&
+    !info.isEntry &&
+    info.importers.length === 0 &&
+    info.dynamicImporters.length === 0 &&
+    info.implicitlyLoadedAfterOneOf.length === 0
+  ) {
+    return;
+  }
+  return libChunkName(id);
+};
 
 /** Rolldown `codeSplitting` group for library (`node_modules`) chunks. */
 export function libChunksGroup(nitro: Nitro) {
