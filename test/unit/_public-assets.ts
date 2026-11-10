@@ -5,6 +5,7 @@ export type PublicAssetsLookup = {
   getAsset: (id: string) => PublicAsset | undefined;
   hasAsset: (id: string) => boolean;
   resolveAsset: (id: string, encodings: readonly string[]) => string | undefined;
+  hasEncodedVariants: (id: string) => boolean;
   isPublicAssetURL: (id: string) => boolean;
   isPublicAssetBaseURL: (id: string) => boolean;
 };
@@ -24,6 +25,6 @@ export function loadPublicAssets(
     .replace(/^export /gm, "");
   return new Function(
     "assets",
-    `${body}\nreturn { getAsset, hasAsset, resolveAsset, isPublicAssetURL, isPublicAssetBaseURL };`
+    `${body}\nreturn { getAsset, hasAsset, resolveAsset, hasEncodedVariants, isPublicAssetURL, isPublicAssetBaseURL };`
   )(assets);
 }

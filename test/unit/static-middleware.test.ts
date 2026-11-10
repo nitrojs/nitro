@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { HTTPError, mockEvent } from "h3";
+import { HTTPError, mockEvent, toResponse } from "h3";
 import handler from "../../src/runtime/internal/static.ts";
 import { loadPublicAssets } from "./_public-assets.ts";
 import type { PublicAssetsLookup } from "./_public-assets.ts";
@@ -17,6 +17,7 @@ vi.mock("#nitro/virtual/public-assets", () => ({
   getAsset: (id: string) => lookup.current!.getAsset(id),
   hasAsset: (id: string) => lookup.current!.hasAsset(id),
   resolveAsset: (id: string, encodings: string[]) => lookup.current!.resolveAsset(id, encodings),
+  hasEncodedVariants: (id: string) => lookup.current!.hasEncodedVariants(id),
   isPublicAssetURL,
   isPublicAssetBaseURL: (id: string) => isPublicAssetURL(id),
   readAsset,
@@ -276,6 +277,118 @@ describe("runtime static middleware", () => {
 
     expect(event.res.headers.get("Vary")).toContain("Origin");
     expect(event.res.headers.get("Vary")).toContain("Accept-Encoding");
+  });
+
+  describe("Vary: Accept-Encoding", () => {
+    const meta = { etag: '"test"', mtime: MTIME, type: "text/css", size: 1 };
+
+    beforeEach(() => {
+      isPublicAssetURL.mockReturnValue(true);
+      readAsset.mockResolvedValue("body");
+    });
+
+    it.each(["", "gzip;q=0", "identity", "gzip, br"])(
+      "is sent for an asset with compressed variants (Accept-Encoding: %j)",
+      async (acceptEncoding) => {
+        setAssets({ "/foo.css": meta, "/foo.css.br": { ...meta, encoding: "br" } });
+        const event = createEvent("/foo.css", acceptEncoding);
+
+        await handler(event);
+
+        expect(event.res.headers.get("Vary")).toBe("Origin, Accept-Encoding");
+      }
+    );
+
+    it("is sent for an index.html with compressed variants", async () => {
+      setAssets({ "/docs/index.html": meta, "/docs/index.html.gz": { ...meta, encoding: "gzip" } });
+      const event = createEvent("/docs");
+
+      await handler(event);
+
+      expect(readAsset).toHaveBeenCalledWith("/docs/index.html");
+      expect(event.res.headers.get("Vary")).toBe("Origin, Accept-Encoding");
+    });
+
+    it("is sent on a 304", async () => {
+      setAssets({ "/foo.css": meta, "/foo.css.gz": { ...meta, encoding: "gzip" } });
+      const event = createEvent("/foo.css");
+      event.req.headers.set("if-none-match", '"test"');
+
+      expect(await handler(event)).toBe("");
+      expect(event.res.status).toBe(304);
+      expect(event.res.headers.get("Vary")).toBe("Origin, Accept-Encoding");
+    });
+
+    it("is sent on a 206", async () => {
+      setAssets({
+        "/foo.css": { ...meta, size: 4 },
+        "/foo.css.gz": { ...meta, encoding: "gzip" },
+      });
+      readAsset.mockResolvedValue(new TextEncoder().encode("body"));
+      const event = createEvent("/foo.css");
+      event.req.headers.set("range", "bytes=0-1");
+
+      await handler(event);
+
+      expect(event.res.status).toBe(206);
+      expect(event.res.headers.get("Vary")).toBe("Origin, Accept-Encoding");
+    });
+
+    it.each(["gzip, br", "br"])(
+      "is not sent for an asset without compressed variants (Accept-Encoding: %j)",
+      async (acceptEncoding) => {
+        setAssets({ "/foo.css": meta });
+        const event = createEvent("/foo.css", acceptEncoding);
+
+        await handler(event);
+
+        expect(event.res.headers.get("Vary")).toBe("Origin");
+      }
+    );
+
+    it("is not sent for a compressed file requested by its own name", async () => {
+      setAssets({ "/foo.css": meta, "/foo.css.br": { ...meta, encoding: "br" } });
+      const event = createEvent("/foo.css.br", "br");
+
+      await handler(event);
+
+      expect(readAsset).toHaveBeenCalledWith("/foo.css.br");
+      expect(event.res.headers.get("Vary")).toBe("Origin");
+    });
+
+    it("is sent on the 404 of a compressed-only asset", async () => {
+      setAssets({ "/foo.css.br": { ...meta, encoding: "br" } });
+      const event = createEvent("/foo.css", "gzip");
+      // As staged by a CORS route rule
+      event.res.errHeaders.append("Vary", "Origin");
+      const error = catchError(() => handler(event));
+
+      expectNoStore(error);
+      const res = await toResponse(error as HTTPError, event);
+      expect(res.status).toBe(404);
+      expect(res.headers.get("Vary")).toBe("Origin, Accept-Encoding");
+    });
+
+    it("is sent on a 412", async () => {
+      setAssets({ "/foo.css": meta, "/foo.css.gz": { ...meta, encoding: "gzip" } });
+      const event = createEvent("/foo.css");
+      event.req.headers.set("if-match", '"stale"');
+      const error = catchError(() => handler(event));
+
+      expectNoStore(error, 412);
+      const res = await toResponse(error as HTTPError, event);
+      expect(res.headers.get("Vary")).toBe("Accept-Encoding");
+    });
+
+    it("is sent when a compressed-only asset falls through to the app", () => {
+      setAssets({ "/docs/index.html.br": { ...meta, encoding: "br" } });
+      isPublicAssetURL.mockReturnValue(false);
+      const event = createEvent("/docs/");
+
+      expect(handler(event)).toBeUndefined();
+      expect(readAsset).not.toHaveBeenCalled();
+      expect(event.res.headers.get("Vary")).toBe("Origin, Accept-Encoding");
+    });
   });
 
   // Both `gzip` and `q` are case-insensitive, and both have to be recognised

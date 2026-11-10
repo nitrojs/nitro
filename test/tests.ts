@@ -462,36 +462,17 @@ export function testNitro(
   });
 
   it.runIf(ctx.nitro?.options.serveStatic)("handles custom Vary header", async () => {
-    let headers = (
-      await callHandler({
-        url: "/foo.css",
-        headers: { "Accept-Encoding": "gzip" },
-      })
-    ).headers;
-    if (headers["vary"]) {
-      expect(headers["vary"].includes("Origin")).toBeTruthy();
-      expect(headers["vary"].includes("Accept-Encoding")).toBeTruthy();
-    }
-
-    headers = (
-      await callHandler({
-        url: "/foo.css",
-        headers: { "Accept-Encoding": "" },
-      })
-    ).headers;
-    if (headers["vary"]) {
-      expect(headers["vary"]).toBe("Origin");
-    }
-
-    headers = (
-      await callHandler({
-        url: "/foo.js",
-        headers: { "Accept-Encoding": "gzip" },
-      })
-    ).headers;
-    if (headers["vary"]) {
-      expect(headers["vary"].includes("Origin")).toBeTruthy();
-      expect(headers["vary"].includes("Accept-Encoding")).toBeTruthy();
+    // These assets have no compressed copies, so their response does not depend on `Accept-Encoding`
+    for (const url of ["/foo.css", "/foo.js"]) {
+      for (const acceptEncoding of ["gzip", ""]) {
+        const { headers } = await callHandler({
+          url,
+          headers: { "Accept-Encoding": acceptEncoding },
+        });
+        if (headers["vary"]) {
+          expect(headers["vary"]).toBe("Origin");
+        }
+      }
     }
   });
 
@@ -692,6 +673,19 @@ export function testNitro(
       expect(headers["content-range"]).toBeUndefined();
       expect(headers["accept-ranges"]).toBeUndefined();
     });
+
+    // Selection depends on `Accept-Encoding` whatever the request sent (RFC 9110 12.5.5)
+    it.each(["br", "gzip;q=0", ""])(
+      "varies compressed static assets on Accept-Encoding (%j)",
+      async (acceptEncoding) => {
+        const { status, headers } = await callHandler({
+          url: "/_openapi.json",
+          headers: { "Accept-Encoding": acceptEncoding },
+        });
+        expect(status).toBe(200);
+        expect(headers["vary"]).toContain("Accept-Encoding");
+      }
+    );
 
     it.runIf(ctx.nitro!.options.prerender.autoSubfolderIndex)(
       "serves a directory index for its directory path",

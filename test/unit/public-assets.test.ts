@@ -140,28 +140,29 @@ describe("virtual/public-assets node reader", () => {
 
 describe("virtual/public-assets lookup", () => {
   const asset = { type: "text/plain", etag: "", mtime: "", size: 1, path: "" };
-  const { hasAsset, resolveAsset, isPublicAssetURL, isPublicAssetBaseURL } = loadPublicAssets(
-    Object.fromEntries(
-      [
-        "/index.html",
-        "/robots.txt",
-        "/foo.css.gz",
-        "/foo.css.br",
-        "/bar.js.zst",
-        "/archive.tgz",
-        "/docs/index.html",
-        "/blog/index.html.br",
-        "/page",
-        "/page/index.html",
-        "/page/index.html.gz",
-        "/a.gz",
-        "/a.gz.br",
-        "/a b/ü.txt",
-        "/_nuxt/entry.js",
-      ].map((id) => [id, asset])
-    ),
-    { publicAssets: [{ baseURL: "/_nuxt" }] }
-  );
+  const { hasAsset, resolveAsset, hasEncodedVariants, isPublicAssetURL, isPublicAssetBaseURL } =
+    loadPublicAssets(
+      Object.fromEntries(
+        [
+          "/index.html",
+          "/robots.txt",
+          "/foo.css.gz",
+          "/foo.css.br",
+          "/bar.js.zst",
+          "/archive.tgz",
+          "/docs/index.html",
+          "/blog/index.html.br",
+          "/page",
+          "/page/index.html",
+          "/page/index.html.gz",
+          "/a.gz",
+          "/a.gz.br",
+          "/a b/ü.txt",
+          "/_nuxt/entry.js",
+        ].map((id) => [id, asset])
+      ),
+      { publicAssets: [{ baseURL: "/_nuxt" }] }
+    );
 
   it.each([
     "/index.html",
@@ -224,6 +225,26 @@ describe("virtual/public-assets lookup", () => {
     ["/bar.js", ["x-unknown", ""], undefined],
   ])("resolves %s for %j to %s", (id, encodings, expected) => {
     expect(resolveAsset(id, encodings)).toBe(expected);
+  });
+
+  it.each([
+    ["/foo.css", true],
+    ["/bar.js", true],
+    ["/blog", true],
+    ["/blog/", true],
+    ["/blog/index.html", true],
+    ["/page", true],
+    ["/a", true],
+    ["/a.gz", true],
+    ["/foo.css.br", false],
+    ["/robots.txt", false],
+    ["/", false],
+    ["/docs", false],
+    ["/archive.tgz", false],
+    ["/api/hello", false],
+    ["/_nuxt/missing.js", false],
+  ])("has encoded variants for %s: %s", (id, expected) => {
+    expect(hasEncodedVariants(id)).toBe(expected);
   });
 
   it("resolves a root that only exists compressed", () => {

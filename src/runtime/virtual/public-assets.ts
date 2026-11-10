@@ -20,5 +20,7 @@ export const getAsset: (id: string) => PublicAsset | null = () => null;
 
 export const hasAsset: (id: string) => boolean = () => false;
 
+export const hasEncodedVariants: (id: string) => boolean = () => false;
+
 export const resolveAsset: (id: string, encodings: readonly string[]) => string | undefined = () =>
   undefined;

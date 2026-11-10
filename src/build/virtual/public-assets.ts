@@ -193,6 +193,15 @@ export function hasAsset (id = '') {
   return _getServable().has(id)
 }
 
+// Flags of the compressed files, for the request id and for its \`index.html\`
+const _ENCODED = ((1 << _INDEX) - 1) & ~1
+const _ENCODED_MASK = _ENCODED | (_ENCODED << _INDEX)
+
+// Whether the response for a request id depends on its \`Accept-Encoding\`
+export function hasEncodedVariants (id = '') {
+  return !!((_getServable().get(id) || 0) & _ENCODED_MASK)
+}
+
 // Asset id for the first encoding extension (most preferred first) that has a file
 export function resolveAsset (id, encodings) {
   const flags = _getServable().get(id)

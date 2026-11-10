@@ -5,6 +5,7 @@ import { decodePath, withLeadingSlash, withoutTrailingSlash } from "ufo";
 import {
   getAsset,
   hasAsset,
+  hasEncodedVariants,
   isPublicAssetBaseURL,
   isPublicAssetURL,
   readAsset,
@@ -44,6 +45,13 @@ export default defineHandler((event) => {
   const assetId = resolveAsset(id, encodings);
   const asset = assetId ? getAsset(assetId) : undefined;
 
+  // The selection depends on `Accept-Encoding` whenever compressed files exist (RFC 9110 12.5.5)
+  const vary = hasEncodedVariants(id);
+  if (vary) {
+    event.res.headers.append("Vary", "Accept-Encoding");
+    event.res.errHeaders.append("Vary", "Accept-Encoding");
+  }
+
   if (!asset) {
     if (isPublicAssetURL(id)) {
       throw new HTTPError({ status: 404, headers: noCacheHeaders });
@@ -51,10 +59,6 @@ export default defineHandler((event) => {
     return;
   }
   id = assetId!;
-
-  if (encodings.length > 1) {
-    event.res.headers.append("Vary", "Accept-Encoding");
-  }
 
   if (asset.etag && !event.res.headers.has("ETag")) {
     event.res.headers.set("ETag", asset.etag);
