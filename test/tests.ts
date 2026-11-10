@@ -404,6 +404,12 @@ export function testNitro(
     expect((await callHandler({ url: "/literalv1" })).status).toBe(404);
   });
 
+  it("serves HTTP requests to a path shared with a `.ws` route", async () => {
+    const { status, data } = await callHandler({ url: "/ws-shared" });
+    expect(status).toBe(200);
+    expect(data).toBe("http");
+  });
+
   it("Handle 404 not found", async () => {
     const res = await callHandler({ url: "/api/not-found" });
     expect(res.status).toBe(404);

@@ -87,7 +87,7 @@ function getHandlersMeta(): {
 
     if (paths[route] === undefined) {
       paths[route] = item;
-    } else {
+    } else if (!(h.ws && paths[route][method])) {
       Object.assign(paths[route], item);
     }
   }
