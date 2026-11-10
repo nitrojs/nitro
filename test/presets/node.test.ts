@@ -82,6 +82,8 @@ describe("nitro:preset:node-server", async () => {
         { route: "/_ws", handler: resolve(presetFixturesDir, "websocket.ts") },
         { route: "/_ws-protocol", handler: resolve(presetFixturesDir, "websocket-protocol.ts") },
         { route: "/_ws-denied", handler: resolve(presetFixturesDir, "websocket-denied.ts") },
+        { route: "/_ws-flag/**", ws: true, handler: resolve(presetFixturesDir, "websocket.ts") },
+        { route: "/_ws-flag/http", handler: resolve(presetFixturesDir, "http.ts") },
       ],
     },
   });
@@ -151,6 +153,35 @@ describe("nitro:preset:node-server", async () => {
         expect(await upgradeStatus(port, "/api/hello")).toBe(200);
         expect(await upgradeStatus(port, "/_does-not-exist")).toBe(404);
         expect(await upgradeStatus(port, "/_ws-denied")).toBe(403);
+      } finally {
+        child.kill("SIGKILL");
+      }
+    },
+    40_000
+  );
+
+  it.skipIf(isBun || typeof WebSocket !== "function")(
+    "matches WebSocket routes (`.ws` and `ws: true`) for upgrade requests only",
+    async () => {
+      const port = await getRandomPort();
+      const child = execa(process.execPath, [resolve(ctx.outDir, "server/index.mjs")], {
+        env: { NITRO_PORT: String(port), NITRO_HOST: "127.0.0.1" },
+        stdio: process.env.TEST_DEBUG ? "inherit" : "ignore",
+        reject: false,
+      });
+      try {
+        await waitForServer(`http://127.0.0.1:${port}/`, child.nodeChildProcess);
+        await expect(firstMessage(`ws://127.0.0.1:${port}/ws-shared`)).resolves.toBe("ws");
+        expect(await fetch(`http://127.0.0.1:${port}/ws-shared`).then((r) => r.text())).toBe(
+          "http"
+        );
+        await expect(firstMessage(`ws://127.0.0.1:${port}/_ws-flag/x`)).resolves.toBe("ready");
+        expect((await fetch(`http://127.0.0.1:${port}/_ws-flag/x`)).status).toBe(404);
+        // A more specific method-agnostic route does not hide the WebSocket route
+        await expect(firstMessage(`ws://127.0.0.1:${port}/_ws-flag/http`)).resolves.toBe("ready");
+        expect(await fetch(`http://127.0.0.1:${port}/_ws-flag/http`).then((r) => r.text())).toBe(
+          "http"
+        );
       } finally {
         child.kill("SIGKILL");
       }
@@ -271,5 +302,25 @@ function upgradeStatus(port: number, path: string): Promise<number> {
     });
     req.on("error", reject);
     req.end();
+  });
+}
+
+// Opens a connection and resolves with the first message sent by the server.
+function firstMessage(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    const timer = setTimeout(() => {
+      ws.close();
+      reject(new Error("Timed out waiting for a WebSocket message"));
+    }, 5000);
+    ws.addEventListener("message", (event) => {
+      clearTimeout(timer);
+      resolve(String(event.data));
+      ws.close();
+    });
+    ws.addEventListener("error", () => {
+      clearTimeout(timer);
+      reject(new Error("WebSocket handshake failed"));
+    });
   });
 }

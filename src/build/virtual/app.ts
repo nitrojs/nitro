@@ -17,9 +17,11 @@ export default function app(nitro: Nitro) {
         ),
       ].sort();
       const hasMethodRoutes = routeMethods.length > 0;
+      const hasWebSocketRoutes = nitro.routing.webSocketRoutes.hasRoutes();
 
       const routingImports = [
         hasRoutes && "findRoute",
+        hasWebSocketRoutes && "findWebSocketRoute",
         hasRoutedMiddleware && "findRoutedMiddleware",
         hasGlobalMiddleware && "globalMiddleware",
       ].filter(Boolean);
@@ -157,11 +159,19 @@ export default function app(nitro: Nitro) {
       // `~findRoute` runs before dispatch on the original pathname, so route
       // rules are resolved there and `event.context.routeRules` is populated for
       // every middleware, including ones plugins unshift onto `~middleware`.
-      if (hasRoutes || hasRouteRules) {
+      if (hasRoutes || hasRouteRules || hasWebSocketRoutes) {
         code.push(`  h3App["~findRoute"] = (event) => {`);
         if (hasRouteRules) {
           code.push(
             `    event.context.routeRules = getRouteRules(event.req.method, event.url.pathname).routeRules;`
+          );
+        }
+        if (hasWebSocketRoutes) {
+          code.push(
+            `    if (event.req.headers.get("upgrade")?.toLowerCase() === "websocket") {`,
+            `      const route = findWebSocketRoute("", event.url.pathname);`,
+            `      if (route) return route;`,
+            `    }`
           );
         }
         if (hasRoutes) {

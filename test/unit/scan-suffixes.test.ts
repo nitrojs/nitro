@@ -48,6 +48,16 @@ describe("scan suffixes", () => {
     ]);
   });
 
+  it("parses the `.ws` suffix", async () => {
+    write("routes/chat.ws.ts", "routes/chat.get.ts", "routes/live.ws.dev.ts");
+    const scanned = await scanServerRoutes(nitro(), "routes");
+    expect(scanned.map((r) => [r.route, r.method, r.ws, r.env])).toEqual([
+      ["/chat", "get", undefined, undefined],
+      ["/chat", undefined, true, undefined],
+      ["/live", undefined, true, "dev"],
+    ]);
+  });
+
   it("keeps known file extensions and custom suffixes", async () => {
     write(
       "routes/sitemap.xml.ts",

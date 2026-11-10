@@ -355,6 +355,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/_ws\\/?$",
               },
               {
+                "dest": "/ws-shared",
+                "src": "^\\/ws-shared\\/?$",
+              },
+              {
                 "dest": "/wasm/static-import",
                 "src": "^\\/wasm\\/static-import\\/?$",
               },
@@ -884,6 +888,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/wait-until.func (symlink)",
             "functions/wasm/dynamic-import.func (symlink)",
             "functions/wasm/static-import.func (symlink)",
+            "functions/ws-shared.func (symlink)",
           ]
         `);
       });

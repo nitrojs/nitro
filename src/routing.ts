@@ -38,6 +38,11 @@ export function initNitroRouting(nitro: Nitro) {
     normalize: false,
   });
 
+  // Matched for WebSocket upgrade requests only, before `routes`
+  const webSocketRoutes = new Router<NitroEventHandler & { _importHash: string }>(
+    nitro.options.baseURL
+  );
+
   const globalMiddleware: (NitroEventHandler & { _importHash: string })[] = [];
 
   const routedMiddleware = new Router<NitroEventHandler & { _importHash: string }>(
@@ -84,12 +89,17 @@ export function initNitroRouting(nitro: Nitro) {
       });
     }
     routes._update(
-      _routes.map((h) => ({
-        ...h,
-        method: h.method || "",
-        data: handlerWithImportHash(h),
-      })),
+      _routes
+        .filter((h) => !h.ws)
+        .map((h) => ({
+          ...h,
+          method: h.method || "",
+          data: handlerWithImportHash(h),
+        })),
       { merge: true }
+    );
+    webSocketRoutes._update(
+      _routes.filter((h) => h.ws).map((h) => ({ ...h, method: "", data: handlerWithImportHash(h) }))
     );
 
     // Update middleware
@@ -136,6 +146,7 @@ export function initNitroRouting(nitro: Nitro) {
   nitro.routing = Object.freeze({
     sync,
     routes,
+    webSocketRoutes,
     routeRules,
     globalMiddleware,
     routedMiddleware,

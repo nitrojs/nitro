@@ -10,6 +10,7 @@ function createNitroStub(opts: {
   globalMiddleware?: boolean;
   plugins?: boolean;
   methodRoutes?: boolean;
+  webSocketRoutes?: boolean;
 }): Nitro {
   return {
     options: {
@@ -28,6 +29,7 @@ function createNitroStub(opts: {
             ]
           : [{ route: "/**", method: "" }],
       },
+      webSocketRoutes: { hasRoutes: () => !!opts.webSocketRoutes },
       routeRules: { hasRoutes: () => !!opts.routeRules },
       routedMiddleware: { hasRoutes: () => !!opts.routedMiddleware },
       globalMiddleware: opts.globalMiddleware ? [{}] : [],
@@ -139,5 +141,14 @@ describe("virtual/app template", () => {
     const withPlugins = app(createNitroStub({ plugins: true })).template();
     expect(withPlugins).toContain(`from "#nitro/runtime/async-plugins"`);
     expect(app(createNitroStub({})).template()).not.toContain("async-plugins");
+  });
+
+  it("matches WebSocket routes for upgrade requests only, when there are any", () => {
+    const withWebSocket = app(createNitroStub({ webSocketRoutes: true })).template();
+    expect(withWebSocket).toContain("findWebSocketRoute");
+    expect(withWebSocket.indexOf("findWebSocketRoute(")).toBeLessThan(
+      withWebSocket.indexOf("findRoute(event.req.method")
+    );
+    expect(app(createNitroStub({})).template()).not.toContain("findWebSocketRoute");
   });
 });
