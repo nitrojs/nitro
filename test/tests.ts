@@ -648,6 +648,40 @@ export function testNitro(
       expect(full.data).toEqual(file);
     });
 
+    it("evaluates conditional requests for static assets", async () => {
+      const url = "/build/test.txt";
+      const { headers } = await callHandler({ url });
+      const etag = headers.etag as string;
+      const lastModified = headers["last-modified"] as string;
+      const before = new Date(Date.parse(lastModified) - 1000).toUTCString();
+      const after = new Date(Date.parse(lastModified) + 1000).toUTCString();
+      const statusOf = async (headers: Record<string, string>) =>
+        (await callHandler({ url, headers })).status;
+
+      const notModified = await callHandler({ url, headers: { "If-None-Match": etag } });
+      expect(notModified.status).toBe(304);
+      expect(notModified.headers.etag).toBe(etag);
+      expect(await statusOf({ "If-None-Match": `"stale", W/${etag}` })).toBe(304);
+      expect(await statusOf({ "If-None-Match": "*" })).toBe(304);
+      expect(await statusOf({ "If-Modified-Since": lastModified })).toBe(304);
+      expect(await statusOf({ "If-Modified-Since": before })).toBe(200);
+      // `If-Modified-Since` is ignored when `If-None-Match` is present (RFC 9110 13.1.3)
+      expect(await statusOf({ "If-None-Match": '"stale"', "If-Modified-Since": after })).toBe(200);
+
+      expect(await statusOf({ "If-Match": etag })).toBe(200);
+      expect(await statusOf({ "If-Match": "*" })).toBe(200);
+      const failed = await callHandler({ url, headers: { "If-Match": '"stale"' } });
+      expect(failed.status).toBe(412);
+      expect(failed.headers["cache-control"]).toBe("no-store");
+      // `If-Match` needs a strong comparison (RFC 9110 13.1.1)
+      expect(await statusOf({ "If-Match": `W/${etag}` })).toBe(412);
+      expect(await statusOf({ "If-Unmodified-Since": lastModified })).toBe(200);
+      expect(await statusOf({ "If-Unmodified-Since": before })).toBe(412);
+      // `If-Unmodified-Since` is ignored when `If-Match` is present (RFC 9110 13.1.4)
+      expect(await statusOf({ "If-Match": etag, "If-Unmodified-Since": before })).toBe(200);
+      expect(await statusOf({ "If-Match": '"stale"', Range: "bytes=0-1" })).toBe(412);
+    });
+
     it("serves compressed static assets whole for byte range requests", async () => {
       const { status, headers } = await callHandler({
         url: "/_openapi.json",
