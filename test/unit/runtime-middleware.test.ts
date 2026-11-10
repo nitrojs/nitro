@@ -81,6 +81,47 @@ describe("runtime middleware wrappers", () => {
     expect(composeMiddleware).toHaveBeenCalledTimes(2);
   });
 
+  it("routed: sets each middleware's own route params as it runs", async () => {
+    const router = createRouter<Middleware>();
+    const seen: Record<string, unknown> = {};
+    const record =
+      (name: string): Middleware =>
+      (event, next) => {
+        seen[name] = { ...event.context.middlewareParams };
+        return next();
+      };
+    addRoute(router, "", "/:a/users", record("outer"));
+    addRoute(router, "", "/api/:a", record("inner"));
+    addRoute(router, "", "/api/users", record("static"));
+    const middleware = createRoutedMiddleware(compileRouter(router, { matchAll: true }));
+
+    await middleware(mockEvent("/api/users"), () => "handler");
+    expect(seen).toEqual({
+      outer: { a: "api" },
+      inner: { a: "users" },
+      static: { a: "users" },
+    });
+
+    // Cached chain: params come from the current request, not the first one.
+    await middleware(mockEvent("/v1/users"), () => "handler");
+    await middleware(mockEvent("/v2/users"), () => "handler");
+    expect(seen.outer).toEqual({ a: "v2" });
+  });
+
+  it("routed: leaves `middlewareParams` unset when the match has no params", async () => {
+    const router = createRouter<Middleware>();
+    let params: unknown = "unset";
+    addRoute(router, "", "/api/**", (event, next) => {
+      params = event.context.middlewareParams;
+      return next();
+    });
+    const middleware = createRoutedMiddleware(compileRouter(router, { matchAll: true }));
+    await middleware(mockEvent("/api"), () => "handler");
+    expect(params).toBeUndefined();
+    await middleware(mockEvent("/api/a/b"), () => "handler");
+    expect(params).toEqual({ 0: "a/b", _: "a/b" });
+  });
+
   it("routed: a short-circuiting routed middleware stops the chain", async () => {
     const stop: Middleware = () => "stopped";
     const middleware = createRoutedMiddleware(() => [{ data: stop }]);

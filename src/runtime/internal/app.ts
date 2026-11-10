@@ -139,7 +139,7 @@ export function createCacheRuleMiddleware(): Middleware {
  * by request pathnames.
  */
 export function createRoutedMiddleware(
-  findRoutedMiddleware: (method: string, pathname: string) => { data: Middleware }[]
+  findRoutedMiddleware: (method: string, pathname: string) => RoutedMatch[]
 ): Middleware {
   const root: RoutedChainNode = { children: new Map() };
   const middleware: Middleware = (event, next) => {
@@ -147,6 +147,7 @@ export function createRoutedMiddleware(
     if (matched.length === 0) {
       return next();
     }
+    (event as RoutedMatchesCarrier)[kRoutedMatches] = matched;
     let node = root;
     for (const { data } of matched) {
       let child = node.children.get(data);
@@ -156,7 +157,10 @@ export function createRoutedMiddleware(
       }
       node = child;
     }
-    return (node.chain ??= composeMiddleware(matched.map((r) => r.data)))(event, next as any);
+    return (node.chain ??= composeMiddleware(matched.map(withMiddlewareParams)))(
+      event,
+      next as any
+    );
   };
   return markUntraced(middleware);
 }
@@ -237,6 +241,28 @@ type RouteRuleChains = {
   rules?: ComposedMiddleware;
   cache?: Middleware;
 };
+
+type RoutedMatch = { data: Middleware; params?: Record<string, string> };
+
+const kRoutedMatches: unique symbol = /* @__PURE__ */ Symbol("nitro.routedMatches");
+
+type RoutedMatchesCarrier = { [kRoutedMatches]?: RoutedMatch[] };
+
+// Chains are shared across requests: read the params of the current match at
+// `index`, and merge them before the middleware runs (as h3's `app.use(route)`).
+function withMiddlewareParams({ data }: RoutedMatch, index: number): Middleware {
+  return (event, next) => {
+    const params = (event as RoutedMatchesCarrier)[kRoutedMatches]?.[index]?.params;
+    // rou3 returns empty params for `/**` at its base path, h3 sets none.
+    // Params are created per match: the first set is used as is, without a copy.
+    for (const _ in params) {
+      const prev = event.context.middlewareParams;
+      event.context.middlewareParams = prev ? { ...prev, ...params } : params;
+      break;
+    }
+    return data(event, next);
+  };
+}
 
 type RoutedChainNode = {
   children: Map<object, RoutedChainNode>;
