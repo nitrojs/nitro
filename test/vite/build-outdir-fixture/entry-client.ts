@@ -1,0 +1,1 @@
+document.body.textContent = "client";

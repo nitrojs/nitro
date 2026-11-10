@@ -56,6 +56,7 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
   return [
     nitroInit(ctx),
     nitroEnv(ctx),
+    nitroRootOutDir(),
     nitroServerAliases(ctx),
     nitroMain(ctx),
     nitroPrepare(ctx),
@@ -212,6 +213,33 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
     configResolved() {
       // Setup default SSR renderer after all environments are configured
       useSSRServiceRenderer(ctx.nitro!);
+    },
+  };
+}
+
+function nitroRootOutDir(): VitePlugin {
+  // From the user config: Vite resolves an explicit `dist` to the same value as its default
+  let userOutDir: string | undefined;
+  return {
+    name: "nitro:root-outdir",
+    sharedDuringBuild: true,
+    apply: "build",
+
+    config(userConfig) {
+      userOutDir = userConfig.build?.outDir;
+    },
+
+    // Plugins read the root `build.outDir` (e.g. UnoCSS), not the one of the client environment.
+    // Set after the environments are resolved, as they would inherit it from the root, and before
+    // the `configResolved` hook of plugins listed before Nitro.
+    configResolved: {
+      order: "pre",
+      handler(config) {
+        // Kept when set by the user or by a plugin (also one listed after Nitro)
+        if (!userOutDir && config.build.outDir === "dist") {
+          config.build.outDir = config.environments.client.build.outDir;
+        }
+      },
     },
   };
 }
