@@ -103,6 +103,11 @@ export default defineConfig({
       middleware: true,
     },
     {
+      route: "/api/middleware-params/:id",
+      handler: "./server/routed-middleware/params.ts",
+      middleware: true,
+    },
+    {
       route: "/api/methods/guarded",
       handler: "./server/routed-middleware/guard.ts",
       method: "GET",

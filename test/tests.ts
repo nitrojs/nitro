@@ -309,6 +309,11 @@ export function testNitro(
     expect(headers["x-test"]).toBe("test");
   });
 
+  it("routed middleware receive the matched route params", async () => {
+    const { data } = await callHandler({ url: "/api/middleware-params/123" });
+    expect(data).toEqual({ middlewareParams: { id: "123" } });
+  });
+
   it("global middleware runs before cached (`swr`) route handlers", async () => {
     const url = "/rules/swr/middleware-order";
     // miss, then hits: the middleware must run each time, and the header it
