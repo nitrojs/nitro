@@ -10,7 +10,7 @@ import { assetUrls } from "../plugins/asset-urls.ts";
 import { isNodeBuiltin } from "../plugins/builtins.ts";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
-import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
+import { getChunkName, libManualChunks } from "../chunks.ts";
 
 export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
   const base = await baseBuildConfig(nitro);
@@ -71,11 +71,7 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
       sourcemap: nitro.options.sourcemap,
       sourcemapExcludeSources: true,
       sourcemapIgnoreList: (id) => id.includes("node_modules"),
-      manualChunks(id: string) {
-        if (NODE_MODULES_RE.test(id)) {
-          return libChunkName(id);
-        }
-      },
+      manualChunks: libManualChunks,
     },
   } satisfies RollupConfig;
 

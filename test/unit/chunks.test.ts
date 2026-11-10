@@ -2,12 +2,14 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "pathe";
 import { rolldown, type OutputChunk } from "rolldown";
+import { rollup } from "rollup";
 import { describe, expect, it } from "vitest";
 import type { Nitro } from "nitro/types";
 import {
   NODE_MODULES_RE,
   libChunkName,
   libChunksGroup,
+  libManualChunks,
   pathToPkgName,
   getChunkName,
   routeToFsPath,
@@ -129,6 +131,50 @@ describe("libChunksGroup", () => {
         Object.keys((chunks.get(fileName) as OutputChunk).modules).map((id) => pathToPkgName(id))
       );
       expect(packages.filter(Boolean).sort()).toEqual([...expected].sort());
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("libManualChunks", () => {
+  it("skips modules only loaded by plugins before being externalized", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "nitro-manual-chunks-"));
+    const files = {
+      "node_modules/pkg/index.js": `export const version = 1; export { pkg } from "./pkg.js";`,
+      "node_modules/pkg/pkg.js": `export const pkg = "pkg";`,
+      "node_modules/lib/index.js": `export const lib = "lib";`,
+      "entry.mjs": `import { pkg } from "pkg"; import { lib } from "lib"; export default [pkg, lib];`,
+    };
+    try {
+      for (const [path, code] of Object.entries(files)) {
+        mkdirSync(dirname(join(dir, path)), { recursive: true });
+        writeFileSync(join(dir, path), code);
+      }
+      const bundle = await rollup({
+        input: join(dir, "entry.mjs"),
+        plugins: [
+          {
+            name: "load-then-externalize",
+            async resolveId(id) {
+              if (id === "pkg") {
+                // Like the commonjs plugin probing a module that `nitro:externals` then externalizes
+                await this.load({ id: join(dir, "node_modules/pkg/index.js") });
+                return { id, external: true };
+              }
+              if (id === "lib") {
+                return join(dir, "node_modules/lib/index.js");
+              }
+            },
+          },
+        ],
+      });
+      const { output } = await bundle.generate({
+        format: "esm",
+        chunkFileNames: "[name].mjs",
+        manualChunks: libManualChunks,
+      });
+      expect(output.map((chunk) => chunk.fileName).sort()).toEqual(["_libs/lib.mjs", "entry.js"]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
