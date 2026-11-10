@@ -136,10 +136,6 @@ async function loadPreviewDotEnv(root: string): Promise<[string, string][]> {
   return Object.entries(env).filter(([_key, val]) => val) as [string, string][];
 }
 
-/** How long `close()` waits for the preview command to stop before killing it. */
-const PREVIEW_CLOSE_TIMEOUT = 5000;
-const PREVIEW_CLOSE_POLL_INTERVAL = 50;
-
 async function runPreviewCommand(opts: {
   command: string;
   rootDir: string;
@@ -153,13 +149,13 @@ async function runPreviewCommand(opts: {
 
   const { getRandomPort, waitForPort } = await import("get-port-please");
   const randomPort = await getRandomPort();
-  // `npx` runs the command through `sh -c`, and `dash` does not forward signals to it.
-  // Start it in its own process group so the whole group can be stopped.
-  const killGroup = process.platform !== "win32";
+  // `npx` runs the command through `sh -c` and `dash` does not forward signals,
+  // so the command gets its own process group and signals go to the whole group.
+  const useGroup = process.platform !== "win32";
   const child = spawn(arg0, [...args, "--port", String(randomPort), "--host", "localhost"], {
     stdio: "inherit",
     cwd: opts.rootDir,
-    detached: killGroup,
+    detached: useGroup,
     env: {
       ...process.env,
       ...Object.fromEntries(opts.env ?? []),
@@ -167,60 +163,51 @@ async function runPreviewCommand(opts: {
     },
   });
   const exited = new Promise<void>((resolve) => child.once("exit", () => resolve()));
-
-  const killChild = (signal: NodeJS.Signals) => {
-    // the rest of the group can outlive the command itself
-    if (killGroup && child.pid) {
-      try {
-        process.kill(-child.pid, signal);
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
-          throw error;
-        }
-      }
-    } else if (child.exitCode === null && child.signalCode === null) {
-      child.kill(signal);
-    }
-  };
-
-  const isStopped = () => {
-    if (!killGroup || !child.pid) {
-      return child.exitCode !== null || child.signalCode !== null;
-    }
-    try {
-      process.kill(-child.pid, 0);
-      return false;
-    } catch (error) {
-      return (error as NodeJS.ErrnoException).code === "ESRCH";
-    }
-  };
-
-  for (const sig of ["SIGINT", "SIGHUP"] as const) {
-    process.once(sig, () => {
-      killChild(sig);
-    });
-  }
-
-  // the group no longer shares a signal sent to this process's group
-  const onSigterm = () => {
-    killChild("SIGTERM");
-    if (process.listenerCount("SIGTERM") === 0) {
-      process.kill(process.pid, "SIGTERM");
-    }
-  };
-  process.once("SIGTERM", onSigterm);
-
   child.once("exit", (code) => {
     if (code && code !== 0) {
       consola.error(`[nitro] Preview server exited with code ${code}`);
     }
   });
 
-  await waitForPort(randomPort, { retries: 20, delay: 500, host: "localhost" }).catch((error) => {
-    process.off("SIGTERM", onSigterm);
+  const killChild = (signal: NodeJS.Signals) => {
+    if (!useGroup || !child.pid) {
+      child.kill(signal);
+      return;
+    }
+    try {
+      process.kill(-child.pid, signal);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
+        throw error;
+      }
+    }
+  };
+
+  const signals = ["SIGINT", "SIGHUP", "SIGTERM"] as const;
+  const removeSignalListeners = () => signals.forEach((sig) => process.off(sig, onSignal));
+  const onSignal = (signal: NodeJS.Signals) => {
+    killChild(signal);
+    removeSignalListeners();
+    if (process.listenerCount(signal) === 0) {
+      process.kill(process.pid, signal);
+    }
+  };
+  signals.forEach((sig) => process.on(sig, onSignal));
+
+  const stop = async () => {
+    removeSignalListeners();
+    killChild("SIGTERM");
+    await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 5000).unref())]);
     killChild("SIGKILL");
-    throw error;
-  });
+    await exited;
+  };
+
+  await waitForPort(randomPort, { retries: 20, delay: 500, host: "localhost" }).catch(
+    async (error) => {
+      await stop();
+      throw error;
+    }
+  );
 
   return {
     fetch(req: ServerRequest) {
@@ -229,19 +216,7 @@ async function runPreviewCommand(opts: {
     async upgrade(req, socket, head, opts) {
       await proxyUpgrade({ port: randomPort, host: "localhost" }, req, socket, head, opts);
     },
-    async close() {
-      killChild("SIGTERM");
-      // members of the group can outlive the command itself
-      const deadline = Date.now() + PREVIEW_CLOSE_TIMEOUT;
-      while (!isStopped() && Date.now() < deadline) {
-        await new Promise((resolve) => setTimeout(resolve, PREVIEW_CLOSE_POLL_INTERVAL));
-      }
-      if (!isStopped()) {
-        killChild("SIGKILL");
-      }
-      await exited;
-      process.off("SIGTERM", onSigterm);
-    },
+    close: stop,
   };
 }
 

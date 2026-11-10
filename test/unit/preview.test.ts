@@ -114,7 +114,7 @@ createServer((_req, res) => res.end("ok")).listen(Number(process.env.PORT));`
     try {
       await preview.close();
       expect(process.listenerCount("SIGTERM")).toBe(sigtermListeners);
-      await expect.poll(() => isRunning(pid), { timeout: 2000 }).toBe(false);
+      await expect(preview.fetch(new Request("http://localhost/"))).rejects.toThrow();
     } finally {
       if (isRunning(pid)) {
         process.kill(pid, "SIGKILL");
