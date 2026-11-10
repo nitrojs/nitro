@@ -64,6 +64,17 @@ describe("nitro:preset:nitro-dev", async () => {
                     "name": "test",
                     "required": true,
                   },
+                  {
+                    "in": "query",
+                    "name": "val",
+                    "schema": {
+                      "enum": [
+                        0,
+                        1,
+                      ],
+                      "type": "integer",
+                    },
+                  },
                 ],
                 "responses": {
                   "200": {

@@ -9,7 +9,7 @@
 :read-more{title="Azure Static Web Apps" to="https://azure.microsoft.com/en-us/products/app-service/static"}
 
 ::note
-Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
+Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers).
 ::
 
 [Azure Static Web Apps](https://azure.microsoft.com/en-us/products/app-service/static) are designed to be deployed continuously in a [GitHub Actions workflow](https://docs.microsoft.com/en-us/azure/static-web-apps/github-actions-workflow). By default, Nitro will detect this deployment environment and enable the `azure` preset.

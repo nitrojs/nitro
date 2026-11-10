@@ -155,8 +155,11 @@ export async function prerender(nitro: Nitro) {
   };
 
   const canWriteToDisk = (route: PrerenderRoute) => {
-    // Cannot write routes with query or containing ..
-    if (route.route.includes("?") || route.route.includes("..")) {
+    // Cannot write routes with query or `..` segments
+    if (
+      route.route.includes("?") ||
+      route.route.split(/[/\\]/).includes("..")
+    ) {
       return false;
     }
 

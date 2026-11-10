@@ -8,6 +8,7 @@ import {
   normalizeid,
   parseNodeModulePath,
 } from "mlly";
+import { consola } from "consola";
 import { resolveModuleURL } from "exsolve";
 import { isDirectory } from "nitropack/kit";
 import type { NodeExternalsOptions } from "nitropack/types";
@@ -17,8 +18,35 @@ import { readPackageJSON, writePackageJSON } from "pkg-types";
 import type { Plugin } from "rollup";
 import semver from "semver";
 
+const URI_SCHEME_RE = /^[a-z0-9]{2,}:/;
+
+export type TracedFile = {
+  path: string;
+  subpath: string;
+  parents: string[];
+  /** File is a trace entry (directly imported by the bundle or traceInclude) */
+  initial?: boolean;
+
+  pkgPath: string;
+  pkgName: string;
+  pkgVersion: string;
+};
+
+export type TracedPackage = {
+  name: string;
+  versions: Record<
+    string,
+    {
+      pkgJSON: PackageJson;
+      path: string;
+      files: string[];
+    }
+  >;
+};
+
 export function externals(opts: NodeExternalsOptions): Plugin {
   const trackedExternals = new Set<string>();
+  const resolveCache = new Map<string, string | undefined>();
 
   const tryResolve = (
     id: string,
@@ -26,6 +54,11 @@ export function externals(opts: NodeExternalsOptions): Plugin {
   ): string | undefined => {
     if (id.startsWith("\0")) {
       return id;
+    }
+    const fromDir = importer && isAbsolute(importer) ? dirname(importer) : "";
+    const cacheKey = `${id}\0${fromDir}`;
+    if (resolveCache.has(cacheKey)) {
+      return resolveCache.get(cacheKey);
     }
     const res = resolveModuleURL(id, {
       try: true,
@@ -37,7 +70,11 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       suffixes: ["", "/index"],
       extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
     });
-    return res?.startsWith("file://") ? fileURLToPath(res) : res;
+    const resolved = res?.startsWith("file://")
+      ? normalize(fileURLToPath(res))
+      : res;
+    resolveCache.set(cacheKey, resolved);
+    return resolved;
   };
 
   // Normalize options
@@ -80,6 +117,17 @@ export function externals(opts: NodeExternalsOptions): Plugin {
 
       // Skip relative paths
       if (originalId.startsWith(".")) {
+        return null;
+      }
+
+      // `file:` ids (e.g. `#build` on Windows) still need resolving
+      if (URI_SCHEME_RE.test(originalId) && !originalId.startsWith("file:")) {
+        if (
+          originalId.startsWith("node:") &&
+          !isExplicitInline(originalId, importer)
+        ) {
+          return { id: originalId, external: true };
+        }
         return null;
       }
 
@@ -156,6 +204,23 @@ export function externals(opts: NodeExternalsOptions): Plugin {
           // Reverse engineer subpath export
           const guessedSubpath: string | null | undefined =
             await lookupNodeModuleSubpath(id).catch(() => null);
+          // The "." export is the package itself: `join(pkgName, "./")` would give
+          // `pkgName/`, which is an invalid trailing slash pattern (DEP0155).
+          // Only use the bare name when it resolves within the same package copy
+          // and `id` is a "." target under the export conditions used at runtime.
+          if (
+            guessedSubpath === "./" &&
+            packageEntry &&
+            parseNodeModulePath(packageEntry).dir ===
+              parseNodeModulePath(id).dir &&
+            (await isRootExport(id, opts.exportConditions || []))
+          ) {
+            trackedExternals.add(packageEntry);
+            return {
+              id: pkgName,
+              external: true,
+            };
+          }
           const resolvedGuess =
             guessedSubpath &&
             tryResolve(join(pkgName, guessedSubpath), importer);
@@ -200,15 +265,6 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       });
 
       // Resolve traced files
-      type TracedFile = {
-        path: string;
-        subpath: string;
-        parents: string[];
-
-        pkgPath: string;
-        pkgName: string;
-        pkgVersion: string;
-      };
       const _resolveTracedPath = (p: string) =>
         fsp.realpath(resolve(opts.traceOptions?.base || ".", p));
       const tracedFiles: Record<string, TracedFile> = Object.fromEntries(
@@ -239,6 +295,7 @@ export function externals(opts: NodeExternalsOptions): Plugin {
             const tracedFile = <TracedFile>{
               path,
               parents,
+              initial: reasons.type.includes("initial"),
 
               subpath,
               pkgName,
@@ -250,17 +307,6 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       );
 
       // Resolve traced packages
-      type TracedPackage = {
-        name: string;
-        versions: Record<
-          string,
-          {
-            pkgJSON: PackageJson;
-            path: string;
-            files: string[];
-          }
-        >;
-      };
       const tracedPackages: Record<string, TracedPackage> = {};
       for (const tracedFile of Object.values(tracedFiles)) {
         // Use `node_modules/{name}` in path as name to support aliases
@@ -371,34 +417,12 @@ export function externals(opts: NodeExternalsOptions): Plugin {
           });
       };
 
-      // Utility to find package parents
-      const findPackageParents = (pkg: TracedPackage, version: string) => {
-        // Try to find parent packages
-        const versionFiles: TracedFile[] = pkg.versions[version].files.map(
-          (path) => tracedFiles[path]
-        );
-        const parentPkgs = [
-          ...new Set(
-            versionFiles.flatMap((file) =>
-              file.parents
-                .map((parentPath) => {
-                  const parentFile = tracedFiles[parentPath];
-                  if (parentFile.pkgName === pkg.name) {
-                    return null;
-                  }
-                  return `${parentFile.pkgName}@${parentFile.pkgVersion}`;
-                })
-                .filter(Boolean)
-            ) as string[]
-          ),
-        ];
-        return parentPkgs;
-      };
-
       // Analyze dependency tree
       const multiVersionPkgs: Record<string, { [version: string]: string[] }> =
         {};
       const singleVersionPackages: string[] = [];
+      // `name@version` of packages with parents that are not traced packages
+      const pkgsWithMissingParents = new Set<string>();
       for (const tracedPackage of Object.values(tracedPackages)) {
         const versions = Object.keys(tracedPackage.versions);
         if (versions.length === 1) {
@@ -409,7 +433,14 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         for (const version of versions) {
           multiVersionPkgs[tracedPackage.name][version] = findPackageParents(
             tracedPackage,
-            version
+            version,
+            tracedFiles,
+            (parentPath, file) => {
+              pkgsWithMissingParents.add(`${tracedPackage.name}@${version}`);
+              consola.debug(
+                `[nitro] [externals] Traced parent \`${parentPath}\` of \`${file.path}\` is not a traced package file. Skipping.`
+              );
+            }
           );
         }
       }
@@ -425,18 +456,30 @@ export function externals(opts: NodeExternalsOptions): Plugin {
 
       // Write packages with multiple versions
       for (const [pkgName, pkgVersions] of Object.entries(multiVersionPkgs)) {
-        const versionEntries = Object.entries(pkgVersions).sort(
-          ([v1, p1], [v2, p2]) => {
-            // 1. Package with no parent packages to be hoisted
-            if (p1.length === 0) {
-              return -1;
-            }
-            if (p2.length === 0) {
-              return 1;
-            }
-            // 2. Newest version to be hoisted
-            return compareVersions(v1, v2);
+        const isBundleImport = (version: string) =>
+          tracedPackages[pkgName].versions[version].files.some(
+            (file) => tracedFiles[file]?.initial
+          );
+        // Hoisting priority: 0 = no parent packages, 1 = has parent packages,
+        // 2 = only untraced parents (their code is not copied to the output)
+        // and not directly imported by the bundle
+        const hoistRank = (version: string, parents: string[]) => {
+          if (parents.length > 0) {
+            return 1;
           }
+          if (!pkgsWithMissingParents.has(`${pkgName}@${version}`)) {
+            return 0;
+          }
+          return isBundleImport(version) ? 0 : 2;
+        };
+        const versionEntries = Object.entries(pkgVersions).sort(
+          ([v1, p1], [v2, p2]) =>
+            // 1. Version imported by the bundle to be hoisted
+            Number(isBundleImport(v2)) - Number(isBundleImport(v1)) ||
+            // 2. Package with no parent packages to be hoisted
+            hoistRank(v1, p1) - hoistRank(v2, p2) ||
+            // 3. Newest version to be hoisted
+            compareVersions(v1, v2)
         );
         for (const [version, parentPkgs] of versionEntries) {
           // Write each version into node_modules/.nitro/{name}@{version}
@@ -491,6 +534,42 @@ function compareVersions(v1 = "0.0.0", v2 = "0.0.0") {
   }
 }
 
+export function findPackageParents(
+  pkg: TracedPackage,
+  version: string,
+  tracedFiles: Record<string, TracedFile>,
+  onMissingParent?: (parentPath: string, file: TracedFile) => void
+): string[] {
+  const versionObj = pkg.versions[version];
+  if (!versionObj || !versionObj.files) {
+    return [];
+  }
+  // Try to find parent packages
+  const versionFiles: TracedFile[] = versionObj.files
+    .map((path) => tracedFiles[path])
+    .filter(Boolean);
+  const parentPkgs = [
+    ...new Set(
+      versionFiles.flatMap((file) =>
+        (file.parents || [])
+          .map((parentPath) => {
+            const parentFile = tracedFiles[parentPath];
+            if (!parentFile?.pkgName) {
+              onMissingParent?.(parentPath, file);
+              return null;
+            }
+            if (parentFile.pkgName === pkg.name) {
+              return null;
+            }
+            return `${parentFile.pkgName}@${parentFile.pkgVersion}`;
+          })
+          .filter(Boolean)
+      ) as string[]
+    ),
+  ];
+  return parentPkgs;
+}
+
 export function applyProductionCondition(exports: PackageJson["exports"]) {
   if (
     !exports ||
@@ -509,6 +588,38 @@ export function applyProductionCondition(exports: PackageJson["exports"]) {
   for (const key in exports) {
     applyProductionCondition(exports[key as keyof typeof exports]);
   }
+}
+
+// Check if `path` is a target of the package "." export under `conditions`
+async function isRootExport(path: string, conditions: string[]) {
+  const { dir, name, subpath } = parseNodeModulePath(path);
+  if (!dir || !name || !subpath) {
+    return false;
+  }
+  const { exports } =
+    (await readPackageJSON(join(dir, name)).catch(() => undefined)) || {};
+  if (!exports || Array.isArray(exports)) {
+    return false;
+  }
+  const hasSubpaths =
+    typeof exports === "object" &&
+    Object.keys(exports).some((k) => k.startsWith("."));
+  const matches = (value: unknown): boolean => {
+    if (typeof value === "string") {
+      return value === subpath;
+    }
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return false;
+    }
+    return Object.entries(value).some(
+      ([condition, target]) =>
+        (condition === "default" || conditions.includes(condition)) &&
+        matches(target)
+    );
+  };
+  return matches(
+    hasSubpaths ? (exports as Record<string, unknown>)["."] : exports
+  );
 }
 
 async function isFile(file: string) {
@@ -543,7 +654,8 @@ export function normalizeMatcher(input: string | RegExp | Matcher): Matcher {
 
   if (typeof input === "string") {
     const pattern = normalize(input);
-    const matcher = ((id: string) => {
+    const matcher = ((_id: string) => {
+      const id = _id.replace(/\\/g, "/");
       const idWithoutNodeModules = id.split("node_modules/").pop();
       return (
         id.startsWith(pattern) || idWithoutNodeModules?.startsWith(pattern)

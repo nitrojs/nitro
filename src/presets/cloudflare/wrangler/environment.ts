@@ -1134,12 +1134,32 @@ export interface Observability {
   enabled?: boolean;
   /** The sampling rate */
   head_sampling_rate?: number;
+  /** Whether query strings are removed from request URLs in logs and traces */
+  redact_query_string?: boolean;
+  /** Real-time Issues settings for this Worker */
+  issues?: {
+    /** Whether real-time Issues are enabled */
+    enabled?: boolean;
+  };
   logs?: {
     enabled?: boolean;
     /** The sampling rate */
     head_sampling_rate?: number;
     /** Set to false to disable invocation logs */
     invocation_logs?: boolean;
+    /** If logs should be persisted to the Cloudflare observability platform where they can be queried in the dashboard */
+    persist?: boolean;
+    /** What destinations logs emitted from the Worker should be sent to */
+    destinations?: string[];
+  };
+  traces?: {
+    enabled?: boolean;
+    /** The sampling rate */
+    head_sampling_rate?: number;
+    /** If traces should be persisted to the Cloudflare observability platform where they can be queried in the dashboard */
+    persist?: boolean;
+    /** What destinations traces emitted from the Worker should be sent to */
+    destinations?: string[];
   };
 }
 

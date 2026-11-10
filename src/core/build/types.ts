@@ -50,10 +50,9 @@ export async function writeTypes(nitro: Nitro) {
 
     const allImports = await nitro.unimport.getImports();
 
-    autoImportExports = toExports(allImports).replace(
-      /#internal\/nitro/g,
-      relative(typesDir, runtimeDir)
-    );
+    autoImportExports = toExports(allImports, undefined, false, {
+      declaration: true,
+    }).replace(/#internal\/nitro/g, relative(typesDir, runtimeDir));
 
     const resolvedImportPathMap = new Map<string, string>();
 
@@ -213,7 +212,7 @@ declare module "nitropack/types" {
     const tsConfig: TSConfig = defu(nitro.options.typescript.tsConfig, {
       compilerOptions: {
         forceConsistentCasingInFileNames: true,
-        strict: nitro.options.typescript.strict,
+        strict: nitro.options.typescript.strict ?? false,
         noEmit: true,
         skipLibCheck: true,
         target: "ESNext",

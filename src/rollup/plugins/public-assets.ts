@@ -106,7 +106,11 @@ import { resolve, dirname } from 'pathe'
 import assets from '#nitro-internal-virtual/public-assets-data'
 export function readAsset (id) {
   const serverDir = dirname(fileURLToPath(import.meta.url))
-  return fsp.readFile(resolve(serverDir, assets[id].path))
+  // Public dirs might be pruned after the build (uploaded to a CDN, sourcemaps
+  // stripped), so a manifest entry with no file behind it reads as absent, not broken.
+  return fsp.readFile(resolve(serverDir, assets[id].path)).catch((error) => {
+    if (error?.code !== 'ENOENT') { throw error }
+  })
 }`;
       },
       // #nitro-internal-virtual/public-assets-deno

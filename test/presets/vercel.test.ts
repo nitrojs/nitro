@@ -1,8 +1,15 @@
 import { promises as fsp } from "node:fs";
-import { resolve, join, basename } from "pathe";
+import { fileURLToPath } from "node:url";
+import { resolve, join, basename, normalize } from "pathe";
 import { joinURL } from "ufo";
 import { describe, expect, it, afterAll } from "vitest";
-import { setupTest, startServer, testNitro, fixtureDir } from "../tests";
+import {
+  setupTest,
+  startServer,
+  testNitro,
+  fixtureDir,
+  getPresetTmpDir,
+} from "../tests";
 
 describe("nitro:preset:vercel", async () => {
   const TEST_HASH_SALT = "initial";
@@ -13,7 +20,24 @@ describe("nitro:preset:vercel", async () => {
   const prevHashSalt = process.env.VERCEL_HASH_SALT;
   process.env.VERCEL_HASH_SALT = TEST_HASH_SALT;
 
-  const ctx = await setupTest("vercel");
+  const ctx = await setupTest("vercel", {
+    config: {
+      handlers: [
+        {
+          route: "/slash",
+          // Handler paths are embedded as-is in the generated imports, so
+          // Windows backslashes must be normalized
+          handler: normalize(
+            fileURLToPath(new URL("fixtures/slash.ts", import.meta.url))
+          ),
+        },
+      ],
+      prerender: {
+        // trailing slash on purpose (#4392)
+        routes: ["/slash/"],
+      },
+    },
+  });
 
   if (prevHashSalt === undefined) {
     delete process.env.VERCEL_HASH_SALT;
@@ -21,6 +45,10 @@ describe("nitro:preset:vercel", async () => {
     process.env.VERCEL_HASH_SALT = prevHashSalt;
   }
 
+  // Read now: the other vercel groups below build into the same output dir
+  const ownBuildConfig = JSON.parse(
+    await fsp.readFile(resolve(ctx.outDir, "config.json"), "utf8")
+  );
   testNitro(
     ctx,
     async () => {
@@ -34,75 +62,124 @@ describe("nitro:preset:vercel", async () => {
       };
     },
     () => {
+      it("should not emit trailing-slash override paths (#4392)", () => {
+        expect(
+          ctx.nitro!._prerenderedRoutes!.find((r) => r.route === "/slash/")
+            ?.fileName
+        ).toBe("/slash/index.html");
+        // Vercel serves `slash/index.html` at `/slash` via its directory index
+        expect(ownBuildConfig.overrides).not.toHaveProperty("slash/index.html");
+        for (const { path } of Object.values<{ path?: string }>(
+          ownBuildConfig.overrides
+        )) {
+          expect(path ?? "").not.toMatch(/^\/|\/$/);
+        }
+      });
+
       it("should add route rules to config", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "config.json"), "utf8")
           .then((r) => JSON.parse(r));
         expect(config).toMatchInlineSnapshot(`
           {
+            "framework": {
+              "name": "nitro",
+              "version": "2.x",
+            },
             "overrides": {
-              "_scalar/index.html": {
-                "path": "_scalar",
+              "api/hello": {
+                "contentType": "application/json",
               },
-              "_swagger/index.html": {
-                "path": "_swagger",
+              "api/param/hidden": {
+                "contentType": "text/plain; charset=utf-16",
               },
-              "api/hey/index.html": {
-                "path": "api/hey",
+              "api/param/prerender1": {
+                "contentType": "text/plain; charset=utf-16",
               },
-              "prerender/index.html": {
-                "path": "prerender",
+              "api/param/prerender3": {
+                "contentType": "text/plain; charset=utf-16",
+              },
+              "api/param/prerender4": {
+                "contentType": "text/plain; charset=utf-16",
+              },
+              "json-string": {
+                "contentType": "text/html",
               },
             },
             "routes": [
               {
+                "continue": true,
                 "headers": {
-                  "Location": "https://nitro.build/",
+                  "x-test": "test",
                 },
-                "src": "/rules/redirect/obj",
-                "status": 308,
+                "src": "^(?:/(.*))?$",
               },
               {
+                "continue": true,
                 "headers": {
-                  "Location": "https://nitro.build/$1",
+                  "cache-control": "public, max-age=3600, immutable",
+                  "x-build-header": "works",
                 },
-                "src": "/rules/redirect/wildcard/(.*)",
-                "status": 307,
+                "src": "^/build(?:/(.*))?$",
               },
               {
-                "headers": {
-                  "Location": "/$1",
-                },
-                "src": "/rules/redirect/legacy/(.*)",
-                "status": 307,
-              },
-              {
-                "headers": {
-                  "Location": "/other",
-                },
-                "src": "/rules/nested/override",
-                "status": 307,
-              },
-              {
-                "headers": {
-                  "cache-control": "s-maxage=60",
-                },
-                "src": "/rules/headers",
-              },
-              {
+                "continue": true,
                 "headers": {
                   "access-control-allow-headers": "*",
                   "access-control-allow-methods": "GET",
                   "access-control-allow-origin": "*",
                   "access-control-max-age": "0",
                 },
-                "src": "/rules/cors",
+                "src": "^/rules/cors/?$",
+              },
+              {
+                "continue": true,
+                "headers": {
+                  "cache-control": "s-maxage=60",
+                },
+                "src": "^/rules/headers/?$",
+              },
+              {
+                "headers": {
+                  "Location": "https://nitro.build/",
+                },
+                "src": "^/rules/redirect/obj/?$",
+                "status": 308,
+              },
+              {
+                "headers": {
+                  "Location": "https://nitro.build/$1",
+                },
+                "src": "^/rules/redirect/wildcard/(.+)$",
+                "status": 307,
+              },
+              {
+                "dest": "/__fallback",
+                "src": "^/rules/redirect/wildcard/?$",
+              },
+              {
+                "headers": {
+                  "Location": "/$1",
+                },
+                "src": "^/rules/redirect/legacy/(.+)$",
+                "status": 307,
+              },
+              {
+                "dest": "/__fallback",
+                "src": "^/rules/redirect/legacy/?$",
+              },
+              {
+                "headers": {
+                  "Location": "/other",
+                },
+                "src": "^/rules/nested/override/?$",
+                "status": 307,
               },
               {
                 "headers": {
                   "Location": "/base",
                 },
-                "src": "/rules/redirect",
+                "src": "^/rules/redirect/?$",
                 "status": 307,
               },
               {
@@ -110,67 +187,54 @@ describe("nitro:preset:vercel", async () => {
                   "Location": "/base",
                   "x-test": "test",
                 },
-                "src": "/rules/nested/(.*)",
+                "src": "^/rules/nested(?:/(.*))?$",
                 "status": 307,
-              },
-              {
-                "headers": {
-                  "cache-control": "public, max-age=3600, immutable",
-                  "x-build-header": "works",
-                },
-                "src": "/build/(.*)",
-              },
-              {
-                "headers": {
-                  "x-test": "test",
-                },
-                "src": "/(.*)",
               },
               {
                 "continue": true,
                 "headers": {
                   "cache-control": "public,max-age=31536000,immutable",
                 },
-                "src": "/build(.*)",
+                "src": "^/build/(.*)$",
               },
               {
                 "handle": "filesystem",
               },
               {
                 "dest": "/rules/_/noncached/cached-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/_/noncached/cached)",
+                "src": "^(?<__isr_route>/rules/_/noncached/cached/?)$",
               },
               {
                 "dest": "/__fallback",
-                "src": "(?<__isr_route>/rules/_/cached/noncached)",
+                "src": "^(?<__isr_route>/rules/_/cached/noncached/?)$",
               },
               {
                 "dest": "/__fallback",
-                "src": "(?<__isr_route>/rules/_/noncached/(?:.*))",
+                "src": "^(?<__isr_route>/rules/_/noncached(?:/(.*))?)$",
               },
               {
                 "dest": "/rules/_/cached/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/_/cached/(?:.*))",
+                "src": "^(?<__isr_route>/rules/_/cached(?:/(.*))?)$",
               },
               {
                 "dest": "/__fallback",
-                "src": "(?<__isr_route>/rules/dynamic)",
+                "src": "^(?<__isr_route>/rules/dynamic/?)$",
               },
               {
                 "dest": "/rules/isr/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/isr/(?:.*))",
+                "src": "^(?<__isr_route>/rules/isr(?:/(.*))?)$",
               },
               {
                 "dest": "/rules/isr-ttl/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/isr-ttl/(?:.*))",
+                "src": "^(?<__isr_route>/rules/isr-ttl(?:/(.*))?)$",
               },
               {
                 "dest": "/rules/swr/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/swr/(?:.*))",
+                "src": "^(?<__isr_route>/rules/swr(?:/(.*))?)$",
               },
               {
                 "dest": "/rules/swr-ttl/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/swr-ttl/(?:.*))",
+                "src": "^(?<__isr_route>/rules/swr-ttl(?:/(.*))?)$",
               },
               {
                 "dest": "/wasm/static-import",
@@ -365,6 +429,22 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/api/cached",
               },
               {
+                "dest": "/api/cache/vary",
+                "src": "/api/cache/vary",
+              },
+              {
+                "dest": "/api/cache/no-store",
+                "src": "/api/cache/no-store",
+              },
+              {
+                "dest": "/api/cache/method",
+                "src": "/api/cache/method",
+              },
+              {
+                "dest": "/api/cache/cookie",
+                "src": "/api/cache/cookie",
+              },
+              {
                 "dest": "/500",
                 "src": "/500",
               },
@@ -462,6 +542,21 @@ describe("nitro:preset:vercel", async () => {
         expect(manifest.hashes).toBeTypeOf("object");
       });
 
+      it("should order header-only rules from least to most specific", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        const headerRoutes = config.routes
+          .filter(
+            (route: { continue?: boolean; status?: number }) =>
+              route.continue && !route.status
+          )
+          .map((route: { src: string }) => route.src);
+        expect(headerRoutes.indexOf("^(?:/(.*))?$")).toBeLessThan(
+          headerRoutes.indexOf("^/rules/headers/?$")
+        );
+      });
+
       it("should generate prerender config", async () => {
         const isrRouteConfig = await fsp.readFile(
           resolve(
@@ -473,6 +568,92 @@ describe("nitro:preset:vercel", async () => {
         expect(JSON.parse(isrRouteConfig)).toMatchObject({
           expiration: false,
           allowQuery: ["q", "__isr_route"],
+        });
+      });
+
+      describe("ISR URL restoration", () => {
+        const fetchISR = (url: string, xNowRouteMatches?: string) =>
+          ctx
+            .fetch(url, {
+              headers: xNowRouteMatches
+                ? { "x-now-route-matches": xNowRouteMatches }
+                : {},
+            })
+            .then((res) => res.text());
+
+        it("restores the original URL from x-now-route-matches", async () => {
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo",
+              "__isr_route=%2Frules%2Fisr%2Ffoo"
+            )
+          ).toBe("/rules/isr/foo");
+        });
+
+        it("restores the original URL from the query when there is no header", async () => {
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo&q=1"
+            )
+          ).toBe("/rules/isr/foo?q=1");
+        });
+
+        // https://github.com/nitrojs/nitro/issues/4408
+        it("keeps allowQuery params when x-now-route-matches is present", async () => {
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo&q=1",
+              "__isr_route=%2Frules%2Fisr%2Ffoo"
+            )
+          ).toBe("/rules/isr/foo?q=1");
+        });
+
+        it("does not leak route capture groups from x-now-route-matches", async () => {
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo&q=1",
+              "0=%2Frules%2Fisr%2Ffoo&slug=foo&__isr_route=%2Frules%2Fisr%2Ffoo&q=1"
+            )
+          ).toBe("/rules/isr/foo?q=1");
+        });
+
+        it("keeps repeated query params", async () => {
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo&q=a&q=b",
+              "__isr_route=%2Frules%2Fisr%2Ffoo"
+            )
+          ).toBe("/rules/isr/foo?q=a&q=b");
+        });
+
+        // https://github.com/nitrojs/nitro/issues/4446
+        it("falls back to the query when x-now-route-matches lacks the route param", async () => {
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo",
+              "0=%2Frules%2Fisr%2Ffoo"
+            )
+          ).toBe("/rules/isr/foo");
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo&q=1",
+              "0=%2Frules%2Fisr%2Ffoo"
+            )
+          ).toBe("/rules/isr/foo?q=1");
+        });
+
+        it("decodes the route param exactly once", async () => {
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2F100%25off",
+              "__isr_route=%2Frules%2Fisr%2F100%25off"
+            )
+          ).toBe("/rules/isr/100%off");
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Fa%252520b"
+            )
+          ).toBe("/rules/isr/a%2520b");
         });
       });
 
@@ -512,6 +693,10 @@ describe("nitro:preset:vercel", async () => {
             "functions/__fallback.func/node_modules",
             "functions/__fallback.func/package.json",
             "functions/__fallback.func/timing.js",
+            "functions/api/cache/cookie.func (symlink)",
+            "functions/api/cache/method.func (symlink)",
+            "functions/api/cache/no-store.func (symlink)",
+            "functions/api/cache/vary.func (symlink)",
             "functions/api/cached.func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func (symlink)",
@@ -623,6 +808,191 @@ describe("nitro:preset:vercel:bun", async () => {
         "supportsResponseStreaming": true,
       }
     `);
+  });
+});
+
+describe("nitro:preset:vercel:node-runtime", async () => {
+  const ctx = await setupTest("vercel", {
+    config: {
+      preset: "vercel",
+      vercel: {
+        functions: {
+          runtime: "nodejs26.x",
+        },
+      },
+    },
+  });
+  // Read now: the other vercel groups build into the same output dir
+  const config = await fsp
+    .readFile(
+      resolve(ctx.outDir, "functions/__fallback.func/.vc-config.json"),
+      "utf8"
+    )
+    .then((r) => JSON.parse(r));
+
+  it("should keep an explicit nodejs26.x runtime", () => {
+    expect(config.runtime).toBe("nodejs26.x");
+  });
+});
+
+describe("nitro:preset:vercel:skew-protection", async () => {
+  const prevDeploymentId = process.env.VERCEL_DEPLOYMENT_ID;
+  process.env.VERCEL_DEPLOYMENT_ID = "dpl_test";
+  const ctx = await setupTest("vercel", {
+    config: {
+      preset: "vercel",
+      vercel: {
+        skewProtection: true,
+      },
+    },
+  }).finally(() => {
+    if (prevDeploymentId === undefined) {
+      delete process.env.VERCEL_DEPLOYMENT_ID;
+    } else {
+      process.env.VERCEL_DEPLOYMENT_ID = prevDeploymentId;
+    }
+  });
+  // Read output now, later describe blocks rebuild into the same directory
+  const config = await fsp
+    .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+    .then((r) => JSON.parse(r));
+
+  it("should set skew protection cookie with SameSite=Lax", () => {
+    const skewRoute = config.routes.find((route: any) =>
+      route.headers?.["Set-Cookie"]?.startsWith("__vdpl=")
+    );
+    expect(skewRoute).toMatchObject({
+      src: "/.*",
+      has: [{ type: "header", key: "Sec-Fetch-Dest", value: "document" }],
+      continue: true,
+    });
+    expect(skewRoute.headers["Set-Cookie"]).toBe(
+      "__vdpl=dpl_test; Path=/; SameSite=Lax; Secure; HttpOnly"
+    );
+  });
+});
+
+describe("nitro:preset:vercel:base-url", async () => {
+  // Own output dir, as later describe blocks rebuild into the shared one
+  const outDir = resolve(getPresetTmpDir("vercel-base-url"), ".output");
+  const ctx = await setupTest("vercel", {
+    config: {
+      preset: "vercel",
+      baseURL: "/base/",
+      output: { dir: outDir },
+      routeRules: {
+        "/old/**": { redirect: "/x" },
+        "/old/special/**": { redirect: "/q?p=/**" },
+        "/old/wild/**": { redirect: "/dest/**" },
+      },
+    },
+  });
+  const config = JSON.parse(
+    await fsp.readFile(resolve(outDir, "config.json"), "utf8")
+  );
+  const handle = await import(
+    resolve(outDir, "functions/__fallback.func/index.mjs")
+  ).then((r) => r.default || r);
+  await startServer(ctx, handle);
+
+  it("prefixes route rule sources with the baseURL", () => {
+    const sources = config.routes.map((route: { src?: string }) => route.src);
+    expect(sources).toEqual(
+      expect.arrayContaining([
+        "^/base/rules/headers/?$",
+        "^/base/rules/redirect/wildcard/(.+)$",
+        "^(?<__isr_route>/base/rules/isr(?:/(.*))?)$",
+        "^/base/build/(.*)$",
+      ])
+    );
+  });
+
+  it("keeps redirects left to the function from being shadowed", () => {
+    const routes: Array<Record<string, any>> = config.routes.slice(
+      0,
+      config.routes.findIndex((route: any) => route.handle === "filesystem")
+    );
+    // First matching route that stops routing, as on Vercel
+    const firstMatch = (path: string) => {
+      const route = routes.find(
+        (route) => !route.continue && new RegExp(route.src).test(path)
+      );
+      return route?.dest || route?.headers?.Location;
+    };
+    expect(firstMatch("/base/old/a")).toBe("/x");
+    expect(firstMatch("/base/old/special/a")).toBe("/__fallback");
+    expect(firstMatch("/base/old/wild")).toBe("/__fallback");
+    expect(firstMatch("/base/old/wild/")).toBe("/__fallback");
+    expect(firstMatch("/base/old/wild/a/b")).toBe("/dest/$1");
+  });
+
+  it("restores the ISR URL under the baseURL", async () => {
+    const res = await ctx.fetch(
+      "/rules/isr/foo-isr?__isr_route=%2Fbase%2Frules%2Fisr%2Ffoo",
+      {
+        headers: {
+          "x-now-route-matches": "__isr_route=%2Fbase%2Frules%2Fisr%2Ffoo",
+        },
+      }
+    );
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("/rules/isr/foo");
+  });
+});
+
+describe("nitro:preset:vercel:isr-pass-query", async () => {
+  const ctx = await setupTest("vercel", {
+    config: {
+      preset: "vercel",
+      routeRules: {
+        "/isr-pass/allow/**": { isr: { allowQuery: ["lang"] } },
+        "/isr-pass/explicit-false/**": {
+          isr: { allowQuery: ["lang"], passQuery: false },
+        },
+        "/isr-pass/empty/**": { isr: { allowQuery: [] } },
+        "/isr-pass/no-allow/**": { isr: { expiration: 60 } },
+        "/isr-pass/true": { isr: true },
+      },
+    },
+  });
+  // Read output now, later describe blocks rebuild into the same directory
+  const readPrerenderConfig = (name: string) =>
+    fsp
+      .readFile(
+        resolve(ctx.outDir, `functions/isr-pass/${name}.prerender-config.json`),
+        "utf8"
+      )
+      .then((r) => JSON.parse(r));
+  const configs = {
+    allow: await readPrerenderConfig("allow/[...]-isr"),
+    explicitFalse: await readPrerenderConfig("explicit-false/[...]-isr"),
+    empty: await readPrerenderConfig("empty/[...]-isr"),
+    noAllow: await readPrerenderConfig("no-allow/[...]-isr"),
+    true: await readPrerenderConfig("true-isr"),
+  };
+
+  it("enables passQuery when allowQuery is set", () => {
+    expect(configs.allow).toEqual({
+      expiration: false,
+      allowQuery: ["lang", "__isr_route"],
+      passQuery: true,
+    });
+  });
+
+  it("respects an explicit passQuery: false", () => {
+    expect(configs.explicitFalse).toMatchObject({
+      allowQuery: ["lang", "__isr_route"],
+      passQuery: false,
+    });
+  });
+
+  it("does not enable passQuery without allowQuery params", () => {
+    expect(configs.empty).toEqual({
+      expiration: false,
+      allowQuery: ["__isr_route"],
+    });
+    expect(configs.noAllow).toEqual({ expiration: 60 });
+    expect(configs.true).toEqual({ expiration: false });
   });
 });
 
