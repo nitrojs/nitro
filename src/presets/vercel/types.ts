@@ -135,9 +135,12 @@ export interface VercelOptions {
    * Immutable assets are served from the reserved `/_vercel/immutable/` base
    * (without the deployment-scoped `?dpl` query), so they can be shared across
    * deployments to improve cross-deployment caching. Nitro also writes an
-   * `immutable.json` manifest mapping each file to its full content hash.
+   * `immutable.json` manifest listing each emitted immutable file.
    *
-   * Can also be enabled with the `VERCEL_IMMUTABLE_STATIC_FILES_ENABLED` environment variable.
+   * Opt in by setting this to `true` or the `NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED`
+   * environment variable. When building on Vercel, immutable output is only
+   * produced if the deployment supports it (`VERCEL_IMMUTABLE_STATIC_FILES_ENABLED`);
+   * otherwise it is skipped with a warning.
    *
    * @default false
    */

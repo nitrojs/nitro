@@ -2,6 +2,7 @@ import { globby } from "globby";
 import { writeFile } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import { resolve } from "pathe";
+import { provider } from "std-env";
 import { joinURL, withLeadingSlash } from "ufo";
 
 // Immutable Static Files
@@ -14,14 +15,59 @@ import { joinURL, withLeadingSlash } from "ufo";
 // Newer deployments must never overwrite an existing file with different content, so the file names embed a content hash.
 //
 // Alongside `.vercel/output/static`, we emit a `.vercel/output/immutable.json`
-// manifest mapping each immutable static file to its full content hash (the file
-// name may only contain a truncated hash).
+// manifest mapping each immutable static file URL to its full content hash. The
+// spec allows using the file path itself as the "full content hash" when the
+// name already carries enough entropy, which is what we do. Client builds that
+// apply `buildAssetsDir` should embed a long enough content hash (e.g. 16 chars)
+// in emitted file names.
 
 const IMMUTABLE_MANIFEST = "immutable.json";
 
 interface ImmutableManifest {
   version: 1;
   hashes: Record<string, string>;
+}
+
+// Opt-in guard for immutable static files, run from `build:before`.
+//
+// Immutable static files are opt-in via `vercel.immutableStaticFiles` (defaulting
+// to the `NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED` env var). When running on
+// Vercel, the platform advertises support through `VERCEL_IMMUTABLE_STATIC_FILES_ENABLED`.
+// If the feature is enabled but the current deployment does not support it, or the
+// app is served from a non-root `baseURL`, an immutable deploy would fail or silently
+// not apply, so we disable it and warn instead of producing broken output.
+export function setupImmutableStaticFiles(nitro: Nitro) {
+  if (!nitro.options.vercel?.immutableStaticFiles) {
+    return;
+  }
+
+  if (
+    provider === "vercel" &&
+    !process.env.VERCEL_IMMUTABLE_STATIC_FILES_ENABLED
+  ) {
+    nitro.options.vercel.immutableStaticFiles = false;
+    nitro.logger
+      .withTag("vercel")
+      .warn(
+        "Immutable static files are enabled but not supported by the current Vercel deployment (`VERCEL_IMMUTABLE_STATIC_FILES_ENABLED` is not set). Skipping immutable static files output."
+      );
+    return;
+  }
+
+  // `publicDir` is nested under `baseURL`, so a non-root base would emit assets
+  // to `/<base>/_vercel/immutable/...` instead of the reserved `/_vercel/immutable/`
+  // namespace. Vercel would not treat those as immutable, so opt out instead.
+  if (nitro.options.baseURL !== "/") {
+    nitro.options.vercel.immutableStaticFiles = false;
+    nitro.logger
+      .withTag("vercel")
+      .warn(
+        `Immutable static files are not supported with a non-root \`baseURL\` (\`${nitro.options.baseURL}\`), since they must be served from the reserved \`/_vercel/immutable/\` path. Skipping immutable static files output.`
+      );
+    return;
+  }
+
+  nitro.options.buildAssetsDir = immutableDir(nitro);
 }
 
 export async function generateImmutableManifest(nitro: Nitro) {
@@ -53,11 +99,17 @@ export async function generateImmutableManifest(nitro: Nitro) {
     JSON.stringify(manifest, null, 2)
   );
 
-  nitro.logger
-    .withTag("vercel")
-    .info(
-      `Generated immutable manifest (${Object.keys(manifest.hashes).length} files).`
+  const logger = nitro.logger.withTag("vercel");
+  if (files.length === 0) {
+    // Emitting no immutable files almost always means the client build did not
+    // pick up `buildAssetsDir` (frameworks must wire it up themselves). Warn
+    // instead of silently writing an empty manifest.
+    logger.warn(
+      `Immutable static files are enabled but no assets were emitted under \`${nitro.options.buildAssetsDir}\`. Make sure your client build uses \`nitro.options.buildAssetsDir\` as its assets directory.`
     );
+  } else {
+    logger.info(`Generated immutable manifest (${files.length} files).`);
+  }
 }
 
 // Reserved Vercel namespace under which immutable static files are served.
@@ -65,9 +117,22 @@ export async function generateImmutableManifest(nitro: Nitro) {
 // and referenced here. The path is namespaced by an optional hash salt and the
 // framework name to avoid cross-framework collisions.
 export function immutableDir(nitro: Nitro) {
-  return joinURL(
-    "_vercel/immutable",
-    process.env.VERCEL_HASH_SALT || "",
-    nitro.options.framework.name || ""
+  return normalizeBuildAssetsDir(
+    joinURL(
+      "_vercel/immutable",
+      process.env.VERCEL_HASH_SALT || "",
+      nitro.options.framework.name || ""
+    )
   );
+}
+
+// Normalize a build assets directory into a bare relative path, stripping
+// leading, trailing and duplicate slashes as well as `.` / `..` segments (a
+// hand-set `VERCEL_HASH_SALT` must not escape the reserved namespace).
+// Mirrors the same normalization applied to user config in `resolveURLOptions`.
+function normalizeBuildAssetsDir(dir: string): string {
+  return dir
+    .split("/")
+    .filter((segment) => segment && segment !== "." && segment !== "..")
+    .join("/");
 }
