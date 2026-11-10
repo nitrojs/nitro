@@ -17,6 +17,7 @@ vi.mock("#nitro/virtual/public-assets", () => ({
       [i, `${i}.gz`, `${i}.br`, `${i}.zst`].some((j) => getAsset(j))
     ),
   isPublicAssetURL,
+  isPublicAssetBaseURL: (id: string) => isPublicAssetURL(id),
   readAsset,
 }));
 

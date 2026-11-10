@@ -55,9 +55,13 @@ function loadPublicAssets(
   const body = template()
     .replace(/^\s*(import|export \{).*$/gm, "")
     .replace(/^export /gm, "");
-  return new Function("assets", `${body}\nreturn { hasAsset, isPublicAssetURL };`)(assets) as {
+  return new Function(
+    "assets",
+    `${body}\nreturn { hasAsset, isPublicAssetURL, isPublicAssetBaseURL };`
+  )(assets) as {
     hasAsset: (id: string) => boolean;
     isPublicAssetURL: (id: string) => boolean;
+    isPublicAssetBaseURL: (id: string) => boolean;
   };
 }
 
@@ -157,7 +161,7 @@ describe("virtual/public-assets node reader", () => {
 
 describe("virtual/public-assets lookup", () => {
   const asset = { type: "text/plain", etag: "", mtime: "", size: 1, path: "" };
-  const { hasAsset, isPublicAssetURL } = loadPublicAssets(
+  const { hasAsset, isPublicAssetURL, isPublicAssetBaseURL } = loadPublicAssets(
     Object.fromEntries(
       [
         "/index.html",
@@ -205,6 +209,7 @@ describe("virtual/public-assets lookup", () => {
     "/docs/index",
     "/a%20b/%C3%BC.txt",
     "/_nuxt/missing.js",
+    "",
   ])("does not have %s", (id) => {
     expect(hasAsset(id)).toBe(false);
   });
@@ -213,6 +218,13 @@ describe("virtual/public-assets lookup", () => {
     expect(isPublicAssetURL("/_nuxt/missing.js")).toBe(true);
     expect(isPublicAssetURL("/robots.txt")).toBe(true);
     expect(isPublicAssetURL("/api/hello")).toBe(false);
+  });
+
+  it("matches only public asset bases with isPublicAssetBaseURL", () => {
+    expect(isPublicAssetBaseURL("/_nuxt/missing.js")).toBe(true);
+    expect(isPublicAssetBaseURL("/_nuxt/entry.js")).toBe(true);
+    expect(isPublicAssetBaseURL("/robots.txt")).toBe(false);
+    expect(isPublicAssetBaseURL("/api/hello")).toBe(false);
   });
 });
 
