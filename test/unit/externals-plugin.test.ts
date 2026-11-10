@@ -1,8 +1,34 @@
-import { describe, expect, it } from "vitest";
+import { pathToFileURL } from "node:url";
+import { describe, expect, it, vi } from "vitest";
 import { externals } from "../../src/build/plugins/externals.ts";
+import { builtins, isNodeBuiltin } from "../../src/build/plugins/builtins.ts";
 
-describe("nitro:externals plugin", () => {
-  it("does not force node: prefix for runtime-augmented modules like ws under bun (#4999)", async () => {
+// Bun lists its own modules as builtins, and `isBuiltin()` is true for them with a `node:` prefix
+vi.mock("node:module", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("node:module")>();
+  const bunBuiltins = ["bun", "undici", "ws"];
+  return {
+    ...mod,
+    builtinModules: [...mod.builtinModules, ...bunBuiltins, "bun:sqlite"],
+    isBuiltin: (id: string) =>
+      mod.isBuiltin(id) || id.startsWith("bun:") || bunBuiltins.includes(id.replace(/^node:/, "")),
+  };
+});
+
+describe("runtime builtins (#4999)", () => {
+  it("are not node builtins", () => {
+    expect(
+      ["fs", "node:fs", "fs/promises", "bun:sqlite"].filter((id) => isNodeBuiltin(id))
+    ).toEqual(["fs", "node:fs", "fs/promises", "bun:sqlite"]);
+    expect(["bun", "undici", "ws"].filter((id) => isNodeBuiltin(id))).toEqual([]);
+  });
+
+  it("are externalized without `node:` prefix, except npm packages", () => {
+    expect(builtins).toEqual(expect.arrayContaining(["fs", "node:fs", "bun", "bun:sqlite"]));
+    expect(builtins.filter((id) => /^(node:)?(undici|ws)$|^node:bun$/.test(id))).toEqual([]);
+  });
+
+  it("are resolved by the externals plugin", async () => {
     const plugin = externals({
       rootDir: process.cwd(),
       conditions: ["default"],
@@ -10,34 +36,22 @@ describe("nitro:externals plugin", () => {
       include: [],
       trace: false,
     });
-
-    const resolveId = plugin.resolveId as {
-      handler: (id: string, importer: string | undefined, rOpts: any) => Promise<any>;
+    const { handler } = plugin.resolveId as {
+      handler: (id: string, importer: string | undefined, opts: any) => Promise<any>;
     };
+    const context = { resolve: async (id: string) => ({ id: `/resolved/${id}` }) };
 
-    let resolvedCall: string | undefined;
-    const context = {
-      resolve: async (id: string) => {
-        resolvedCall = id;
-        return { id: `/resolved/${id}` };
-      },
-    };
-
-    // Node core builtin gets normalized to node: prefix
-    const fsRes = await resolveId.handler.call(context, "fs", undefined, {});
-    expect(fsRes).toEqual({
+    expect(await handler.call(context, "fs", undefined, {})).toEqual({
       resolvedBy: "nitro:externals",
       external: true,
       id: "node:fs",
     });
-
-    // Runtime-augmented modules (ws, undici, bun) must not get node: prefix
-    for (const mod of ["ws", "undici", "bun"]) {
-      resolvedCall = undefined;
-      const res = await resolveId.handler.call(context, mod, undefined, {});
-      // Instead of short-circuiting to node:mod, it delegates to regular resolution
-      expect(res?.id).not.toBe(`node:${mod}`);
-      expect(resolvedCall).toBe(mod);
+    for (const id of ["ws", "undici", "bun"]) {
+      expect(await handler.call(context, id, undefined, {})).toEqual({
+        resolvedBy: "nitro:externals",
+        external: true,
+        id: pathToFileURL(`/resolved/${id}`).href,
+      });
     }
   });
 });

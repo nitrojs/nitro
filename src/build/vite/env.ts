@@ -9,6 +9,7 @@ import { runtimeDependencies, runtimeDir } from "#nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { isAbsolute } from "pathe";
 import { resolveRunnerDeps } from "../../dev/runner-deps.ts";
+import { builtins } from "../plugins/builtins.ts";
 import { OPTIONAL_RUNTIME_DEPS_RE } from "../plugins/runtime-deps.ts";
 import { tsconfigPathsNoExternal } from "../plugins/tsconfig-paths.ts";
 import { shutdownRunner } from "../../dev/shutdown.ts";
@@ -44,6 +45,8 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
         : true, // production build is standalone
       conditions: _envConditions(ctx),
       externalConditions: _externalConditions(ctx),
+      // Vite's default list is the runtime one (with Bun, it includes `ws` and `undici`)
+      builtins: [...builtins, /^node:/, /^bun:/],
     },
     define: {
       // Workaround for tanstack-start (devtools)

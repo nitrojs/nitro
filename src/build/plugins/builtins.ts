@@ -1,12 +1,22 @@
 import type { RolldownPlugin } from "rolldown";
-import { builtinModules } from "node:module";
+import { builtinModules, isBuiltin } from "node:module";
 import type { BuildEnv } from "../env.ts";
 import { escapeRegExp } from "../../utils/regex.ts";
 
+// Bun lists its own modules as builtins, none of them with a `node:` id. `ws` and `undici` are npm
+// packages, bundled like with Node, so the output does not depend on the runtime running the build.
+const RUNTIME_BUILTINS = new Set(["bun", "undici", "ws"]);
+const NPM_BUILTINS = new Set(["undici", "ws"]);
+
 // Some builtins are only listed with a prefix (e.g. `node:sqlite`, or `bun:sqlite` with Bun)
-export const builtins: string[] = builtinModules.flatMap((m) =>
-  m.includes(":") ? [m] : [m, `node:${m}`]
-);
+export const builtins: string[] = builtinModules
+  .filter((m) => !NPM_BUILTINS.has(m))
+  .flatMap((m) => (m.includes(":") || RUNTIME_BUILTINS.has(m) ? [m] : [m, `node:${m}`]));
+
+/** Whether `id` is a builtin module, excluding the ones only added by the runtime (e.g. `ws` with Bun). */
+export function isNodeBuiltin(id: string): boolean {
+  return isBuiltin(id) && !RUNTIME_BUILTINS.has(id);
+}
 
 const REQUIRE_PREFIX = "\0nitro-require-builtin:";
 

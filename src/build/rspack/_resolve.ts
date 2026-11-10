@@ -1,10 +1,10 @@
 import type { Compiler, ExternalItemFunctionData } from "@rspack/core";
-import { builtinModules } from "node:module";
 import { normalize as nativeNormalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname, isAbsolute } from "pathe";
 import type { PluginHost } from "./_host.ts";
 import type { VirtualPlaceholders } from "./_virtual.ts";
+import { isNodeBuiltin } from "../plugins/builtins.ts";
 
 /** Import kind (Rolldown's `kind` resolve option): `require()` resolves with `require` conditions. */
 export type ImportKind = "import-statement" | "require-call";
@@ -183,5 +183,5 @@ export class ModuleResolver {
 }
 
 function isBareBuiltin(id: string) {
-  return !id.startsWith("node:") && builtinModules.includes(id);
+  return !id.startsWith("node:") && isNodeBuiltin(id);
 }

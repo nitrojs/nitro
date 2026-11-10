@@ -1,10 +1,10 @@
 import type { BunLoader as Loader } from "./_types.ts";
 import type { Plugin } from "rollup";
 import { readFile } from "node:fs/promises";
-import { isBuiltin } from "node:module";
 import { resolveModulePath } from "exsolve";
 import { isAbsolute, join, resolve } from "pathe";
 import { importOXC, type OXC } from "../../utils/oxc.ts";
+import { isNodeBuiltin } from "../plugins/builtins.ts";
 import { pluginContext } from "./_context.ts";
 import { rewriteExternalStarExports, type ExportNames } from "./_reexports.ts";
 import {
@@ -160,7 +160,7 @@ export class PluginContainer {
     importer: string | undefined,
     opts: { kind?: string } = {}
   ): ResolvedModule | undefined {
-    if (isBuiltin(id)) {
+    if (isNodeBuiltin(id)) {
       return { id: id.includes(":") ? id : `node:${id}`, external: true };
     }
     const path = importer && cleanId(importer);

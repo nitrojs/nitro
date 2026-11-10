@@ -1,7 +1,7 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import { writeFile } from "../_utils/fs.ts";
 import { resolve } from "pathe";
-import { builtinModules } from "node:module";
+import { isNodeBuiltin } from "../../build/plugins/builtins.ts";
 
 const denoServer = defineNitroPreset(
   {
@@ -12,8 +12,7 @@ const denoServer = defineNitroPreset(
       preview: "deno -A ./server/index.mjs",
     },
     rollupConfig: {
-      external: (id) =>
-        id.startsWith("https://") || id.startsWith("node:") || builtinModules.includes(id),
+      external: (id) => id.startsWith("https://") || id.startsWith("node:") || isNodeBuiltin(id),
       output: {
         hoistTransitiveImports: false,
       },
