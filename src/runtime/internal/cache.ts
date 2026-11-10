@@ -33,6 +33,11 @@ function defaultCacheOptions() {
 
 type ResolvedCacheEntry<T> = CacheEntry<T> & { value: T };
 
+type InternalCacheOptions<T> = CacheOptions<T> & {
+  /** @internal */
+  _removeStaleOnInvalid?: (entry: CacheEntry<T>) => boolean;
+};
+
 export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
   fn: (...args: ArgsT) => T | Promise<T>,
   opts: CacheOptions<T, ArgsT> = {}
@@ -133,6 +138,20 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
           if (event?.waitUntil) {
             event.waitUntil(promise);
           }
+        } else if (
+          (opts as InternalCacheOptions<T>)._removeStaleOnInvalid?.(entry)
+        ) {
+          // Fresh result must not be cached: drop any previously stored entry
+          // so that it is not served (stale) anymore.
+          const promise = useStorage()
+            .removeItem(cacheKey)
+            .catch((error) => {
+              console.error(`[cache] Cache remove error.`, error);
+              useNitroApp().captureError(error, { event, tags: ["cache"] });
+            });
+          if (event?.waitUntil) {
+            event.waitUntil(promise);
+          }
         }
       }
     };
@@ -228,13 +247,15 @@ export function defineCachedEventHandler<
     .map((h) => h.toLowerCase())
     .sort();
 
-  const _opts: CacheOptions<ResponseCacheEntry<Response>> = {
+  const _opts: InternalCacheOptions<ResponseCacheEntry<Response>> = {
     ...opts,
     getKey: async (event: H3Event) => {
+      // HEAD responses are stored separately from GET (GET keys stay unchanged)
+      const _methodSuffix = event.method === "HEAD" ? ":HEAD" : "";
       // Custom user-defined key
       const customKey = await opts.getKey?.(event);
       if (customKey) {
-        return escapeKey(customKey);
+        return escapeKey(customKey) + _methodSuffix;
       }
       // Auto-generated key
       const _path =
@@ -251,7 +272,7 @@ export function defineCachedEventHandler<
       const _headers = variableHeaderNames
         .map((header) => [header, event.node.req.headers[header]])
         .map(([name, value]) => `${escapeKey(name as string)}.${hash(value)}`);
-      return [_hashedPath, ..._headers].join(":");
+      return [_hashedPath, ..._headers].join(":") + _methodSuffix;
     },
     validate: (entry) => {
       if (!entry.value) {
@@ -270,156 +291,190 @@ export function defineCachedEventHandler<
       ) {
         return false;
       }
+      // Never store responses that are user-specific or opted out of caching
+      if (!isCacheableResponse(entry.value.headers, variableHeaderNames)) {
+        return false;
+      }
       return true;
     },
+    _removeStaleOnInvalid: (entry) =>
+      !!entry.value &&
+      !isCacheableResponse(entry.value.headers, variableHeaderNames),
     group: opts.group || "nitro/handlers",
     integrity: opts.integrity || hash([handler, opts]),
   };
 
+  const _resolveResponse = async (
+    incomingEvent: H3Event
+  ): Promise<ResponseCacheEntry<Response>> => {
+    // Only pass headers which are defined in opts.varies
+    const variableHeaders: Record<string, string | string[]> = {};
+    for (const header of variableHeaderNames) {
+      const value = incomingEvent.node.req.headers[header];
+      if (value !== undefined) {
+        variableHeaders[header] = value;
+      }
+    }
+
+    // Create proxies to avoid sharing state with user request
+    const reqProxy = cloneWithProxy(incomingEvent.node.req, {
+      headers: variableHeaders,
+    });
+    const resHeaders: Record<string, number | string | string[]> = {};
+    let _resSendBody;
+    const resProxy = cloneWithProxy(incomingEvent.node.res, {
+      statusCode: 200,
+      writableEnded: false,
+      writableFinished: false,
+      headersSent: false,
+      closed: false,
+      getHeader(name) {
+        return resHeaders[name];
+      },
+      setHeader(name, value) {
+        resHeaders[name] = value as any;
+        return this as typeof incomingEvent.node.res;
+      },
+      getHeaderNames() {
+        return Object.keys(resHeaders);
+      },
+      hasHeader(name) {
+        return name in resHeaders;
+      },
+      removeHeader(name) {
+        delete resHeaders[name];
+      },
+      appendHeader(name, value) {
+        const values = [resHeaders[name], value]
+          .flat()
+          .filter((v) => v !== undefined)
+          .map(String);
+        resHeaders[name] = values.length === 1 ? values[0] : values;
+        return this as typeof incomingEvent.node.res;
+      },
+      getHeaders() {
+        return resHeaders;
+      },
+      end(chunk, arg2?, arg3?) {
+        if (typeof chunk === "string") {
+          _resSendBody = chunk;
+        }
+        if (typeof arg2 === "function") {
+          arg2();
+        }
+        if (typeof arg3 === "function") {
+          arg3();
+        }
+        return this as typeof incomingEvent.node.res;
+      },
+      write(chunk, arg2?, arg3?) {
+        if (typeof chunk === "string") {
+          _resSendBody = chunk;
+        }
+        if (typeof arg2 === "function") {
+          arg2(undefined);
+        }
+        if (typeof arg3 === "function") {
+          arg3();
+        }
+        return true;
+      },
+      writeHead(statusCode, headers) {
+        this.statusCode = statusCode;
+        if (headers) {
+          if (Array.isArray(headers) || typeof headers === "string") {
+            throw new TypeError("Raw headers  is not supported.");
+          }
+          for (const header in headers) {
+            const value = headers[header];
+            if (value !== undefined) {
+              (this as typeof incomingEvent.node.res).setHeader(header, value);
+            }
+          }
+        }
+        return this as typeof incomingEvent.node.res;
+      },
+    });
+
+    // Call handler
+    const event = createEvent(reqProxy, resProxy);
+    event._path = incomingEvent._path;
+    // Assign bound fetch to context
+    event.fetch = (url, fetchOptions) =>
+      fetchWithEvent(event, url, fetchOptions, {
+        fetch: useNitroApp().localFetch as any,
+      });
+    event.$fetch = (url, fetchOptions) =>
+      fetchWithEvent(event, url, fetchOptions as RequestInit, {
+        fetch: globalThis.$fetch as any,
+      });
+    event.waitUntil = incomingEvent.waitUntil;
+    event.context = incomingEvent.context;
+    event.context.cache = {
+      options: _opts,
+    };
+    const body = (await handler(event)) || _resSendBody;
+
+    // Collect cacheable headers
+    const headers = event.node.res.getHeaders();
+    headers.etag = String(headers.Etag || headers.etag || `W/"${hash(body)}"`);
+    headers["last-modified"] = String(
+      headers["Last-Modified"] ||
+        headers["last-modified"] ||
+        new Date().toUTCString()
+    );
+    const cacheControl = [];
+    if (!isCacheableResponse(headers, variableHeaderNames)) {
+      // Response will not be stored: keep the handler's own `cache-control`
+    } else if (opts.swr) {
+      if (opts.maxAge) {
+        cacheControl.push(`s-maxage=${opts.maxAge}`);
+      }
+      if (opts.staleMaxAge) {
+        cacheControl.push(`stale-while-revalidate=${opts.staleMaxAge}`);
+      } else {
+        cacheControl.push("stale-while-revalidate");
+      }
+    } else if (opts.maxAge) {
+      cacheControl.push(`max-age=${opts.maxAge}`);
+    }
+    if (cacheControl.length > 0) {
+      headers["cache-control"] = cacheControl.join(", ");
+    }
+
+    // Create cache entry for response
+    const cacheEntry: ResponseCacheEntry<Response> = {
+      code: event.node.res.statusCode,
+      headers,
+      body,
+    };
+
+    // Remember which request produced this entry so that per-user headers
+    // (`set-cookie`) are only sent back to that request and never to other
+    // requests sharing the same (pending or stored) entry.
+    // Non-cacheable entries are never stored and are re-resolved for
+    // concurrent requests that did not produce them.
+    responseOrigins.set(cacheEntry, incomingEvent);
+
+    return cacheEntry;
+  };
+
   const _cachedHandler = cachedFunction<ResponseCacheEntry<Response>>(
-    async (incomingEvent: H3Event) => {
-      // Only pass headers which are defined in opts.varies
-      const variableHeaders: Record<string, string | string[]> = {};
-      for (const header of variableHeaderNames) {
-        const value = incomingEvent.node.req.headers[header];
-        if (value !== undefined) {
-          variableHeaders[header] = value;
-        }
-      }
-
-      // Create proxies to avoid sharing state with user request
-      const reqProxy = cloneWithProxy(incomingEvent.node.req, {
-        headers: variableHeaders,
-      });
-      const resHeaders: Record<string, number | string | string[]> = {};
-      let _resSendBody;
-      const resProxy = cloneWithProxy(incomingEvent.node.res, {
-        statusCode: 200,
-        writableEnded: false,
-        writableFinished: false,
-        headersSent: false,
-        closed: false,
-        getHeader(name) {
-          return resHeaders[name];
-        },
-        setHeader(name, value) {
-          resHeaders[name] = value as any;
-          return this as typeof incomingEvent.node.res;
-        },
-        getHeaderNames() {
-          return Object.keys(resHeaders);
-        },
-        hasHeader(name) {
-          return name in resHeaders;
-        },
-        removeHeader(name) {
-          delete resHeaders[name];
-        },
-        getHeaders() {
-          return resHeaders;
-        },
-        end(chunk, arg2?, arg3?) {
-          if (typeof chunk === "string") {
-            _resSendBody = chunk;
-          }
-          if (typeof arg2 === "function") {
-            arg2();
-          }
-          if (typeof arg3 === "function") {
-            arg3();
-          }
-          return this as typeof incomingEvent.node.res;
-        },
-        write(chunk, arg2?, arg3?) {
-          if (typeof chunk === "string") {
-            _resSendBody = chunk;
-          }
-          if (typeof arg2 === "function") {
-            arg2(undefined);
-          }
-          if (typeof arg3 === "function") {
-            arg3();
-          }
-          return true;
-        },
-        writeHead(statusCode, headers) {
-          this.statusCode = statusCode;
-          if (headers) {
-            if (Array.isArray(headers) || typeof headers === "string") {
-              throw new TypeError("Raw headers  is not supported.");
-            }
-            for (const header in headers) {
-              const value = headers[header];
-              if (value !== undefined) {
-                (this as typeof incomingEvent.node.res).setHeader(
-                  header,
-                  value
-                );
-              }
-            }
-          }
-          return this as typeof incomingEvent.node.res;
-        },
-      });
-
-      // Call handler
-      const event = createEvent(reqProxy, resProxy);
-      // Assign bound fetch to context
-      event.fetch = (url, fetchOptions) =>
-        fetchWithEvent(event, url, fetchOptions, {
-          fetch: useNitroApp().localFetch as any,
-        });
-      event.$fetch = (url, fetchOptions) =>
-        fetchWithEvent(event, url, fetchOptions as RequestInit, {
-          fetch: globalThis.$fetch as any,
-        });
-      event.waitUntil = incomingEvent.waitUntil;
-      event.context = incomingEvent.context;
-      event.context.cache = {
-        options: _opts,
-      };
-      const body = (await handler(event)) || _resSendBody;
-
-      // Collect cacheable headers
-      const headers = event.node.res.getHeaders();
-      headers.etag = String(
-        headers.Etag || headers.etag || `W/"${hash(body)}"`
-      );
-      headers["last-modified"] = String(
-        headers["Last-Modified"] ||
-          headers["last-modified"] ||
-          new Date().toUTCString()
-      );
-      const cacheControl = [];
-      if (opts.swr) {
-        if (opts.maxAge) {
-          cacheControl.push(`s-maxage=${opts.maxAge}`);
-        }
-        if (opts.staleMaxAge) {
-          cacheControl.push(`stale-while-revalidate=${opts.staleMaxAge}`);
-        } else {
-          cacheControl.push("stale-while-revalidate");
-        }
-      } else if (opts.maxAge) {
-        cacheControl.push(`max-age=${opts.maxAge}`);
-      }
-      if (cacheControl.length > 0) {
-        headers["cache-control"] = cacheControl.join(", ");
-      }
-
-      // Create cache entry for response
-      const cacheEntry: ResponseCacheEntry<Response> = {
-        code: event.node.res.statusCode,
-        headers,
-        body,
-      };
-
-      return cacheEntry;
-    },
+    // Anonymous wrapper keeps the default cache name (`fn.name` fallback) unchanged
+    (event) => _resolveResponse(event),
     _opts
   );
 
   return defineEventHandler<Request, any>(async (event) => {
+    // Only GET and HEAD requests are cached. Other methods and range requests
+    // are always handled directly.
+    if (
+      (event.method !== "GET" && event.method !== "HEAD") ||
+      event.node.req.headers.range !== undefined
+    ) {
+      return handler(event);
+    }
+
     // Headers-only mode
     if (opts.headersOnly) {
       // TODO: Send SWR too
@@ -430,17 +485,32 @@ export function defineCachedEventHandler<
     }
 
     // Call with cache
-    const response = (await _cachedHandler(
+    let response = (await _cachedHandler(
       event
     )) as ResponseCacheEntry<Response>;
+
+    // Non-cacheable responses (user-specific or opted out of caching) must
+    // never be shared. If this request received one produced for another
+    // (concurrent) request, resolve its own response instead.
+    let isCacheable = isCacheableResponse(
+      response.headers,
+      variableHeaderNames
+    );
+    if (!isCacheable && responseOrigins.get(response) !== event) {
+      response = await _resolveResponse(event);
+      isCacheable = isCacheableResponse(response.headers, variableHeaderNames);
+    }
 
     // Don't continue if response is already handled by user
     if (event.node.res.headersSent || event.node.res.writableEnded) {
       return response.body;
     }
 
+    const isOrigin = responseOrigins.get(response) === event;
+
     // Check for cache headers
     if (
+      isCacheable &&
       handleCacheHeaders(event, {
         modifiedTime: new Date(response.headers["last-modified"] as string),
         etag: response.headers.etag as string,
@@ -454,12 +524,15 @@ export function defineCachedEventHandler<
     event.node.res.statusCode = response.code;
     for (const name in response.headers) {
       const value = response.headers[name];
-      if (name === "set-cookie") {
-        // TODO: Show warning and remove this header in the next major version of Nitro
-        event.node.res.appendHeader(
-          name,
-          splitCookiesString(value as string[])
-        );
+      if (name.toLowerCase() === "set-cookie") {
+        // Cookies are only sent to the request that produced the response
+        // (responses setting cookies are never stored in the cache)
+        if (isOrigin && value !== undefined) {
+          event.node.res.appendHeader(
+            name,
+            splitCookiesString(value as string | string[])
+          );
+        }
       } else {
         if (value !== undefined) {
           event.node.res.setHeader(name, value);
@@ -470,6 +543,59 @@ export function defineCachedEventHandler<
     // Send body
     return response.body;
   });
+}
+
+const responseOrigins = new WeakMap<ResponseCacheEntry, H3Event>();
+
+function getHeaderValue(
+  headers: ResponseCacheEntry["headers"],
+  name: string
+): string | undefined {
+  const values: string[] = [];
+  for (const key in headers) {
+    if (key.toLowerCase() === name) {
+      const value = headers[key];
+      if (value !== undefined) {
+        values.push(Array.isArray(value) ? value.join(", ") : String(value));
+      }
+    }
+  }
+  return values.length > 0 ? values.join(", ") : undefined;
+}
+
+// `accept-encoding` is ignored since content encoding is applied after the handler
+const VARY_IGNORED_HEADERS = new Set(["accept-encoding"]);
+
+function isCacheableResponse(
+  headers: ResponseCacheEntry["headers"],
+  variableHeaderNames: string[]
+): boolean {
+  // Responses setting cookies are user-specific
+  if (getHeaderValue(headers, "set-cookie") !== undefined) {
+    return false;
+  }
+  // Respect explicit opt-out from shared caching
+  const cacheControl = getHeaderValue(headers, "cache-control");
+  if (
+    cacheControl &&
+    /(?:^|[\s,])(?:private|no-store|no-cache)(?:$|[\s,=])/i.test(cacheControl)
+  ) {
+    return false;
+  }
+  // Response varies on request headers that are not part of the cache key
+  const vary = getHeaderValue(headers, "vary");
+  if (vary) {
+    for (const _name of vary.split(",")) {
+      const name = _name.trim().toLowerCase();
+      if (!name || VARY_IGNORED_HEADERS.has(name)) {
+        continue;
+      }
+      if (name === "*" || !variableHeaderNames.includes(name)) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 function cloneWithProxy<T extends object = any>(

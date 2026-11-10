@@ -6,6 +6,7 @@ import { trapUnhandledNodeErrors } from "nitropack/runtime/internal";
 import { startScheduleRunner } from "nitropack/runtime/internal";
 import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
 import { Server } from "node:http";
+import type { Duplex } from "node:stream";
 import { join } from "node:path";
 import nodeCrypto from "node:crypto";
 import { parentPort, threadId } from "node:worker_threads";
@@ -39,6 +40,7 @@ const nitroApp = useNitroApp();
 
 const server = new Server(toNodeListener(nitroApp.h3App));
 let listener: Server | undefined;
+const upgradedSockets = new Set<Duplex>();
 
 listen()
   .catch(() => listen(true /* use random port */))
@@ -51,7 +53,11 @@ listen()
 // https://crossws.unjs.io/adapters/node
 if (import.meta._websocket) {
   const { handleUpgrade } = wsAdapter(nitroApp.h3App.websocket);
-  server.on("upgrade", handleUpgrade);
+  server.on("upgrade", (req, socket, head) => {
+    upgradedSockets.add(socket);
+    socket.once("close", () => upgradedSockets.delete(socket));
+    return handleUpgrade(req, socket, head);
+  });
 }
 
 // Register tasks handlers
@@ -136,6 +142,9 @@ function getSocketAddress() {
 
 async function shutdown() {
   server.closeAllConnections?.();
+  for (const socket of upgradedSockets) {
+    socket.destroy();
+  }
   await Promise.all([
     new Promise((resolve) => listener?.close(resolve)),
     nitroApp.hooks.callHook("close").catch(console.error),

@@ -137,6 +137,8 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       },
       inlineDynamicImports: nitro.options.inlineDynamicImports,
       format: "esm",
+      // `assert` was removed in Node.js v22; Rollup 5 defaults to `with` (rollup/rollup#6248).
+      importAttributesKey: "with",
       exports: "auto",
       intro: "",
       outro: "",
@@ -294,6 +296,11 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       target: "es2019",
       sourceMap: nitro.options.sourceMap,
       ...nitro.options.esbuild?.options,
+      supported: {
+        // esbuild drops import attributes for every `esXXXX` target.
+        "import-attributes": true,
+        ...nitro.options.esbuild?.options?.supported,
+      },
     })
   );
 

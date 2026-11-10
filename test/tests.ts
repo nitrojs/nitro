@@ -293,6 +293,31 @@ export function testNitro(
     expect(legacy.status).toBe(307);
     expect(legacy.headers.location).not.toMatch(/^\/\//);
     expect(legacy.headers.location).toBe("/evil.com");
+
+    // backslashes (raw or encoded), encoded separators and control
+    // characters must not produce a `Location` that browsers resolve cross-origin.
+    for (const payload of [
+      "%5Cevil.com",
+      "%5c%5cevil.com",
+      "%5C/evil.com",
+      "%2F%2Fevil.com",
+      "%09/evil.com",
+      "%0A/evil.com",
+      "%0D/evil.com",
+      "%20/evil.com",
+    ]) {
+      const res = await callHandler({
+        url: `/rules/redirect/legacy/${payload}`,
+      });
+      expect(res.status, payload).toBe(307);
+      expect(res.headers.location, payload).toBe("/evil.com");
+    }
+
+    const legacyNormal = await callHandler({
+      url: "/rules/redirect/legacy/foo?x=1",
+    });
+    expect(legacyNormal.status).toBe(307);
+    expect(legacyNormal.headers.location).toBe("/foo?x=1");
   });
 
   it("binary response", async () => {
@@ -570,6 +595,21 @@ export function testNitro(
     expect(data).toBe("evil.com");
   });
 
+  it("runtime proxy rejects scope bypass via empty segment or prefix re-entry", async () => {
+    for (const url of [
+      "/rules/proxy/legacy/..%2fadmin",
+      "/rules/proxy/legacy//..%2fadmin",
+      "/rules/proxy/legacy//%2e%2e%2fadmin",
+      "/rules/proxy/legacy//..%2f//..%2fadmin",
+      "/rules/proxy/legacy/..%2frules%2fproxy%2flegacy%2fadmin",
+    ]) {
+      const { status } = await callHandler({ url });
+      expect(status, url).toBe(400);
+    }
+    const { data } = await callHandler({ url: "/rules/proxy/legacy/foo/bar" });
+    expect(data).toBe("foo/bar");
+  });
+
   it.skipIf(ctx.preset === "bun" /* TODO */)("stream", async () => {
     const { data } = await callHandler({
       url: "/stream",
@@ -752,7 +792,7 @@ export function testNitro(
   });
 
   describe("cache", () => {
-    it.skipIf(ctx.isIsolated || (isWindows && ctx.preset === "nitro-dev"))(
+    it.skipIf(ctx.isIsolated)(
       "should setItem before returning response the first time",
       async () => {
         const {
@@ -771,6 +811,76 @@ export function testNitro(
           expect(call.data.timestamp).toBe(timestamp);
           expect(call.data.eventContextCache.options.swr).toBe(true);
         }
+      }
+    );
+
+    it.skipIf(ctx.isIsolated)(
+      "should not serve or store cached responses for non GET requests",
+      async () => {
+        const post = await callHandler({
+          url: "/api/cache/method",
+          method: "POST",
+        });
+        expect(post.data.method).toBe("POST");
+        const get1 = await callHandler({ url: "/api/cache/method" });
+        expect(get1.data.method).toBe("GET");
+        const get2 = await callHandler({ url: "/api/cache/method" });
+        expect(get2.data.rand).toBe(get1.data.rand);
+        const post2 = await callHandler({
+          url: "/api/cache/method",
+          method: "POST",
+        });
+        expect(post2.data.method).toBe("POST");
+        expect(post2.data.rand).not.toBe(get1.data.rand);
+      }
+    );
+
+    it.skipIf(ctx.isIsolated)(
+      "should not cache or replay set-cookie to other requests",
+      async () => {
+        const a = await callHandler({ url: "/api/cache/cookie" });
+        expect(String(a.headers["set-cookie"])).toContain(`sid=${a.data.sid}`);
+        const b = await callHandler({ url: "/api/cache/cookie" });
+        expect(b.data.sid).not.toBe(a.data.sid);
+        expect(String(b.headers["set-cookie"] || "")).not.toContain(
+          `sid=${a.data.sid}`
+        );
+      }
+    );
+
+    it.skipIf(ctx.isIsolated)(
+      "should not share set-cookie responses with concurrent requests",
+      async () => {
+        const [a, b] = await Promise.all([
+          callHandler({ url: "/api/cache/cookie" }),
+          callHandler({ url: "/api/cache/cookie" }),
+        ]);
+        expect(b.data.sid).not.toBe(a.data.sid);
+        for (const res of [a, b]) {
+          const cookies = String(res.headers["set-cookie"]);
+          expect(cookies).toContain(`sid=${res.data.sid}`);
+          expect(cookies).toContain(`csrf=${res.data.sid}`);
+        }
+      }
+    );
+
+    it.skipIf(ctx.isIsolated)(
+      "should not cache or rewrite no-store responses",
+      async () => {
+        const a = await callHandler({ url: "/api/cache/no-store" });
+        expect(a.headers["cache-control"]).toBe("no-store");
+        const b = await callHandler({ url: "/api/cache/no-store" });
+        expect(b.data.rand).not.toBe(a.data.rand);
+        expect(b.headers["cache-control"]).toBe("no-store");
+      }
+    );
+
+    it.skipIf(ctx.isIsolated)(
+      "should not cache responses varying on headers not in varies",
+      async () => {
+        const a = await callHandler({ url: "/api/cache/vary" });
+        const b = await callHandler({ url: "/api/cache/vary" });
+        expect(b.data.rand).not.toBe(a.data.rand);
       }
     );
   });

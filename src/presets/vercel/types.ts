@@ -47,6 +47,9 @@ export interface VercelBuildConfigV3 {
   >;
   cache?: string[];
   bypassToken?: string;
+  framework?: {
+    version: string;
+  };
   crons?: {
     path: string;
     schedule: string;
@@ -104,7 +107,13 @@ export interface VercelServerlessFunctionConfig {
   /**
    * The runtime to use. Defaults to the auto-detected Node.js version.
    */
-  runtime?: "nodejs20.x" | "nodejs22.x" | "bun1.x" | (string & {});
+  runtime?:
+    | "nodejs20.x"
+    | "nodejs22.x"
+    | "nodejs24.x"
+    | "nodejs26.x"
+    | "bun1.x"
+    | (string & {});
 
   [key: string]: unknown;
 }
@@ -158,6 +167,8 @@ export type PrerenderFunctionConfig = {
 
   /**
    * When `true`, the query string will be present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies.
+   *
+   * Nitro sets this to `true` when `allowQuery` lists any params, unless it is set explicitly.
    */
   passQuery?: boolean;
 
