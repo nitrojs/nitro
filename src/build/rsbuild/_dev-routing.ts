@@ -12,6 +12,7 @@ export function isExplicitRoute(nitro: Nitro, devApp: DevApp, req: IncomingMessa
   const method = req.method || "GET";
   const pathname = new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname;
   let match = nitro.routing.routes.match(method, pathname);
+  // A `GET` route with `head: false` does not match `HEAD`, but the request is still Nitro's (`405`)
   if (method === "HEAD" && !(match && !Array.isArray(match) && match.method)) {
     match = nitro.routing.routes.match("GET", pathname);
   }

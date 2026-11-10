@@ -89,7 +89,7 @@ export function initNitroRouting(nitro: Nitro) {
         method: h.method || "",
         data: handlerWithImportHash(h),
       })),
-      { merge: true }
+      { merge: true, headFromGet: true }
     );
 
     // Update middleware
@@ -126,7 +126,7 @@ export function initNitroRouting(nitro: Nitro) {
         .flatMap((h) => {
           const route = { ...h, method: h.method || "", data: handlerWithImportHash(h) };
           // `HEAD` requests are served by `GET` routes, so they run `GET` middleware too
-          return route.method.toUpperCase() === "GET"
+          return route.method.toUpperCase() === "GET" && h.head !== false
             ? [route, { ...route, method: "HEAD" }]
             : [route];
         })
@@ -155,6 +155,8 @@ export interface Route<T = unknown> {
   route: string;
   method: string;
   data: T;
+  /** Set to `false` to not also match `HEAD` requests with this `GET` route (see `headFromGet`). */
+  head?: boolean;
 }
 
 export interface RouterOptions {
@@ -200,13 +202,35 @@ export class Router<T> {
     return this._routes!;
   }
 
-  _update(routes: Route<T>[], opts?: { merge?: boolean }) {
+  /**
+   * @param opts.merge Merge the method-agnostic catch-all handlers of the base URL.
+   * @param opts.headFromGet Also match `HEAD` requests with `GET` routes, unless a `HEAD`
+   *   route has the same pattern or the (first) `GET` route of the pattern sets `head: false`. Only the compiled matcher
+   *   gets the `HEAD` copies: {@link routes} stays as registered.
+   */
+  _update(routes: Route<T>[], opts?: { merge?: boolean; headFromGet?: boolean }) {
     this._routes = routes;
     this._router = createRouter<T>();
     this._compiled = undefined;
-    for (const route of routes) {
-      const pattern = this._normalize ? normalizeRoute(route.route) : route.route;
-      addRoute(this._router, route.method, this._baseURL + pattern, route.data);
+    const patterns = routes.map((route) =>
+      this._normalize ? normalizeRoute(route.route) : route.route
+    );
+    for (let i = 0; i < routes.length; i++) {
+      addRoute(this._router, routes[i].method, this._baseURL + patterns[i], routes[i].data);
+    }
+    if (opts?.headFromGet) {
+      // A pattern is skipped once handled: rou3 serves the first `GET` route of a pattern
+      const handled = new Set(patterns.filter((_, i) => routes[i].method.toUpperCase() === "HEAD"));
+      for (let i = 0; i < routes.length; i++) {
+        const route = routes[i];
+        if (route.method.toUpperCase() !== "GET" || handled.has(patterns[i])) {
+          continue;
+        }
+        handled.add(patterns[i]);
+        if (route.head !== false) {
+          addRoute(this._router, "HEAD", this._baseURL + patterns[i], route.data);
+        }
+      }
     }
     if (opts?.merge) {
       mergeCatchAll(this._router, this._baseURL);

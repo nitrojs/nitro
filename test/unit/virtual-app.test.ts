@@ -119,11 +119,17 @@ describe("virtual/app template", () => {
       "return findRoute(event.req.method, event.url.pathname) ?? findMethodNotAllowed(event.req.method, event.url.pathname);"
     );
     expect(withMethods).toContain(
-      'const findMethodNotAllowed = createMethodNotAllowedMatcher(findRoute, ["GET","POST"]);'
+      'const findMethodNotAllowed = createMethodNotAllowedMatcher(findRoute, ["GET","HEAD","POST"]);'
     );
     const withoutMethods = app(createNitroStub({})).template();
     expect(withoutMethods).not.toContain("findMethodNotAllowed");
     expect(withoutMethods).not.toContain("createMethodNotAllowedMatcher");
+  });
+
+  it("leaves matching `HEAD` requests with `GET` routes to the router", () => {
+    expect(app(createNitroStub({ methodRoutes: true })).template()).not.toContain(
+      'findRoute("HEAD"'
+    );
   });
 
   it("resets h3's cached dispatcher after plugins ran", () => {

@@ -76,6 +76,22 @@ export interface NitroEventHandler extends NitroHandlerCommon {
   format?: EventHandlerFormat;
 
   /**
+   * Whether a `GET` handler also answers `HEAD` requests (the response body is dropped).
+   *
+   * Set to `false` for a `GET` handler that should not run for `HEAD`, such as one with
+   * side effects or an expensive response (a stream, a long-poll, ...). `HEAD` requests then
+   * fall through to other matching routes, or to `405 Method Not Allowed` with an `Allow` header.
+   *
+   * On a `GET` middleware, `false` does not run it for `HEAD` requests.
+   *
+   * Has no effect on handlers for other methods. A `HEAD` handler with the same route
+   * pattern always takes precedence.
+   *
+   * @default true
+   */
+  head?: boolean;
+
+  /**
    * Environments to include and bundle this handler.
    *
    * @example
