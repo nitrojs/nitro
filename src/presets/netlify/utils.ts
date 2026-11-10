@@ -3,6 +3,7 @@ import type { Nitro, PublicAssetDir } from "nitro/types";
 import { dirname, join } from "pathe";
 import { joinURL, withoutTrailingSlash } from "ufo";
 import { escapeRegExp } from "../../utils/regex.ts";
+import { isPrefixedPublicAssetDir } from "../../config/resolvers/assets.ts";
 import { getPublicAssetCorsHeaders } from "../_utils/cors.ts";
 import { hasHeaders, routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
 
@@ -91,9 +92,7 @@ const netlifyPaths = ["/.netlify/*"];
 export function getStaticPaths(publicAssets: PublicAssetDir[], baseURL: string): string[] {
   return [
     ...netlifyPaths,
-    ...publicAssets
-      .filter((a) => a.fallthrough !== true && a.baseURL && a.baseURL !== "/")
-      .map((a) => joinURL(baseURL, a.baseURL!, "*")),
+    ...publicAssets.filter(isPrefixedPublicAssetDir).map((a) => joinURL(baseURL, a.baseURL, "*")),
   ];
 }
 

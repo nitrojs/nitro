@@ -3,7 +3,7 @@ import { pathToFileURL } from "node:url";
 import { defu } from "defu";
 import mime from "mime";
 import { isCaseInsensitiveFS, writeFile, prettyPath } from "../utils/fs.ts";
-import type { Nitro, NormalizedRouteRules, PrerenderRoute, PublicAssetDir } from "nitro/types";
+import type { Nitro, NormalizedRouteRules, PrerenderRoute } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { createRouter, addRoute, findAllRoutes } from "rou3";
 import { decodePath, joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";
@@ -16,6 +16,7 @@ import { runParallel } from "../utils/parallel.ts";
 import { extractLinks, formatPrerenderRoute, matchesIgnorePattern } from "./utils.ts";
 import { getPrerenderMeta } from "./_meta.ts";
 import { scanUnprefixedPublicAssets } from "../build/assets.ts";
+import { isPrefixedPublicAssetDir } from "../config/resolvers/assets.ts";
 import { toRequest } from "h3";
 import { EnvServer } from "env-runner";
 
@@ -122,10 +123,7 @@ export async function prerender(nitro: Nitro) {
   const outputKey = (filePath: string) => (caseInsensitiveFS ? filePath.toLowerCase() : filePath);
 
   const publicAssetBases: string[] = nitro.options.publicAssets
-    .filter(
-      (a): a is PublicAssetDir & { baseURL: string } =>
-        !!a.baseURL && a.baseURL !== "/" && !a.fallthrough
-    )
+    .filter(isPrefixedPublicAssetDir)
     .map((a) => withTrailingSlash(a.baseURL));
 
   for (const route of routes) {

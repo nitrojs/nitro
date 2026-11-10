@@ -9,6 +9,7 @@ import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";
 import { joinURL } from "ufo";
 import { hash } from "./utils/hash.ts";
+import { isPrefixedPublicAssetDir } from "./config/resolvers/assets.ts";
 
 const isGlobalMiddleware = (h: NitroEventHandler) => !h.method && (!h.route || h.route === "/**");
 
@@ -104,7 +105,7 @@ export function initNitroRouting(nitro: Nitro) {
       });
     } else {
       for (const asset of nitro.options.publicAssets) {
-        if (asset.fallthrough || !asset.baseURL || asset.baseURL === "/") {
+        if (!isPrefixedPublicAssetDir(asset)) {
           continue;
         }
         _middleware.unshift({

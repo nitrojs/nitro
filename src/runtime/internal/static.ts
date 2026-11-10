@@ -1,21 +1,11 @@
 import { HTTPError, defineHandler } from "h3";
 import type { EventHandler, HTTPMethod } from "h3";
 import type { PublicAsset } from "nitro/types";
-import { decodePath, withLeadingSlash, withoutTrailingSlash } from "ufo";
-import {
-  getAsset,
-  hasAsset,
-  hasEncodedVariants,
-  isPublicAssetBaseURL,
-  isPublicAssetURL,
-  readAsset,
-  resolveAsset,
-} from "#nitro/virtual/public-assets";
+import { decodePath, withoutTrailingSlash } from "ufo";
+import { isPublicAssetBaseURL, readAsset } from "#nitro/virtual/public-assets";
+import { ENCODING_EXTS, hasAsset, hasEncodedVariants, resolveAsset } from "./public-assets.ts";
 
 const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
-
-// Must match `_exts` of the `#nitro/virtual/public-assets` template: others are never served
-const EncodingMap = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
 
 // Clients send only a few distinct `Accept-Encoding` values
 const encodingsCache = new Map<string, readonly string[]>();
@@ -33,8 +23,8 @@ export default defineHandler((event) => {
     return;
   }
 
-  const path = withLeadingSlash(withoutTrailingSlash(event.url.pathname));
-  let id = path.includes("%") ? decodePath(path) : path;
+  const path = withoutTrailingSlash(event.url.pathname);
+  const id = path.includes("%") ? decodePath(path) : path;
 
   // Most requests are not for public assets: skip the encoding negotiation for them
   if (!hasAsset(id) && !isPublicAssetBaseURL(id)) {
@@ -42,8 +32,7 @@ export default defineHandler((event) => {
   }
 
   const encodings = getEncodings(event.req.headers.get("accept-encoding") || "");
-  const assetId = resolveAsset(id, encodings);
-  const asset = assetId ? getAsset(assetId) : undefined;
+  const served = resolveAsset(id, encodings);
 
   // The selection depends on `Accept-Encoding` whenever compressed files exist (RFC 9110 12.5.5)
   const vary = hasEncodedVariants(id);
@@ -52,13 +41,14 @@ export default defineHandler((event) => {
     event.res.errHeaders.append("Vary", "Accept-Encoding");
   }
 
-  if (!asset) {
-    if (isPublicAssetURL(id)) {
+  if (!served) {
+    // Encodings end with the identity: any file named like the request would have been served
+    if (isPublicAssetBaseURL(id)) {
       throw new HTTPError({ status: 404, headers: noCacheHeaders });
     }
     return;
   }
-  id = assetId!;
+  const { asset } = served;
 
   if (asset.etag && !event.res.headers.has("ETag")) {
     event.res.headers.set("ETag", asset.etag);
@@ -114,7 +104,10 @@ export default defineHandler((event) => {
   }
 
   const toBody = (data: unknown) => {
-    assertAssetData(data);
+    // Readers return no data when the manifest entry has none behind it (file removed after build)
+    if (data === null || data === undefined) {
+      throw new HTTPError({ status: 404, headers: noCacheHeaders });
+    }
     if (!range) {
       return data;
     }
@@ -127,20 +120,11 @@ export default defineHandler((event) => {
       ? data.subarray(range.start, range.end + 1)
       : data;
   };
-  const data = range ? readAsset(id, range) : readAsset(id);
+  const data = readAsset(served.id, { encoding: asset.encoding, range });
   return typeof (data as { then?: unknown })?.then === "function"
     ? (data as Promise<unknown>).then(toBody)
     : toBody(data);
 }) as EventHandler;
-
-// Readers resolve with `null`/`undefined` when the manifest entry has no data
-// backing it (file removed after build, missing inline payload).
-function assertAssetData<T>(data: T): T {
-  if (data === null || data === undefined) {
-    throw new HTTPError({ status: 404, headers: noCacheHeaders });
-  }
-  return data;
-}
 
 // Precedence of RFC 9110 13.2.2 for GET and HEAD
 function evaluatePreconditions(headers: Headers, asset: PublicAsset): 304 | 412 | undefined {
@@ -190,7 +174,7 @@ function isModifiedSince(mtime: string, header: string | null): boolean | undefi
   return Math.floor(modified / 1000) * 1000 > since;
 }
 
-// Accepted encoding extensions, most preferred first, ending with the identity
+// Accepted encodings, most preferred first, ending with the identity (`''`)
 function getEncodings(header: string): readonly string[] {
   let encodings = encodingsCache.get(header);
   if (!encodings) {
@@ -217,16 +201,19 @@ function parseAcceptEncoding(header: string): string[] {
           .find(([key]) => key.toLowerCase() === "q")?.[1];
         const weight = quality === undefined ? 1 : Number.parseFloat(quality);
         return {
-          ext: EncodingMap[name.trim().toLowerCase() as keyof typeof EncodingMap],
+          encoding: name.trim().toLowerCase(),
           // An unparsable weight is an invalid parameter, not a rejection
           weight: Number.isNaN(weight) ? 1 : weight,
         };
       })
       // `q=0` means "not acceptable" (RFC 9110 12.4.2)
-      .filter((entry) => entry.ext && entry.weight > 0)
+      .filter((entry) => entry.encoding in ENCODING_EXTS && entry.weight > 0)
       // Highest client weight wins, then our own (alphabetical) preference
-      .sort((a, b) => b.weight - a.weight || (a.ext < b.ext ? -1 : a.ext > b.ext ? 1 : 0))
-      .map((entry) => entry.ext),
+      .sort(
+        (a, b) =>
+          b.weight - a.weight || (a.encoding < b.encoding ? -1 : a.encoding > b.encoding ? 1 : 0)
+      )
+      .map((entry) => entry.encoding),
     "",
   ];
 }
