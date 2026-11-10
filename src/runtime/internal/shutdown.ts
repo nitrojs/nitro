@@ -18,7 +18,7 @@ export function setupCloseHooks(server: Server): void {
     closeServer(closeActiveConnections).finally(() => (closeHooks ??= callCloseHooks()));
 }
 
-async function callCloseHooks(): Promise<void> {
+export async function callCloseHooks(): Promise<void> {
   try {
     await useNitroHooks().callHook("close");
   } catch (error) {
