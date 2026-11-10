@@ -142,6 +142,7 @@ describe("routeToFsPath", () => {
     ["/", "index"],
     ["/api/users/:id/posts/*", "api/users/[id]/posts/[...]"],
     ["/api/files/:path(.*)", "api/files/[...path]"],
+    [String.raw`/example\:action/\*`, "example_action/_"],
   ])("%s → %s", (route, expected) => {
     expect(routeToFsPath(route)).toBe(expected);
   });

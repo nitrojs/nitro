@@ -104,6 +104,7 @@ export async function scanServerRoutes(nitro: Nitro, dir: string, prefix = "/") 
     };
     let route = file.name
       .replace(/\(([^(/\\]+)\)[/\\]/g, "")
+      .replace(/\[[^/\]]*]|[:*?+(){}]/g, (m) => (m[0] === "[" ? m : `\\${m}`))
       .replace(/\[\.{3}]/g, "**")
       .replace(/\[\.{3}([^\]]+)]/g, (_, p) => ":" + paramName(p) + "(.*)")
       .replace(/\[([^/\]]+)]/g, (_, p) => ":" + paramName(p));
