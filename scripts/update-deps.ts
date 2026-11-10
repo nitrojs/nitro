@@ -85,6 +85,9 @@ if (applied > 0) {
   const rootDir = fileURLToPath(new URL("..", import.meta.url));
   const run = (cmd: string) => execSync(cmd, { stdio: "inherit", cwd: rootDir });
 
+  console.log("\nSyncing deps.json ranges...");
+  run("node scripts/sync-deps.ts");
+
   console.log("\nRunning pnpm install...");
   run("rm -f pnpm-lock.yaml && pnpm install");
 

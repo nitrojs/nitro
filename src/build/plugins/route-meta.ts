@@ -1,18 +1,20 @@
-import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { isAbsolute } from "pathe";
 import type { Expression, Literal, Program } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import type { Plugin } from "rollup";
 import type { Plugin as VitePlugin } from "vite";
+import { viteDepPaths } from "../vite/_import.ts";
 import { importOXC } from "../../utils/oxc.ts";
 import { escapeRegExp } from "../../utils/regex.ts";
 import { createRouteResponseSchemaGenerator } from "./_route-response-schema.ts";
 import { extractRouteValidation } from "./_route-request-schema.ts";
+import { chain } from "../../utils/sync.ts";
 
 const PREFIX = "\0nitro:route-meta:";
 
 export async function routeMeta(nitro: Nitro) {
-  const { parseSync, transformSync } = await importOXC({ dir: nitro.options.rootDir });
+  let oxc = await importOXC({ dir: nitro.options.rootDir, paths: viteDepPaths(nitro) });
   const responseSchemas = createRouteResponseSchemaGenerator(nitro);
   const virtualIds = new Set<string>();
   return {
@@ -38,20 +40,21 @@ export async function routeMeta(nitro: Nitro) {
     closeBundle() {
       responseSchemas.close();
     },
+    // With `nitro/vite`, the running `vite` is only known once its config is resolved
+    // (Vite only runs `buildStart` of the `client` environment in dev by default)
+    perEnvironmentStartEndDuringDev: true,
+    async buildStart() {
+      oxc = await importOXC({ dir: nitro.options.rootDir, paths: viteDepPaths(nitro) });
+    },
     resolveId: {
       order: "pre",
-      async handler(id, importer, resolveOpts) {
+      handler(id, importer, resolveOpts) {
         if (!id.startsWith("\0") && (id.endsWith("?meta") || id.endsWith("?nitro-validation"))) {
-          const validation = id.endsWith("?nitro-validation");
-          const resolved = await this.resolve(
-            id.replace(/\?(meta|nitro-validation)$/, ""),
-            importer,
-            resolveOpts
+          const suffix = id.endsWith("?nitro-validation") ? "?nitro-validation" : "";
+          return chain(
+            this.resolve(id.replace(/\?(meta|nitro-validation)$/, ""), importer, resolveOpts),
+            (resolved) => (resolved ? PREFIX + resolved.id + suffix : undefined)
           );
-          if (!resolved) {
-            return;
-          }
-          return PREFIX + resolved.id + (validation ? "?nitro-validation" : "");
         }
         if (importer?.startsWith(PREFIX) && importer.endsWith("?nitro-validation")) {
           return this.resolve(
@@ -73,7 +76,7 @@ export async function routeMeta(nitro: Nitro) {
           const fullPath = id.slice(PREFIX.length).replace(/\?nitro-validation$/, "");
           if (isAbsolute(fullPath)) {
             this.addWatchFile(fullPath);
-            return readFile(fullPath, { encoding: "utf8" });
+            return readFileSync(fullPath, "utf8");
           } else {
             return "export const routeSchema = {}; export default undefined;";
           }
@@ -86,6 +89,7 @@ export async function routeMeta(nitro: Nitro) {
         id: new RegExp(`^${escapeRegExp(PREFIX)}`),
       },
       async handler(code, id) {
+        const { parseSync, transformSync } = oxc;
         const validation = id.endsWith("?nitro-validation");
         let meta: NitroEventHandler["meta"] | null = null;
         let hasValidation = false;
@@ -162,7 +166,7 @@ export default ${JSON.stringify(meta)};`,
         };
       },
     },
-  } satisfies Plugin & Pick<VitePlugin, "hotUpdate">;
+  } satisfies Plugin & Pick<VitePlugin, "hotUpdate" | "perEnvironmentStartEndDuringDev">;
 }
 
 function astToObject(node: Expression | Literal): any {

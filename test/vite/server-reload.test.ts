@@ -8,7 +8,7 @@ const { createServer } = (await import(
   process.env.NITRO_VITE_PKG || "vite"
 )) as typeof import("vite");
 
-describe("vite:experimental.vite.serverReload", () => {
+describe("vite: `vite.serverReload` (nitro.config)", () => {
   let server: ViteDevServer;
   let serverURL: string;
 
@@ -41,5 +41,19 @@ describe("vite:experimental.vite.serverReload", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
       expect(await fetch(`${serverURL}/api/state`).then((r) => r.text())).toContain("original");
     }
+  });
+
+  test("does not ask open dev error pages to reload", async () => {
+    const res = await fetch(`${serverURL}/api/broken`, {
+      headers: { accept: "text/html", "sec-fetch-dest": "document" },
+    });
+    expect(res.status).toBe(500);
+    expect(await res.text()).toContain("/_nitro/dev/reload");
+
+    const reloadState = () => fetch(`${serverURL}/_nitro/dev/reload?id=none`).then((r) => r.json());
+    const before = await reloadState();
+    writeFileSync(handlerFile, originalContent.replace("original", "modified again"));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    expect(await reloadState()).toEqual(before);
   });
 });

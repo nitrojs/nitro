@@ -25,7 +25,6 @@ import _standard from "./standard/preset.ts";
 import _stormkit from "./stormkit/preset.ts";
 import _upsun from "./upsun/preset.ts";
 import _vercel from "./vercel/preset.ts";
-import _winterjs from "./winterjs/preset.ts";
 import _zeabur from "./zeabur/preset.ts";
 import _zephyr from "./zephyr/preset.ts";
 import _zerops from "./zerops/preset.ts";
@@ -56,7 +55,6 @@ export default [
   ..._stormkit,
   ..._upsun,
   ..._vercel,
-  ..._winterjs,
   ..._zeabur,
   ..._zephyr,
   ..._zerops,

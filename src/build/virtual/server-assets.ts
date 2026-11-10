@@ -4,7 +4,6 @@ import { glob } from "tinyglobby";
 import mime from "mime";
 import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
-import { normalizeKey } from "unstorage";
 
 interface ResolvedAsset {
   fsPath: string;
@@ -84,4 +83,12 @@ export const assets = {
 `;
     },
   };
+}
+
+// Same as `normalizeKey` from `unstorage` (inlined so that it is only installed when used)
+function normalizeKey(key: string): string {
+  if (!key) {
+    return "";
+  }
+  return key.split("?")[0]?.replace(/[/\\]/g, ":").replace(/:+/g, ":").replace(/^:|:$/g, "") || "";
 }

@@ -1,0 +1,10 @@
+{
+  "extends": "nitro/tsconfig",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "jsx": "react-jsx",
+    "paths": {
+      "~/*": ["./src/*"]
+    }
+  }
+}

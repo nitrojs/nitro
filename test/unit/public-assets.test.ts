@@ -1,9 +1,14 @@
-import { fileURLToPath } from "node:url";
-import { dirname, normalize, resolve } from "pathe";
+import * as nodeFsp from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { Readable } from "node:stream";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { dirname, join, normalize, resolve } from "pathe";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Nitro } from "nitro/types";
 
 import publicAssets from "../../src/build/virtual/public-assets.ts";
+import { loadPublicAssets } from "./_public-assets.ts";
 
 // Simulated runtime layout of a built bundle.
 const SERVER_MAIN = "file:///app/server/index.ts";
@@ -41,9 +46,13 @@ function nodeReaderTemplate(): string {
 
 // Evaluate the generated `readAsset` template against the real node helpers it
 // imports, recording the filesystem target it asks `fs` to read.
-function loadReadAsset(template: string, readFile?: () => Promise<unknown>) {
+function loadReadAsset(
+  template: string,
+  readFile?: () => Promise<unknown>,
+  { fs, main = SERVER_MAIN, assets = ASSETS }: { fs?: unknown; main?: string; assets?: object } = {}
+) {
   const reads: string[] = [];
-  const fsp = {
+  const fsp = fs ?? {
     readFile: (p: string | URL) => {
       reads.push(typeof p === "string" ? p : fileURLToPath(p));
       return readFile ? readFile() : Promise.resolve(new Uint8Array());
@@ -51,15 +60,19 @@ function loadReadAsset(template: string, readFile?: () => Promise<unknown>) {
   };
   // Strip the (single-line) imports and bridge their bindings in as args instead.
   const body = template.replace(/^\s*import\s.*$/gm, "").replace(/export\s+function/, "function");
-  (globalThis as any).__nitro_main__ = SERVER_MAIN;
+  (globalThis as any).__nitro_main__ = main;
   const readAsset = new Function(
     "fsp",
+    "Readable",
     "fileURLToPath",
     "resolve",
     "dirname",
     "assets",
     `${body}\nreturn readAsset;`
-  )(fsp, fileURLToPath, resolve, dirname, ASSETS) as (id: string) => Promise<unknown>;
+  )(fsp, Readable, fileURLToPath, resolve, dirname, assets) as (
+    id: string,
+    range?: { start: number; end: number }
+  ) => Promise<unknown>;
   return { readAsset, reads };
 }
 
@@ -102,5 +115,190 @@ describe("virtual/public-assets node reader", () => {
     );
 
     await expect(readAsset("/index.html")).rejects.toThrow("EACCES");
+  });
+
+  it("streams only the requested range of a file", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nitro-read-range-"));
+    try {
+      await mkdir(join(dir, "public"));
+      await writeFile(join(dir, "public/file.bin"), "0123456789");
+      const { readAsset } = loadReadAsset(nodeReaderTemplate(), undefined, {
+        fs: nodeFsp,
+        main: pathToFileURL(join(dir, "server/index.mjs")).href,
+        assets: { "/file.bin": { path: "../public/file.bin" }, "/gone.bin": { path: "../gone" } },
+      });
+
+      const stream = await readAsset("/file.bin", { start: 2, end: 4 });
+      expect(stream).toBeInstanceOf(ReadableStream);
+      expect(await new Response(stream as ReadableStream).text()).toBe("234");
+      await expect(readAsset("/gone.bin", { start: 0, end: 1 })).resolves.toBeUndefined();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("virtual/public-assets lookup", () => {
+  const asset = { type: "text/plain", etag: "", mtime: "", size: 1, path: "" };
+  const { hasAsset, resolveAsset, hasEncodedVariants, isPublicAssetURL, isPublicAssetBaseURL } =
+    loadPublicAssets(
+      Object.fromEntries(
+        [
+          "/index.html",
+          "/robots.txt",
+          "/foo.css.gz",
+          "/foo.css.br",
+          "/bar.js.zst",
+          "/archive.tgz",
+          "/docs/index.html",
+          "/blog/index.html.br",
+          "/page",
+          "/page/index.html",
+          "/page/index.html.gz",
+          "/a.gz",
+          "/a.gz.br",
+          "/a b/ü.txt",
+          "/_nuxt/entry.js",
+        ].map((id) => [id, asset])
+      ),
+      { publicAssets: [{ baseURL: "/_nuxt" }] }
+    );
+
+  it.each([
+    "/index.html",
+    "/",
+    "/robots.txt",
+    "/foo.css",
+    "/foo.css.gz",
+    "/foo.css.br",
+    "/bar.js",
+    "/docs",
+    "/docs/",
+    "/docs/index.html",
+    "/blog",
+    "/blog/index.html",
+    "/blog/index.html.br",
+    "/a b/ü.txt",
+    "/_nuxt/entry.js",
+  ])("has %s", (id) => {
+    expect(hasAsset(id)).toBe(true);
+  });
+
+  it.each([
+    "/api/hello",
+    "/foo",
+    "/foo.css.gz.gz",
+    "/archive.",
+    "/robots.txt/index.html",
+    "/doc",
+    "/docs/index",
+    "/a%20b/%C3%BC.txt",
+    "/_nuxt/missing.js",
+    "",
+  ])("does not have %s", (id) => {
+    expect(hasAsset(id)).toBe(false);
+  });
+
+  const ALL = [".br", ".gz", ".zst", ""];
+  it.each([
+    ["/foo.css", ALL, "/foo.css.br"],
+    ["/foo.css", [".gz", ".br", ""], "/foo.css.gz"],
+    ["/foo.css", [".zst", ""], undefined],
+    ["/foo.css.br", ALL, "/foo.css.br"],
+    ["/bar.js", ALL, "/bar.js.zst"],
+    ["/robots.txt", ALL, "/robots.txt"],
+    ["/", ALL, "/index.html"],
+    ["/docs", ALL, "/docs/index.html"],
+    ["/docs/", ALL, "/docs/index.html"],
+    ["/blog", ALL, "/blog/index.html.br"],
+    ["/blog", [""], undefined],
+    ["/blog/index.html", ALL, "/blog/index.html.br"],
+    // A file named like the request wins over its `index.html`, for the same encoding
+    ["/page", [""], "/page"],
+    ["/page", ALL, "/page/index.html.gz"],
+    ["/api/hello", ALL, undefined],
+    ["/foo.css/", ALL, undefined],
+    // A user-shipped compressed file is a plain file with its own variants
+    ["/a", ALL, "/a.gz"],
+    ["/a.gz", ALL, "/a.gz.br"],
+    ["/a.gz", [""], "/a.gz"],
+    ["/bar.js", ["x-unknown", ""], undefined],
+  ])("resolves %s for %j to %s", (id, encodings, expected) => {
+    expect(resolveAsset(id, encodings)).toBe(expected);
+  });
+
+  it.each([
+    ["/foo.css", true],
+    ["/bar.js", true],
+    ["/blog", true],
+    ["/blog/", true],
+    ["/blog/index.html", true],
+    ["/page", true],
+    ["/a", true],
+    ["/a.gz", true],
+    ["/foo.css.br", false],
+    ["/robots.txt", false],
+    ["/", false],
+    ["/docs", false],
+    ["/archive.tgz", false],
+    ["/api/hello", false],
+    ["/_nuxt/missing.js", false],
+  ])("has encoded variants for %s: %s", (id, expected) => {
+    expect(hasEncodedVariants(id)).toBe(expected);
+  });
+
+  it("resolves a root that only exists compressed", () => {
+    const root = loadPublicAssets({ "/index.html.br": asset });
+    expect(root.hasAsset("/")).toBe(true);
+    expect(root.resolveAsset("/", ALL)).toBe("/index.html.br");
+    expect(root.resolveAsset("/", [""])).toBeUndefined();
+  });
+
+  it("treats unknown ids under a public asset base as public", () => {
+    expect(isPublicAssetURL("/_nuxt/missing.js")).toBe(true);
+    expect(isPublicAssetURL("/robots.txt")).toBe(true);
+    expect(isPublicAssetURL("/api/hello")).toBe(false);
+  });
+
+  it("matches only public asset bases with isPublicAssetBaseURL", () => {
+    expect(isPublicAssetBaseURL("/_nuxt/missing.js")).toBe(true);
+    expect(isPublicAssetBaseURL("/_nuxt/entry.js")).toBe(true);
+    expect(isPublicAssetBaseURL("/robots.txt")).toBe(false);
+    expect(isPublicAssetBaseURL("/api/hello")).toBe(false);
+  });
+});
+
+describe("public assets manifest", () => {
+  const tempDirs: string[] = [];
+  afterEach(async () => {
+    for (const dir of tempDirs.splice(0)) {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("lists assets in the same order on every build", async () => {
+    const outDir = await mkdtemp(join(tmpdir(), "nitro-public-assets-"));
+    tempDirs.push(outDir);
+    const publicDir = join(outDir, "public");
+    // Large files first, so reads finish out of name order
+    const names = Array.from({ length: 40 }, (_, i) => `f${String(i).padStart(2, "0")}.txt`);
+    await mkdir(publicDir, { recursive: true });
+    for (const [i, name] of names.entries()) {
+      await writeFile(join(publicDir, name), "x".repeat((names.length - i) * 20_000));
+    }
+    const nitro = {
+      options: {
+        dev: false,
+        baseURL: "/",
+        serveStatic: true,
+        publicAssets: [],
+        output: { publicDir, serverDir: join(outDir, "server") },
+      },
+    } as unknown as Nitro;
+    const template = publicAssets(nitro).find((t) => t.id === "#nitro/virtual/public-assets-data")!
+      .template as () => Promise<string>;
+    const keys = (code: string) =>
+      Object.keys(JSON.parse(code.replace(/^export default |;$/g, "")));
+    expect(keys(await template())).toEqual(names.map((name) => `/${name}`));
   });
 });

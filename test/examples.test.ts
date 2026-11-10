@@ -27,8 +27,6 @@ const skip = new Set<string>([
       ]
     : [
         "vite-rsc",
-        // No tsConfigPaths support in rollup
-        "import-alias",
         // @vitejs/plugin-react depends on vite 8 vite/internal import
         "vite-ssr-react",
         "vite-ssr-tsr-react",
@@ -42,8 +40,10 @@ const skipProd = new Set<string>(isRolldown ? [] : []);
 
 for (const example of await readdir(examplesDir)) {
   if (example.startsWith("_")) continue;
-  if (existsSync(join(examplesDir, example, "index.html"))) {
-    setupTest(example);
+  if (existsSync(join(examplesDir, example, "rsbuild.config.ts"))) {
+    setupTest(example, "rsbuild");
+  } else if (existsSync(join(examplesDir, example, "index.html"))) {
+    setupTest(example, "vite");
   }
   const pkg = JSON.parse(await readFile(join(examplesDir, example, "package.json"), "utf8"));
   if (/\bvitest\b/.test(pkg.scripts?.test || "")) {
@@ -97,7 +97,7 @@ function setupVitestTest(name: string) {
   );
 }
 
-function setupTest(name: string) {
+function setupTest(name: string, tool: "vite" | "rsbuild") {
   const rootDir = join(examplesDir, name);
 
   describe.skipIf(skip.has(name))(name, () => {
@@ -115,17 +115,41 @@ function setupTest(name: string) {
         }
         expect(res.status, res.statusText).toBe(expectedStatus);
       });
+
+      // Pages are rendered by the server with the client scripts (served in dev)
+      test.runIf(tool === "rsbuild")(`${name} (${mode}) client scripts`, async () => {
+        const res = await ctx.fetch("/", { headers: { accept: "text/html" } });
+        const scripts = [...(await res.text()).matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)];
+        expect(scripts.length).toBeGreaterThan(0);
+        if (mode === "dev") {
+          for (const [, src] of scripts) {
+            expect((await ctx.fetch(src!)).status, src).toBe(200);
+          }
+        }
+      });
     }
 
     describe.skipIf(skipDev.has(name))(`${name} (dev)`, () => {
-      let server: ViteDevServer;
+      let server: ViteDevServer | { close: () => Promise<void> };
       const context: TestContext = {} as any;
+      const nodeEnv = process.env.NODE_ENV;
 
       beforeAll(async () => {
         process.chdir(rootDir);
-        server = await createServer({ root: rootDir });
-        await server.listen("0" as unknown as number);
-        const addr = server.httpServer?.address() as {
+        if (tool === "rsbuild") {
+          // As `rsbuild dev` (Rsbuild emits hashed file names with `NODE_ENV=production`)
+          process.env.NODE_ENV = "development";
+          const rsbuild = await createRsbuild(rootDir);
+          const result = await rsbuild.startDevServer({ getPortSilently: true });
+          server = result.server;
+          const baseURL = result.urls[0]!.replace(/\/$/, "");
+          context.fetch = (url, opts) => fetch(baseURL + url, opts);
+          return;
+        }
+        const viteServer = await createServer({ root: rootDir });
+        server = viteServer;
+        await viteServer.listen("0" as unknown as number);
+        const addr = viteServer.httpServer?.address() as {
           port: number;
           address: string;
           family: string;
@@ -136,6 +160,7 @@ function setupTest(name: string) {
 
       afterAll(async () => {
         await server?.close();
+        process.env.NODE_ENV = nodeEnv;
       });
 
       registerTests(context, "dev");
@@ -148,13 +173,21 @@ function setupTest(name: string) {
         process.chdir(rootDir);
 
         process.env.NITRO_PRESET = "standard";
-        const builder = await createBuilder({ logLevel: "warn" });
-        await builder.buildApp();
+        if (tool === "rsbuild") {
+          const rsbuild = await createRsbuild(rootDir);
+          await (await rsbuild.build()).close();
+        } else {
+          const builder = await createBuilder({ logLevel: "warn" });
+          await builder.buildApp();
+        }
 
         delete globalThis.__nitro__;
 
+        // The module runner of Vitest does not resolve the `import("./" + chunk)` of Rspack
+        // chunk loading against a file URL
+        const entry = join(rootDir, ".output/server/index.mjs");
         const { default: entryMod } = await import(
-          pathToFileURL(join(rootDir, ".output/server/index.mjs")).href
+          tool === "rsbuild" ? entry : pathToFileURL(entry).href
         );
 
         delete (globalThis as any).document; // Set by nano-jsx!
@@ -165,5 +198,14 @@ function setupTest(name: string) {
 
       registerTests(context, "prod");
     });
+  });
+}
+
+async function createRsbuild(cwd: string) {
+  const { createRsbuild, loadConfig } = await import("@rsbuild/core");
+  const { content } = await loadConfig({ cwd });
+  return createRsbuild({
+    cwd,
+    config: { ...content, logLevel: "warn", server: { ...content.server, port: 0 } },
   });
 }

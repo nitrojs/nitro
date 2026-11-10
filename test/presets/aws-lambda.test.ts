@@ -89,7 +89,7 @@ function webResponse(awsResponse: any) {
     ? Buffer.from(awsResponse.body, "base64")
     : (awsResponse.body as string);
 
-  return new Response(body, {
+  return new Response([204, 304].includes(awsResponse.statusCode) ? null : body, {
     status: awsResponse.statusCode,
     headers,
   });

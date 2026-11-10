@@ -61,6 +61,12 @@ describe("resolveVersion", async () => {
       expected: "3.0.260311",
       prerelease: "",
     },
+    {
+      name: "rc channel",
+      existing: ["3.0.260311-beta", "3.0.260311-rc"],
+      expected: "3.0.260311-rc.2",
+      prerelease: "rc",
+    },
   ];
 
   for (const { name, existing, expected, prerelease } of cases) {

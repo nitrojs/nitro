@@ -7,6 +7,8 @@ import type { PublicAsset } from "nitro/types";
 import { relative, resolve } from "pathe";
 import { joinURL, withTrailingSlash } from "ufo";
 import { runParallel } from "../../utils/parallel.ts";
+import { getPrerenderMeta } from "../../prerender/_meta.ts";
+import { globPublicAssets } from "../assets.ts";
 
 const readAssetHandler: Record<
   Exclude<Nitro["options"]["serveStatic"] | "true" | "false", boolean>,
@@ -25,6 +27,27 @@ export default function publicAssets(nitro: Nitro) {
       id: "#nitro/virtual/public-assets-data",
       template: async () => {
         const assets: Record<string, PublicAsset> = {};
+
+        if (nitro.options.dev) {
+          for (const asset of nitro.options.publicAssets) {
+            for (const file of await globPublicAssets(nitro, asset)) {
+              const assetId = joinURL(nitro.options.baseURL, asset.baseURL || "/", file);
+              let type = mime.getType(file) || "text/plain";
+              if (type.startsWith("text")) {
+                type += "; charset=utf-8";
+              }
+              assets[assetId] ??= {
+                type,
+                path: resolve(asset.dir, file),
+                etag: "",
+                mtime: "",
+                size: 0,
+              };
+            }
+          }
+          return `export default ${JSON.stringify(assets, null, 2)};`;
+        }
+
         const files = await glob("**", {
           cwd: nitro.options.output.publicDir,
           absolute: false,
@@ -58,7 +81,7 @@ export default function publicAssets(nitro: Nitro) {
             }
 
             assets[assetId] = {
-              type: nitro._prerenderMeta?.[assetId]?.contentType || mimeType,
+              type: getPrerenderMeta(nitro)[assetId]?.contentType || mimeType,
               encoding,
               etag,
               mtime: stat.mtime.toJSON(),
@@ -77,7 +100,11 @@ export default function publicAssets(nitro: Nitro) {
           });
         }
 
-        return `export default ${JSON.stringify(assets, null, 2)};`;
+        // Files finish reading in any order: sort them so each build writes the same output
+        const sorted = Object.fromEntries(
+          Object.entries(assets).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        );
+        return `export default ${JSON.stringify(sorted, null, 2)};`;
       },
     },
 
@@ -106,9 +133,10 @@ export { readAsset } from "${readAssetImport}"
 export const publicAssetBases = ${JSON.stringify(publicAssetBases)}
 
 export function isPublicAssetURL(id = '') {
-  if (assets[id]) {
-    return true
-  }
+  return !!assets[id] || isPublicAssetBaseURL(id)
+}
+
+export function isPublicAssetBaseURL(id = '') {
   for (const base in publicAssetBases) {
     if (id.startsWith(base)) { return true }
   }
@@ -125,6 +153,73 @@ export function getPublicAssetMeta(id = '') {
 export function getAsset (id) {
   return assets[id]
 }
+
+// Encoding extensions by flag bit (\`EncodingMap\` of the static middleware must not add others)
+const _exts = ['', '.br', '.gz', '.zst']
+// Bit offset of the \`id/index.html + ext\` flags, after the \`id + ext\` ones
+const _INDEX = _exts.length
+
+let _servable
+
+// Request ids to flags of the files that serve them
+function _getServable () {
+  if (!_servable) {
+    const servable = new Map()
+    for (const assetId in assets) {
+      const plainId = assetId.replace(/\\.(gz|br|zst)$/, '')
+      const ext = _exts.indexOf(assetId.slice(plainId.length))
+      _flag(servable, assetId, 1)
+      if (ext) {
+        _flag(servable, plainId, 1 << ext)
+      }
+      if (plainId.endsWith('/index.html')) {
+        const dir = plainId.slice(0, -'index.html'.length)
+        _flag(servable, dir, 1 << (_INDEX + ext))
+        if (dir !== '/') {
+          _flag(servable, dir.slice(0, -1), 1 << (_INDEX + ext))
+        }
+      }
+    }
+    _servable = servable
+  }
+  return _servable
+}
+
+function _flag (servable, id, flag) {
+  servable.set(id, (servable.get(id) || 0) | flag)
+}
+
+export function hasAsset (id = '') {
+  return _getServable().has(id)
+}
+
+// Flags of the compressed files, for the request id and for its \`index.html\`
+const _ENCODED = ((1 << _INDEX) - 1) & ~1
+const _ENCODED_MASK = _ENCODED | (_ENCODED << _INDEX)
+
+// Whether the response for a request id depends on its \`Accept-Encoding\`
+export function hasEncodedVariants (id = '') {
+  return !!((_getServable().get(id) || 0) & _ENCODED_MASK)
+}
+
+// Asset id for the first encoding extension (most preferred first) that has a file
+export function resolveAsset (id, encodings) {
+  const flags = _getServable().get(id)
+  if (flags) {
+    for (const encoding of encodings) {
+      const ext = _exts.indexOf(encoding)
+      if (ext < 0) {
+        continue
+      }
+      if (flags & (1 << ext)) {
+        return id + encoding
+      }
+      if (flags & (1 << (_INDEX + ext))) {
+        return (id.endsWith('/') ? id : id + '/') + 'index.html' + encoding
+      }
+    }
+  }
+}
 `;
       },
     },
@@ -137,16 +232,23 @@ export function getAsset (id) {
       template: () => {
         return /* js */ `
 import { promises as fsp } from 'node:fs'
+import { Readable } from 'node:stream'
 import { fileURLToPath } from 'node:url'
 import { resolve, dirname } from 'node:path'
 import assets from '#nitro/virtual/public-assets-data'
-export function readAsset (id) {
+export function readAsset (id, range) {
   const serverDir = dirname(fileURLToPath(globalThis.__nitro_main__))
+  const path = resolve(serverDir, assets[id].path)
   // Public dirs might be pruned after the build (uploaded to a CDN, sourcemaps
   // stripped), so a manifest entry with no file behind it reads as absent, not broken.
-  return fsp.readFile(resolve(serverDir, assets[id].path)).catch((error) => {
+  return (range ? readRange(path, range) : fsp.readFile(path)).catch((error) => {
     if (error?.code !== 'ENOENT') { throw error }
   })
+}
+// Opened before streaming so a missing file still reads as absent
+async function readRange (path, { start, end }) {
+  const handle = await fsp.open(path)
+  return Readable.toWeb(handle.createReadStream({ start, end }))
 }`;
       },
     },

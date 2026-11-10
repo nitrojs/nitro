@@ -5,9 +5,11 @@ import type {
   Nitro,
   NitroConfig,
   NitroDynamicConfig,
+  NitroBuildConfig,
   NitroHooks,
+  RollupConfig,
 } from "nitro/types";
-import { version as nitroVersion } from "nitro/meta";
+import { version as nitroVersion } from "#nitro/meta";
 import { loadOptions } from "./config/loader.ts";
 import { updateNitroConfig } from "./config/update.ts";
 import { installModules } from "./module.ts";
@@ -24,6 +26,9 @@ export async function createNitro(
 
   // Create nitro context
   const hooks = new Hookable<NitroHooks>();
+  hooks.deprecateHooks({ "rollup:reload": { to: "build:reload" } });
+  hooks.hook("build:config", callRollupBeforeHooks);
+  let closePromise: Promise<void> | undefined;
   const nitro: Nitro = {
     meta: {
       version: nitroVersion,
@@ -38,9 +43,9 @@ export async function createNitro(
     fetch: () => {
       throw new Error("no dev server attached!");
     },
-    close: () => Promise.resolve(nitro.hooks.callHook("close")),
+    close: () => (closePromise ??= Promise.resolve(nitro.hooks.callHook("close"))),
     async updateConfig(config: NitroDynamicConfig) {
-      updateNitroConfig(nitro, config);
+      await updateNitroConfig(nitro, config);
     },
   };
 
@@ -77,4 +82,37 @@ export async function createNitro(
   nitro.routing.sync();
 
   return nitro;
+}
+
+let _rollupBeforeWarned = false;
+let _rollupBeforeSkipWarned = false;
+
+function callRollupBeforeHooks(nitro: Nitro, config: NitroBuildConfig) {
+  return nitro.hooks.callHookWith(
+    async (fns, args) => {
+      if (fns.length === 0) {
+        return;
+      }
+      if (config.builder === "rspack" || config.builder === "bun") {
+        if (!_rollupBeforeSkipWarned) {
+          _rollupBeforeSkipWarned = true;
+          nitro.logger.warn(
+            `The deprecated \`rollup:before\` hook is not called with the \`${config.builder}\` builder. Use \`build:config\` instead.`
+          );
+        }
+        return;
+      }
+      if (!_rollupBeforeWarned) {
+        _rollupBeforeWarned = true;
+        nitro.logger.warn(
+          "The `rollup:before` hook is deprecated. Use `build:config` instead (the config is passed as `{ rollup }`, `{ rolldown }`, `{ rspack }` or `{ bun }`)."
+        );
+      }
+      for (const fn of fns) {
+        await fn(...args);
+      }
+    },
+    "rollup:before",
+    [nitro, (config.rollup ?? config.rolldown) as RollupConfig]
+  );
 }

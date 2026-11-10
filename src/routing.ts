@@ -3,10 +3,11 @@ import type { RouterContext } from "rou3";
 import type { CompileRouterToStringOptions } from "rou3/compiler";
 
 import { join } from "pathe";
-import { runtimeDir } from "nitro/meta";
+import { runtimeDir } from "#nitro/meta";
 import { normalizeRoute } from "h3";
 import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";
+import { joinURL } from "ufo";
 import { hash } from "./utils/hash.ts";
 
 const isGlobalMiddleware = (h: NitroEventHandler) => !h.method && (!h.route || h.route === "/**");
@@ -101,6 +102,18 @@ export function initNitroRouting(nitro: Nitro) {
         middleware: true,
         handler: join(runtimeDir, "internal/static"),
       });
+    } else {
+      for (const asset of nitro.options.publicAssets) {
+        if (asset.fallthrough || !asset.baseURL || asset.baseURL === "/") {
+          continue;
+        }
+        _middleware.unshift({
+          route: joinURL(asset.baseURL, ":path+"),
+          method: "GET",
+          middleware: true,
+          handler: join(runtimeDir, "internal/static-missing"),
+        });
+      }
     }
     globalMiddleware.splice(
       0,
@@ -110,11 +123,13 @@ export function initNitroRouting(nitro: Nitro) {
     routedMiddleware._update(
       _middleware
         .filter((h) => !isGlobalMiddleware(h))
-        .map((h) => ({
-          ...h,
-          method: h.method || "",
-          data: handlerWithImportHash(h),
-        }))
+        .flatMap((h) => {
+          const route = { ...h, method: h.method || "", data: handlerWithImportHash(h) };
+          // `HEAD` requests are served by `GET` routes, so they run `GET` middleware too
+          return route.method.toUpperCase() === "GET"
+            ? [route, { ...route, method: "HEAD" }]
+            : [route];
+        })
     );
   };
 
@@ -128,8 +143,10 @@ export function initNitroRouting(nitro: Nitro) {
 }
 
 function handlerWithImportHash(h: NitroEventHandler) {
-  const id = (h.lazy ? "_lazy_" : "_") + hash(h.handler);
-  return { ...h, _importHash: id };
+  // Handlers registered after options are resolved may still use windows separators
+  const handler = h.handler.replace(/\\/g, "/");
+  const id = (h.lazy ? "_lazy_" : "_") + hash(handler);
+  return { ...h, handler, _importHash: id };
 }
 
 // --- Router ---

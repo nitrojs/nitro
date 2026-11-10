@@ -13,7 +13,7 @@ export default function routingMeta(nitro: Nitro) {
       // Virtual handlers have no source to read the meta from
       h.handler in nitro.options.virtual
         ? /* js */ `const ${h._importHash}Meta = undefined;\nconst ${h._importHash}Schema = undefined;`
-        : /* js */ `import ${h._importHash}Meta, { routeSchema as ${h._importHash}Schema } from "${h.handler}?meta";`
+        : /* js */ `import ${h._importHash}Meta, { routeSchema as ${h._importHash}Schema } from ${JSON.stringify(h.handler + "?meta")};`
     )
     .join("\n")}
 export const handlersMeta = [

@@ -1,11 +1,13 @@
 import type { Plugin, ResolvedId } from "rollup";
 import { pathRegExp } from "../../utils/regex.ts";
-import { runtimeDependencies, runtimeDir } from "nitro/meta";
+import { runtimeDependencies, runtimeDir } from "#nitro/meta";
 
 export type VirtualModule = {
   id: string;
   moduleSideEffects?: boolean;
   template: string | (() => string | Promise<string>);
+  /** Files the module is rendered from: rebuilt (in development) when they change. */
+  watchFiles?: () => string[];
 };
 
 export function virtual(input: VirtualModule[]): Plugin {
@@ -46,10 +48,13 @@ export function virtual(input: VirtualModule[]): Plugin {
     load: {
       order: "pre",
       filter: { id: include },
-      handler: async (id) => {
+      async handler(id) {
         const mod = modules.get(id);
         if (!mod) {
           return null;
+        }
+        for (const file of mod.module.watchFiles?.() || []) {
+          this.addWatchFile(file);
         }
         return {
           code: await mod.render(),

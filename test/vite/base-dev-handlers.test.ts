@@ -59,6 +59,25 @@ describe.each(["/", "/app/"])("vite:dev handlers under base (baseURL: %s)", (bas
     }
   });
 
+  test("routes asset-like requests to a routed dev middleware", async () => {
+    for (const [path, fetchDest] of [
+      [url("/_assets/mw/a"), undefined],
+      [url("/_assets/mw/a"), "font"],
+      [url("/_assets/mw/a.woff2"), undefined],
+      [url("/_assets/mw/a.woff2"), "font"],
+      [url("/_assets/mw/a.js"), "script"],
+    ]) {
+      const headers: Record<string, string> = { accept: "*/*" };
+      if (fetchDest) {
+        headers["sec-fetch-dest"] = fetchDest;
+      }
+      const response = await fetch(`${serverURL}${path}`, { headers, redirect: "manual" });
+      const label = `${path} (sec-fetch-dest: ${fetchDest})`;
+      expect(response.status, label).toBe(200);
+      expect(await response.text(), label).toBe(`probe:${path}`);
+    }
+  });
+
   test("routes asset-like requests to a dev proxy", async () => {
     const path = url("/_assets/upstream/a.woff2");
     const response = await fetch(`${serverURL}${path}`, {

@@ -1,7 +1,7 @@
 import type { Nitro, RollupConfig } from "nitro/types";
 import type { RollupOptions, RollupWatcher } from "rollup";
 import { defu } from "defu";
-import { basename, join } from "pathe";
+import { basename, join, resolve } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
 import { createWatcher } from "../../utils/watch.ts";
@@ -10,6 +10,7 @@ import { formatCompatibilityDate } from "compatx";
 import { importRollup } from "./_import.ts";
 
 export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
+  const entry = resolve(nitro.options.output.serverDir, "index.mjs");
   const rollup = await importRollup(nitro);
 
   let rollupWatcher: RollupWatcher;
@@ -57,7 +58,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
     rootDirWatcher.close();
   });
 
-  nitro.hooks.hook("rollup:reload", () => reload());
+  nitro.hooks.hook("build:reload", () => reload());
 
   nitro.logger.info(
     `Starting dev watcher (builder: \`rollup\`, preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
@@ -89,7 +90,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
           if (nitro.options.logging.buildSuccess) {
             nitro.logger.success(`Server built`, start ? `in ${Date.now() - start}ms` : "");
           }
-          nitro.hooks.callHook("dev:reload");
+          nitro.hooks.callHook("dev:reload", { entry });
           break;
         }
         case "ERROR": {

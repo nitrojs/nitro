@@ -20,7 +20,7 @@ const { statusCode, headers, body } = handler({ rawPath: '/' })
 
 ## Inlining chunks
 
-By default, Nitro output uses dynamic chunks to lazy-load code only when needed. However, this is not always ideal for performance (see the discussion in [nitrojs/nitro#650](https://github.com/nitrojs/nitro/pull/650)). You can enable chunk inlining using the [`inlineDynamicImports`](/config#inlinedynamicimports) config.
+By default, Nitro output uses dynamic chunks to lazy-load code only when needed. However, this is not always ideal for performance (see the discussion in [nitrojs/nitro#650](https://github.com/nitrojs/nitro/pull/650)). You can enable chunk inlining using the [`inlineDynamicImports`](/config/build#inlinedynamicimports) config.
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";

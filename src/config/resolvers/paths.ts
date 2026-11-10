@@ -1,5 +1,5 @@
 import { prettyPath, resolveNitroPath } from "../../utils/fs.ts";
-import { runtimeDir } from "nitro/meta";
+import { runtimeDir } from "#nitro/meta";
 import type { NitroOptions, NitroConfig } from "nitro/types";
 import { join, resolve } from "pathe";
 import { findWorkspaceDir } from "pkg-types";
@@ -92,6 +92,7 @@ export async function resolvePathOptions(options: NitroOptions) {
     } else {
       const detected = resolveModulePath("./server", {
         try: true,
+        cache: false,
         from:
           options.serverDir && options.serverDir !== options.rootDir
             ? [options.serverDir, options.rootDir]
@@ -140,6 +141,7 @@ export async function resolvePathOptions(options: NitroOptions) {
         from: [options.rootDir, ...options.scanDirs],
         extensions: [".html"],
         try: true,
+        cache: false,
       });
       if (defaultIndex) {
         options.renderer ??= {};

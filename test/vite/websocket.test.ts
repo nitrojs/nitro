@@ -78,6 +78,13 @@ async function echo(command: string, args: string[]) {
     expect(await collectMessages(new URL("/ws", url!.replace(/^http/, "ws")).href), output).toEqual(
       ["ready", "echo:hi"]
     );
+    // #3925: browsers fail the handshake unless the server accepts one of the offered subprotocols
+    expect(
+      await negotiateProtocol(new URL("/ws-protocol", url!.replace(/^http/, "ws")).href, [
+        "graphql-transport-ws",
+      ]),
+      output
+    ).toBe("graphql-transport-ws");
   } finally {
     child.kill("SIGKILL");
   }
@@ -106,6 +113,26 @@ function collectMessages(url: string): Promise<string[]> {
       if (messages.length >= 2) {
         done();
       }
+    });
+  });
+}
+
+// Opens a connection offering `protocols` and resolves with the subprotocol the server accepted.
+function negotiateProtocol(url: string, protocols: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url, protocols);
+    const timer = setTimeout(() => {
+      ws.close();
+      reject(new Error("Timed out waiting for the WebSocket handshake"));
+    }, 20_000);
+    ws.addEventListener("open", () => {
+      clearTimeout(timer);
+      resolve(ws.protocol);
+      ws.close();
+    });
+    ws.addEventListener("error", () => {
+      clearTimeout(timer);
+      reject(new Error("WebSocket handshake failed"));
     });
   });
 }

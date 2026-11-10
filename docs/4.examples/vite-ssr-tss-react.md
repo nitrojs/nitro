@@ -21,23 +21,23 @@ icon: i-simple-icons-tanstack
     "start": "node .output/server/index.mjs"
   },
   "dependencies": {
-    "@tanstack/react-router": "^1.168.8",
-    "@tanstack/react-router-devtools": "^1.166.11",
-    "@tanstack/react-start": "^1.167.13",
+    "@tanstack/react-router": "^1.170.46",
+    "@tanstack/react-router-devtools": "^1.167.3",
+    "@tanstack/react-start": "^1.169.5",
     "nitro": "latest",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "tailwind-merge": "^3.5.0",
-    "zod": "^4.3.6"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwind-merge": "^3.7.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.2.2",
+    "@tailwindcss/vite": "^4.3.5",
     "@types/node": "latest",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "tailwindcss": "^4.2.2",
-    "typescript": "^6.0.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^7.0.2",
     "vite": "latest"
   }
 }
@@ -80,6 +80,10 @@ export default defineConfig({
     ssr: { build: { rollupOptions: { input: "./server.ts" } } },
   },
 });
+```
+
+```js [public/customScript.js]
+console.log("customScript.js loaded");
 ```
 
 ```tsx [src/router.tsx]
@@ -201,7 +205,7 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
-    scripts: [{ src: "/customScript.js", type: "text/javascript" }],
+    scripts: [{ src: `${import.meta.env.BASE_URL}customScript.js`, type: "text/javascript" }],
   }),
   errorComponent: () => <h1>500: Internal Server Error</h1>,
   notFoundComponent: () => <h1>404: Page Not Found</h1>,

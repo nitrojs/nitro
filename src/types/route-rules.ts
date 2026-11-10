@@ -97,6 +97,8 @@ export interface VercelISRConfig {
   /**
    * (vercel)
    * When `true`, the query string will be present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies.
+   *
+   * Defaults to `true` when `allowQuery` is a non-empty list, so the listed params reach the handler. Set to `false` to opt out.
    */
   passQuery?: boolean;
 

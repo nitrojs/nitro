@@ -47,7 +47,8 @@ export default defineConfig({
     "build": "nitro build"
   },
   "devDependencies": {
-    "nitro": "latest"
+    "nitro": "latest",
+    "rolldown": "latest"
   }
 }
 ```

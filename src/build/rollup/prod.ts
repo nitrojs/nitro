@@ -4,6 +4,7 @@ import { scanHandlers } from "../../scan.ts";
 import { generateFSTree } from "../../utils/fs-tree.ts";
 import { writeBuildInfo } from "../info.ts";
 import { formatRollupError } from "./error.ts";
+import { compressPublicAssets } from "../../utils/compress.ts";
 import type { RollupOptions, RollupOutput } from "rollup";
 import { importRollup } from "./_import.ts";
 
@@ -13,6 +14,10 @@ export async function buildProduction(nitro: Nitro, rollupConfig: RollupConfig) 
   const buildStartTime = Date.now();
 
   await scanHandlers(nitro);
+
+  if (nitro.options.compressPublicAssets) {
+    await compressPublicAssets(nitro);
+  }
 
   let output: RollupOutput | undefined;
   if (!nitro.options.static) {

@@ -14,8 +14,9 @@ Nitro is a framework-agnostic and deployment-agnostic server framework powered b
 - `pnpm build` — Full build (`pnpm gen-presets && obuild`).
 - `pnpm lint` — Check lint and formatting (`oxlint` + `oxfmt --check`).
 - `pnpm fmt` — Auto-fix lint and formatting (`automd` + `oxlint --fix` + `oxfmt`).
-- `pnpm test` — Full pipeline: `lint && build && typecheck && test:rollup && test:rolldown` (runs vitest against both the rollup and rolldown builders).
+- `pnpm test` — Full pipeline: `lint && build && typecheck && test:rollup && test:rolldown && test:rspack` (runs vitest against the rollup, rolldown and rspack builders).
 - `pnpm test:rollup` / `pnpm test:rolldown` — Run vitest against a single builder (`NITRO_BUILDER`).
+- `pnpm test:rspack` — Same for the experimental `rspack` builder.
 - `pnpm typecheck` — Type-check with the TypeScript native-preview compiler (`tsgo --noEmit --skipLibCheck`).
 
 **Always run** `pnpm fmt` and `pnpm typecheck` after making changes.
@@ -67,12 +68,15 @@ from the user project via `src/utils/dep.ts` (`ensureDep` / `importDep` / `isDep
 resolves from `nitro.options.rootDir` and offers to install what is missing.
 
 - Don't add a `peerDependencies` entry. Add the package to `devDependencies` (for tests and types)
-  and import it with `importDep({ id, dir: nitro.options.rootDir, reason })`.
-- Keep the package listed in `optionalDeps` in `build.config.ts` so it stays external.
+  and to the `deps.json` manifest (supported `version` range, `reason` and install defaults, typed
+  in `src/utils/_deps.ts`), then import it with `importDep({ id, dir: nitro.options.rootDir, paths: nitro.options.deps?.paths })`
+  (`paths` honours the explicit packages of the `deps.paths` option, e.g. passed by frameworks).
+- Manifest entries are kept external in `build.config.ts`. A unit test checks that each range covers
+  the `devDependencies` version: after bumping one out of its range, run `pnpm sync-deps`.
 - `import type` from such a package is fine; only value imports must go through `utils/dep.ts`.
 - Optional dependencies of the libraries Nitro *bundles* (e.g. `jiti` for `c12`) cannot resolve from
-  `dist/`. Those get a bundle-time alias to a shim in `src/shims/` (see `shimmedDeps` in
-  `build.config.ts`).
+  `dist/`. Those are not in the manifest: they get a bundle-time alias to a shim in `src/shims/`
+  (one file per package), with a range within the one of the bundled library (`shims` in `deps.json`).
 - Nitro has no peer dependencies at all: `vite` is imported from the user project too
   (`src/build/vite/_import.ts`). Its `DevEnvironment` subclass is therefore defined lazily, against
   the class of the resolved instance (see `src/build/vite/dev.ts`).

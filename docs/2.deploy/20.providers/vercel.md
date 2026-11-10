@@ -29,6 +29,29 @@ Vercel supports Nitro with zero configuration. [Deploy Nitro to Vercel now](http
 
 Nitro's top-level `/api` directory isn't compatible with Vercel. Use the `routes/api/` directory instead.
 
+## Runtime
+
+:read-more{title="Vercel" to="https://vercel.com/docs/functions/runtimes/node-js/node-js-versions"}
+
+Nitro checks these sources, in order, to pick the runtime of the server function:
+
+1. `vercel.functions.runtime` in your Nitro config.
+2. `engines` in `package.json`. `engines.node` selects the newest supported Node.js version that matches the range, and `engines.bun` selects Bun. When both are set, Bun is only used if `vercel.json` also sets `bunVersion`. If no supported version matches `engines.node`, Nitro logs a warning and uses the build's Node.js major version, clamped as in step 4, even when building with Bun.
+3. `bunVersion` in `vercel.json`.
+4. The runtime running the build: Bun when building with Bun, otherwise the build's Node.js major version, clamped to the versions Vercel supports.
+
+Vercel supports Node.js 22, 24, and 26. A build on Node.js 23 or 25 uses the next supported version, and a build on a newer version uses `26`.
+
+Steps 2 and 3 follow the same precedence as Vercel.
+
+```json [package.json]
+{
+  "engines": {
+    "node": "24.x"
+  }
+}
+```
+
 ## Bun runtime
 
 :read-more{title="Vercel" to="https://vercel.com/docs/functions/runtimes/bun"}
@@ -47,7 +70,7 @@ export default defineConfig({
 })
 ```
 
-Alternatively, Nitro also detects Bun automatically if you specify a `bunVersion` property in your `vercel.json`:
+Alternatively, Nitro also detects Bun automatically if you specify `engines.bun` in your `package.json` or a `bunVersion` property in your `vercel.json`:
 
 ```json [vercel.json]
 {
@@ -55,6 +78,10 @@ Alternatively, Nitro also detects Bun automatically if you specify a `bunVersion
   "bunVersion": "1.x"
 }
 ```
+
+If your `package.json` also sets `engines.node`, Node.js is used unless both `engines.bun` and `bunVersion` are set (see [Runtime](#runtime)).
+
+Nitro uses `engines.bun` before `bunVersion` to select the Bun version. Ranges that require Bun 1.4, such as `1.4.x`, `^1.4.0`, and `>=1.4`, select `bun1.4.x`. Ranges that also allow older minor versions, such as `1.x` or `>=1`, keep `bun1.x`, following Vercel's explicit opt-in for minor versions. Invalid or unsupported ranges fail the build.
 
 ## Per-route function configuration
 
@@ -88,6 +115,38 @@ export default defineConfig({
 ```
 
 Route patterns support wildcards via [rou3](https://github.com/h3js/rou3) matching (e.g., `/api/slow/**` matches all routes under `/api/slow/`).
+
+### Excluding files from functions
+
+Each `functionRules` route gets a full copy of the server output. Use `excludeFiles` to remove large dependencies a function never loads.
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  vercel: {
+    functions: {
+      // Removed from the main function and every `functionRules` function
+      excludeFiles: ["node_modules/@scope/native-binary-*/**"],
+    },
+    functionRules: {
+      // Replaces the base value, so this function keeps every file
+      "/api/agent": { maxDuration: "max", excludeFiles: [] },
+    },
+  },
+});
+```
+
+- Patterns match the built function output (`index.mjs`, `_chunks/`, `node_modules/`), not source paths.
+- `!pattern` keeps files, and a directory name (e.g. `node_modules/sharp`) removes all of it.
+- A rule's value replaces the base value instead of merging with it.
+- Matching the handler (`index.mjs`) fails the build, and a pattern that matches nothing logs a warning.
+- Symlinks are not followed. A package bundled in several versions lives in `node_modules/.nf3/<name>@<version>/`, so match both (e.g. `node_modules/{,.nf3/}@scope/pkg{,@*}/**`).
+- Dependencies that only an excluded package imports are kept. List them too.
+
+::warning
+Make sure a function never loads a file excluded from it at runtime.
+::
 
 ## Proxy route rules
 
@@ -157,6 +216,45 @@ To prevent unauthorized access to the cron handler, set a `CRON_SECRET` environm
 
 ::warning
 `CRON_SECRET` is **not** set by default. Matching [Vercel's own behaviour](https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs), the cron endpoint (`/_vercel/cron`, configurable via [`vercel.cronHandlerRoute`](#other-preset-options)) performs no authentication when the variable is missing. Anyone who knows the route can then pick a schedule with the `x-vercel-cron-schedule` header and run the tasks registered for it on demand. Always set `CRON_SECRET` when using `scheduledTasks` on Vercel.
+::
+
+### Vercel Schedules
+
+:read-more{title="Vercel Schedules" to="https://vercel.com/docs/schedules"}
+
+::warning
+Vercel Schedules is in beta and must be enabled for your Vercel team.
+::
+
+You can run your `scheduledTasks` with [Vercel Schedules](https://vercel.com/docs/schedules) instead of Cron Jobs. Your tasks and `scheduledTasks` config stay the same. Enable it in your Nitro config, or with the `NITRO_VERCEL_SCHEDULES=private` environment variable:
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  vercel: {
+    schedules: "private",
+  },
+});
+```
+
+There are two modes:
+
+- **`"private"`** (recommended): schedules invoke a private `_vercel/tasks` function. It has no public route and only Vercel Schedules can invoke it, so you don't need `CRON_SECRET`. Requests to `/_vercel/tasks` that reach your public server get a `404`. To configure the function, for example its `maxDuration`, use [`vercel.functionRules`](#per-route-function-configuration) with the `/_vercel/tasks` key.
+- **`"public"`**: schedules invoke the public cron route (`/_vercel/cron`, or [`vercel.cronHandlerRoute`](#other-preset-options)) with a `GET` request, like Cron Jobs. Use it if you also call that route yourself: direct requests keep working as with Cron Jobs, and `CRON_SECRET` is still checked. Set `CRON_SECRET`, otherwise anyone who can reach the route can run your scheduled tasks.
+
+Compared to Cron Jobs:
+
+- Each task gets its own schedule, named after the task. Characters Vercel does not allow become `.`, so `db:cleanup` becomes `db.cleanup`. A task with several cron expressions gets a suffix per expression.
+- Each task runs in its own invocation, so one failing task does not affect the others.
+- `payload.scheduledTime` is the time the invocation started, like with Cron Jobs. Failed invocations are not retried.
+
+#### Local development
+
+Under `vercel dev`, the local Schedules broker runs your scheduled tasks instead of the in-process scheduler, and `vercel schedules invoke <name> --local` runs one on demand. This requires `nitro dev` to use the Vercel preset, so set `preset: "vercel"` in your Nitro config (or `NITRO_PRESET=vercel`). Otherwise, and with plain `nitro dev`, scheduled tasks keep running in-process.
+
+::note
+Like `/_nitro/tasks`, the routes that `vercel dev` uses to discover and run your scheduled tasks only accept local requests.
 ::
 
 ## Queues
@@ -291,10 +389,6 @@ Falling-through directories are unaffected, including the top-level `public/` di
 
 ## Immutable static files
 
-::important
-This feature is currently only available in the [nightly release channel](/docs/nightly) of Nitro v3.
-::
-
 <!-- :read-more{title="Immutable static files" to="https://vercel.com/docs/skew-protection"} -->
 
 Client build assets (such as JS and CSS chunks) can be emitted as **immutable static files**. These are served from the reserved `/_vercel/immutable/` path so they are shared across deployments and keep resolving even after a newer deployment no longer references them, improving cross-deployment caching.
@@ -332,9 +426,9 @@ Client build setups and frameworks must apply `nitro.options.buildAssetsDir` the
 Additional options are available under the `vercel` key in your Nitro config:
 
 - `entryFormat`: Handler format for Vercel Functions. `"web"` (default) or `"node"`. The `node` format enables compatibility with Node.js specific APIs (e.g., `req.runtime.node`).
-- `regions`: List of [regions](https://vercel.com/docs/concepts/functions/edge-functions#edge-function-regions) for edge functions.
 - `skewProtection`: Set to `false` to disable the Nitro [skew protection](https://vercel.com/docs/skew-protection) integration (enabled by default when skew protection is enabled in the Vercel dashboard).
 - `cronHandlerRoute`: Route path for the Vercel cron handler endpoint used with `scheduledTasks` (default: `"/_vercel/cron"`).
+- `schedules` (experimental): Run `scheduledTasks` with [Vercel Schedules](#vercel-schedules) instead of Cron Jobs, `"private"` or `"public"` (default: the `NITRO_VERCEL_SCHEDULES` environment variable).
 
 ## On-demand incremental static regeneration (ISR)
 
@@ -367,7 +461,7 @@ To revalidate a page on demand:
 
 ### Fine-grained ISR config via route rules
 
-By default, query params affect cache keys but are not passed to the route handler unless specified.
+By default, query params affect cache keys but are not passed to the route handler. When `allowQuery` lists params, Nitro also enables `passQuery` so the handler sees them.
 
 You can pass an options object to the `isr` route rule to configure caching behavior:
 
@@ -377,7 +471,7 @@ You can pass an options object to the `isr` route rule to configure caching beha
   - If an empty array, query values are not considered for caching.
   - If `undefined`, each unique query value is cached independently.
   - For wildcard `/**` route rules, `url` is always added.
-- `passQuery`: When `true`, the query string is present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies.
+- `passQuery`: When `true`, the query string is present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies. Defaults to `true` when `allowQuery` is a non-empty list, so the listed params reach the handler. Set it to `false` to opt out.
 - `exposeErrBody`: When `true`, expose the response body regardless of status code, including error status codes (default: `false`).
 
 ```ts [nitro.config.ts]
@@ -388,7 +482,6 @@ export default defineConfig({
     "/products/**": {
       isr: {
         allowQuery: ["q"],
-        passQuery: true,
         exposeErrBody: true
       },
     },

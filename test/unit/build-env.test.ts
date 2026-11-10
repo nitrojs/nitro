@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "pathe";
 import { describe, expect, it, vi } from "vitest";
 import type { Nitro, NitroOptions } from "nitro/types";
 import { legacyUnenvLayers, resolveUnenv } from "../../src/config/resolvers/unenv.ts";
@@ -5,6 +8,13 @@ import { resolveBuildEnv } from "../../src/build/env.ts";
 
 const warn = vi.hoisted(() => vi.fn());
 vi.mock("consola", () => ({ default: { warn } }));
+
+const resolveAlias = vi.hoisted(() => vi.fn());
+vi.mock("pathe/utils", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("pathe/utils")>();
+  resolveAlias.mockImplementation(mod.resolveAlias);
+  return { ...mod, resolveAlias };
+});
 
 function createOptions(options: Partial<NitroOptions> = {}): NitroOptions {
   return {
@@ -60,8 +70,54 @@ describe("resolveBuildEnv", () => {
     expect(env.alias["buffer/"]).toBe("node:buffer");
     expect(env.alias["node:fs"]).toBeUndefined();
     expect(env.inject).toEqual({});
-    expect(env.polyfills).toEqual([]);
+    expect(env.polyfills).toEqual([
+      expect.stringMatching(/runtime\/internal\/polyfills\/fast-response\.(ts|mjs)$/),
+    ]);
     expect(env.external).toEqual(["my-external"]);
+  });
+
+  it("respects `features.fastResponse`", async () => {
+    const disabled = await resolveBuildEnv(createNitro({ features: { fastResponse: false } }));
+    expect(disabled.polyfills).toEqual([]);
+    const enabled = await resolveBuildEnv(
+      createNitro({ node: false, features: { fastResponse: true } })
+    );
+    expect(enabled.polyfills.some((p) => p.includes("fast-response"))).toBe(true);
+  });
+
+  it("aliases `nitro` imports to the running package when the project resolves another one", async () => {
+    // e.g. the nightly (`nitro-nightly`) package installed next to another `nitro` version
+    const rootDir = mkdtempSync(join(tmpdir(), "nitro-env-"));
+    try {
+      const otherDir = join(rootDir, "node_modules/nitro");
+      mkdirSync(join(otherDir, "dist/runtime"), { recursive: true });
+      writeFileSync(
+        join(otherDir, "package.json"),
+        JSON.stringify({
+          name: "nitro",
+          type: "module",
+          exports: { ".": "./dist/runtime/nitro.mjs" },
+        })
+      );
+      writeFileSync(join(otherDir, "dist/runtime/nitro.mjs"), "");
+      const env = await resolveBuildEnv(createNitro({ rootDir }));
+      expect(env.alias.nitro).toBe(join(process.cwd(), "dist/runtime/nitro.mjs"));
+      expect(env.alias["nitro/app"]).toBe(join(process.cwd(), "dist/runtime/app.mjs"));
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
+  it("aliases `nitro` imports when the project cannot resolve it", async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), "nitro-env-"));
+    try {
+      const env = await resolveBuildEnv(createNitro({ rootDir }));
+      expect(env.alias.nitro).toBe(join(process.cwd(), "dist/runtime/nitro.mjs"));
+      expect(env.alias["nitro/h3"]).toBe(join(process.cwd(), "lib/h3.mjs"));
+      expect(env.alias["nitro/package.json"]).toBe(join(process.cwd(), "package.json"));
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
   });
 
   it("adds node compatibility for `node: false` builds", async () => {
@@ -97,7 +153,10 @@ describe("resolveBuildEnv", () => {
 
   it("resolves relative ids from `rootDir`", async () => {
     const env = await resolveBuildEnv(
-      createNitro({ polyfills: ["./src/build/env.ts", "./does-not-exist.ts"] })
+      createNitro({
+        features: { fastResponse: false },
+        polyfills: ["./src/build/env.ts", "./does-not-exist.ts"],
+      })
     );
     expect(env.polyfills).toEqual([`${process.cwd()}/src/build/env.ts`, "./does-not-exist.ts"]);
   });
@@ -108,5 +167,15 @@ describe("resolveBuildEnv", () => {
     const env = await resolveBuildEnv(nitro);
     expect(env.external).toEqual(["late-external"]);
     expect(await resolveBuildEnv(nitro)).toEqual(env);
+  });
+
+  it("normalizes the alias map once", async () => {
+    resolveAlias.mockClear();
+    await resolveBuildEnv(createNitro({ node: false }));
+    const maps = new Set(resolveAlias.mock.calls.map(([, aliases]) => aliases));
+    expect(resolveAlias.mock.calls.length).toBeGreaterThan(1);
+    expect(maps.size).toBe(1);
+    const [aliases] = maps;
+    expect(aliases[Symbol.for("pathe:normalizedAlias")]).toBe(true);
   });
 });

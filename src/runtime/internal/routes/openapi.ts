@@ -1,7 +1,7 @@
 import { defineHandler, getRequestURL } from "h3";
 import type { EventHandler, HTTPMethod } from "h3";
 import type {
-  Extensable,
+  Extensible,
   OpenAPI3,
   OperationObject,
   ParameterObject,
@@ -31,7 +31,7 @@ export default defineHandler(async (event) => {
     globals: { components, ...globalsRest },
   } = await getHandlersMeta();
 
-  const extensible: Extensable = Object.fromEntries(
+  const extensible: Extensible = Object.fromEntries(
     Object.entries(globalsRest).filter(([key]) => key.startsWith("x-"))
   );
 
@@ -55,7 +55,7 @@ export default defineHandler(async (event) => {
   } satisfies OpenAPI3;
 }) as EventHandler;
 
-type OpenAPIGlobals = Pick<OpenAPI3, "components"> & Extensable;
+type OpenAPIGlobals = Pick<OpenAPI3, "components"> & Extensible;
 
 async function getHandlersMeta(): Promise<{
   paths: PathsObject;
@@ -99,12 +99,6 @@ async function getHandlersMeta(): Promise<{
     const item: PathItemObject = {
       [method]: {
         tags,
-        parameters: requestParameters.map((parameter, index) => ({
-          ...parameter,
-          schema: withSchemaPath(parameter.schema, {
-            path: `${schemaPath}/parameters/${index}/schema`,
-          }),
-        })),
         ...(requestBodySchema && {
           requestBody: {
             required: true,
@@ -128,6 +122,17 @@ async function getHandlersMeta(): Promise<{
           },
         },
         ...openAPI,
+        parameters: mergeParameters(requestParameters, openAPI.parameters)?.map(
+          (parameter, index) =>
+            requestParameters.includes(parameter as ParameterObject)
+              ? {
+                  ...parameter,
+                  schema: withSchemaPath((parameter as ParameterObject).schema, {
+                    path: `${schemaPath}/parameters/${index}/schema`,
+                  }),
+                }
+              : parameter
+        ),
       } as OperationObject,
     };
 
@@ -151,6 +156,7 @@ function normalizeRoute(_route: string) {
 
   let anonymousCtr = 0;
   const route = _route
+    .replace(/:(\w+)\(\.\*\)/g, (_, name) => `{${name}}`)
     .replace(/:(\w+)/g, (_, name) => `{${name}}`)
     .replace(/\/(\*)\//g, () => `/{param${++anonymousCtr}}/`)
     .replace(/\*\*{/, "{")
@@ -260,4 +266,19 @@ function hasLocalReference(value: any, options: { root?: boolean } = {}): boolea
       (!options.root || !/^#\/(?:\$defs|definitions)\//.test(value.$ref))) ||
     Object.values(value).some((item) => hasLocalReference(item, options))
   );
+}
+
+function mergeParameters(
+  inferred: ParameterObject[],
+  configured: OperationObject["parameters"]
+): OperationObject["parameters"] {
+  if (!configured?.length) {
+    return inferred;
+  }
+  return [
+    ...inferred.filter(
+      (p) => !configured.some((c) => "name" in c && c.name === p.name && c.in === p.in)
+    ),
+    ...configured,
+  ];
 }

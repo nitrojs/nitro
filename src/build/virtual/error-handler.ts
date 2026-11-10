@@ -1,5 +1,5 @@
 import type { Nitro } from "nitro/types";
-import { runtimeDir } from "nitro/meta";
+import { runtimeDir } from "#nitro/meta";
 import { join } from "pathe";
 
 export default function errorHandler(nitro: Nitro) {

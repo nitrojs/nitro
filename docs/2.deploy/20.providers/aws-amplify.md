@@ -31,7 +31,7 @@ export default defineConfig({
       // catchAllStaticFallback: true,
       // imageOptimization: { path: "/_image", cacheControl: "public, max-age=3600, immutable" },
       // imageSettings: { ... },
-      // runtime: "nodejs24.x", // default: "nodejs20.x" | "nodejs22.x" | "nodejs24.x"
+      // runtime: "nodejs24.x", // "nodejs20.x" | "nodejs22.x" (default) | "nodejs24.x"
   }
 })
 ```

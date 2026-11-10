@@ -119,9 +119,9 @@ icon: i-material-symbols-html
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.2.2",
+    "@tailwindcss/vite": "^4.3.5",
     "nitro": "latest",
-    "tailwindcss": "^4.2.2",
+    "tailwindcss": "^4.3.5",
     "vite": "latest"
   }
 }

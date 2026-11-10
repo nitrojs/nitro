@@ -27,7 +27,8 @@ export default defineConfig({});
   },
   "devDependencies": {
     "nano-jsx": "^0.2.1",
-    "nitro": "latest"
+    "nitro": "latest",
+    "rolldown": "latest"
   }
 }
 ```

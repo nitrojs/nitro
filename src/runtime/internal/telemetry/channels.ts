@@ -128,4 +128,15 @@ export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
       },
     ])
   ),
+  "db0.query"(channel: string, data: unknown): SpanInfo {
+    // The query text is left out: `exec()` queries can inline user data.
+    const { method, dialect } = data as { method: string; dialect?: string };
+    const attributes: IKeyValue[] = [{ key: "db.operation", value: { stringValue: method } }];
+    if (dialect) attributes.push({ key: "db.system", value: { stringValue: dialect } });
+    return {
+      name: dialect ? `${method} ${dialect}` : method,
+      kind: SPAN_KIND_CLIENT,
+      attributes,
+    };
+  },
 };

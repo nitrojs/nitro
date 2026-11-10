@@ -13,6 +13,12 @@ const nitroApp = useNitroApp();
 
 const server = serve(resolveServeOptions({ fetch: nitroApp.fetch }));
 
+// srvx only sets `process.exitCode` on listen errors; other handles (e.g. scheduled tasks) would keep the process alive.
+server.ready().catch((error) => {
+  console.error("[nitro] Failed to start server:", error);
+  process.exit(1);
+});
+
 if (import.meta._websocket) {
   const { handleUpgrade } = wsAdapter({ resolve: resolveWebsocketHooks });
   server.node!.server!.on("upgrade", (req, socket, head) => {

@@ -18,4 +18,4 @@ The route imports the `sum` function using `~server/` and `rand` using `#server/
 
 ## Configuration
 
-Aliases can be configured in `package.json` imports field or `nitro.config.ts`.
+Aliases can be configured in `package.json` imports field, `compilerOptions.paths` of `tsconfig.json` or the `alias` option of `nitro.config.ts`.

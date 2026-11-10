@@ -1,18 +1,21 @@
 import type { Nitro } from "nitro/types";
 import { camelCase } from "scule";
-import { resolveConnectorDeps, resolveDatabaseConnections } from "../../utils/database.ts";
+import { resolveDatabaseConnections } from "../../utils/database.ts";
 import type { DatabaseConnection } from "../../utils/database.ts";
 import { isDepInstalled, isLibOption } from "../../utils/dep.ts";
 
 export default function database(nitro: Nitro) {
   return {
     id: "#nitro/virtual/database",
-    template: () => {
-      const connections = resolveDatabaseConnections(nitro.options);
+    template: async () => {
+      const connections = await resolveDatabaseConnections(nitro.options);
 
       if (connections.length === 0) {
-        return /* js */ `export const connectionConfigs = {};`;
+        return /* js */ `export const connectionConfigs = {};\nexport const traceDatabase = (db) => db;`;
       }
+
+      const tracingEnabled =
+        typeof nitro.options.tracingChannel === "object" && !!nitro.options.tracingChannel.db0;
 
       const connectorImports = new Map(connections.map((c) => [c.connector, c.module]));
 
@@ -20,6 +23,11 @@ export default function database(nitro: Nitro) {
 ${[...connectorImports]
   .map(([name, module]) => /* js */ `import ${camelCase(name)}Connector from "${module}";`)
   .join("\n")}
+${
+  tracingEnabled
+    ? /* js */ `export { withTracing as traceDatabase } from "db0/tracing";`
+    : /* js */ `export const traceDatabase = (db) => db;`
+}
 
 export const connectionConfigs = {
   ${connections
@@ -41,7 +49,7 @@ export const connectionConfigs = {
  * so that they are statically analyzable by the bundler.
  */
 function genConnectorOptions(nitro: Nitro, connection: DatabaseConnection) {
-  const libs = resolveConnectorDeps(connection.connector)
+  const libs = connection.deps
     .filter(
       (dep) =>
         isLibOption(dep.option) &&
