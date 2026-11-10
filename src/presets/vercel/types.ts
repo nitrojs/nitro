@@ -128,6 +128,22 @@ export interface VercelServerlessFunctionConfig {
    */
   experimentalTriggers?: VercelFunctionTrigger[];
 
+  /**
+   * Glob pattern(s) of files to remove from the function, matched against the built function
+   * output (`index.mjs`, `_chunks/`, `node_modules/`, ...), not source paths
+   * (e.g. `node_modules/sharp/**`). Patterns starting with `!` keep the files they match, and a
+   * pattern that names a directory removes all of it. The function handler cannot be removed.
+   *
+   * Symlinks are not followed: a pattern that matches a symlink removes the link only.
+   * Dependencies with multiple versions in the bundle are stored in `node_modules/.nf3/<name>@<version>/`.
+   * Removing a dependency doesn't remove the dependencies only it imports.
+   *
+   * Make sure the function never loads an excluded file at runtime.
+   *
+   * Nitro applies it at build time. It is not written to `.vc-config.json`.
+   */
+  excludeFiles?: string | string[];
+
   [key: string]: unknown;
 }
 

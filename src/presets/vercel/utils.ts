@@ -31,6 +31,7 @@ import type {
   VercelServerlessFunctionConfig,
 } from "./types.ts";
 import { ISR_URL_PARAM } from "./runtime/isr.ts";
+import { createFileExcluder, type FileExcluder } from "./exclude-files.ts";
 import {
   SCHEDULE_HANDLER_ROUTE,
   getVercelBuildOutputSchedules,
@@ -107,8 +108,11 @@ export async function generateFunctionFiles(nitro: Nitro) {
     );
   }
 
+  const { excludeFiles: baseExcludeFiles, ...baseVcConfig } = baseFunctionConfig;
   const functionConfigPath = resolve(nitro.options.output.serverDir, ".vc-config.json");
-  await writeFile(functionConfigPath, JSON.stringify(baseFunctionConfig, null, 2));
+  await writeFile(functionConfigPath, JSON.stringify(baseVcConfig, null, 2));
+
+  const excluder = createFileExcluder();
 
   const scheduleFunction = getVercelScheduleFunction(nitro);
   const functionRules = getFunctionRules(nitro);
@@ -139,7 +143,8 @@ export async function generateFunctionFiles(nitro: Nitro) {
         nitro.options.output.serverDir,
         baseFunctionConfig,
         matchData,
-        normalizeRouteDest(key) + ISR_SUFFIX
+        normalizeRouteDest(key) + ISR_SUFFIX,
+        excluder
       );
     } else {
       await fsp.symlink(
@@ -174,7 +179,8 @@ export async function generateFunctionFiles(nitro: Nitro) {
         nitro.options.output.serverDir,
         baseFunctionConfig,
         overrides,
-        normalizeRouteDest(pattern)
+        normalizeRouteDest(pattern),
+        excluder
       );
       createdFuncDirs.add(funcDir);
     }
@@ -193,14 +199,12 @@ export async function generateFunctionFiles(nitro: Nitro) {
       nitro.options.output.serverDir,
       baseFunctionConfig,
       scheduleFunction.overrides,
-      scheduleFunction.functionPath
+      scheduleFunction.functionPath,
+      excluder
     );
   }
 
   // Write observability routes
-  if (o11Routes.length === 0) {
-    return;
-  }
   for (const route of o11Routes) {
     const funcPrefix = resolve(nitro.options.output.serverDir, "..", route.dest);
     const funcDir = funcPrefix + ".func";
@@ -217,7 +221,8 @@ export async function generateFunctionFiles(nitro: Nitro) {
         nitro.options.output.serverDir,
         baseFunctionConfig,
         matchData,
-        route.dest
+        route.dest,
+        excluder
       );
     } else {
       await fsp.mkdir(dirname(funcPrefix), { recursive: true });
@@ -227,6 +232,16 @@ export async function generateFunctionFiles(nitro: Nitro) {
         "junction"
       );
     }
+  }
+
+  // Exclude files from the base function last, once every custom function is copied from it
+  await excluder.exclude(nitro.options.output.serverDir, baseExcludeFiles, {
+    handler: baseVcConfig.handler as string | undefined,
+  });
+  for (const pattern of excluder.unmatchedPatterns()) {
+    nitro.logger.warn(
+      `[vercel] \`excludeFiles\` pattern \`${pattern}\` did not match any file in the function output.`
+    );
   }
 }
 
@@ -774,7 +789,8 @@ async function createFunctionDirWithCustomConfig(
   serverDir: string,
   baseFunctionConfig: VercelServerlessFunctionConfig,
   overrides: VercelServerlessFunctionConfig,
-  functionPath: string
+  functionPath: string,
+  excluder: FileExcluder
 ) {
   await fsp.cp(serverDir, funcDir, {
     recursive: true,
@@ -799,7 +815,12 @@ async function createFunctionDirWithCustomConfig(
     }
   }
 
-  await writeFile(resolve(funcDir, ".vc-config.json"), JSON.stringify(mergedConfig, null, 2));
+  const { excludeFiles, ...vcConfig } = mergedConfig;
+  await excluder.exclude(funcDir, excludeFiles, {
+    handler: vcConfig.handler as string | undefined,
+  });
+
+  await writeFile(resolve(funcDir, ".vc-config.json"), JSON.stringify(vcConfig, null, 2));
 }
 
 async function writePrerenderConfig(
