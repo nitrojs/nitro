@@ -20,10 +20,12 @@ const handler = async (req: ServerRequest): Promise<Response> => {
     if (!response.headers.has("Cache-Control")) {
       response.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
     }
-    response.headers.set(
-      "Netlify-CDN-Cache-Control",
-      `public, max-age=${maxAge}, ${revalidateDirective}, durable`
-    );
+    if (!response.headers.has("Netlify-CDN-Cache-Control")) {
+      response.headers.set(
+        "Netlify-CDN-Cache-Control",
+        `public, max-age=${maxAge}, ${revalidateDirective}, durable`
+      );
+    }
   }
 
   return response;

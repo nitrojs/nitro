@@ -1,14 +1,18 @@
 import type { ViteBuilder } from "vite";
 import type { NitroPluginContext } from "./types.ts";
 
-import { basename, dirname, resolve } from "pathe";
+import { basename, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
 import { colors as C } from "consola/utils";
 import { copyPublicAssets, prerender } from "../../builder.ts";
+import { addClientAssetsDir } from "../assets.ts";
+import { compressPublicAssets } from "../../utils/compress.ts";
 import { existsSync } from "node:fs";
 import { writeBuildInfo } from "../info.ts";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
 import { isTest, isCI } from "std-env";
+import { readBuiltServiceEntry } from "./services.ts";
+import { writeAssetsManifest } from "./_assets-build.ts";
 import type { RolldownOutput } from "rolldown";
 
 const BuilderNames = {
@@ -27,6 +31,13 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   for (const [envName, env] of Object.entries(builder.environments)) {
     // prettier-ignore
     const fmtName = BuilderNames[envName] || (envName.length <= 3 ? envName.toUpperCase() : envName[0].toUpperCase() + envName.slice(1));
+    if (env.isBuilt && ctx.services[envName] && !ctx._entryPoints[envName]) {
+      const outDir = resolve(env.config.root, env.config.build.outDir);
+      const entry = await readBuiltServiceEntry(outDir);
+      if (entry) {
+        ctx._entryPoints[envName] = entry;
+      }
+    }
     if (envName === "nitro" || !env.config.build.rollupOptions.input || env.isBuilt) {
       if (!["nitro", "ssr", "client"].includes(envName)) {
         nitro.logger.info(
@@ -42,26 +53,26 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
     await builder.build(env);
   }
 
-  // Use transformed client input for renderer template generation
-  const nitroOptions = ctx.nitro!.options;
+  // Page template: the client HTML built by Vite when the renderer template is the client input
+  const template = nitro.options.renderer?.template;
   const clientInput = builder.environments.client?.config?.build?.rollupOptions?.input;
-  if (nitroOptions.renderer?.template && nitroOptions.renderer?.template === clientInput) {
-    const outputPath = resolve(nitroOptions.output.publicDir, basename(clientInput as string));
+  let pageHTML: string | undefined;
+  if (template && template === clientInput) {
+    const outputPath = resolve(nitro.options.output.publicDir, basename(template));
     if (existsSync(outputPath)) {
-      const html = await readFile(outputPath, "utf8").then((r) =>
-        r.replace("<!--ssr-outlet-->", `{{{ fetchViteEnv("ssr", $REQUEST) || "" }}}`)
-      );
+      pageHTML = await readFile(outputPath, "utf8");
       await rm(outputPath);
-      const tmp = resolve(nitroOptions.buildDir, "vite/index.html");
-      await mkdir(dirname(tmp), { recursive: true });
-      await writeFile(tmp, html, "utf8");
-      nitroOptions.renderer.template = tmp;
     }
   }
+  nitro._pageTemplate = {
+    ...nitro._pageTemplate,
+    html: pageHTML === undefined ? undefined : () => pageHTML,
+  };
 
-  // Extended builder API by assets plugin
-  // https://github.com/hi-ogawa/vite-plugins/pull/1288
-  await builder.writeAssetsManifest?.();
+  // Write the manifest of `?assets` imports (server environments import it)
+  if (ctx._assetsImport) {
+    await writeAssetsManifest(builder, ctx._assetsImport);
+  }
 
   // ----------------------------------------------
   // Stage 2: Build Nitro
@@ -79,23 +90,10 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   // Copy public assets to the final output directory
   await copyPublicAssets(nitro);
 
-  // Add route rule for asset dirs
-  const assetDirs = new Set(
-    Object.values(builder.environments)
-      .filter((env) => env.config.consumer === "client")
-      .map((env) => env.config.build.assetsDir)
-      .filter(Boolean) as string[]
-  );
-  for (const assetsDir of assetDirs) {
-    if (!existsSync(resolve(nitro.options.output.publicDir, assetsDir))) {
-      continue;
-    }
-    const rule = (ctx.nitro!.options.routeRules[`/${assetsDir}/**`] ??= {});
-    if (rule.headers !== false && !rule.headers?.["cache-control"]) {
-      rule.headers = {
-        ...rule.headers,
-        "cache-control": `public, max-age=31536000, immutable`,
-      };
+  // Hashed client assets are immutable, missing ones get a `no-store` 404
+  for (const env of Object.values(builder.environments)) {
+    if (env.config.consumer === "client") {
+      addClientAssetsDir(nitro, env.config.build.assetsDir);
     }
   }
   ctx.nitro!.routing.sync();
@@ -105,6 +103,10 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
 
   // Call vite:compile:before hook
   await nitro.hooks.callHook("vite:compile:before", nitro);
+
+  if (nitro.options.compressPublicAssets) {
+    await compressPublicAssets(nitro);
+  }
 
   // Build the Nitro server bundle
   let output: RolldownOutput | undefined;
@@ -121,6 +123,10 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
 
   // Call compiled hook
   await nitro.hooks.callHook("compiled", nitro);
+
+  if (nitro.options.compressPublicAssets) {
+    await compressPublicAssets(nitro);
+  }
 
   // Write build info
   await writeBuildInfo(nitro, output);

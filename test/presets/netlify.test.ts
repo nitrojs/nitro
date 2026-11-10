@@ -1,9 +1,17 @@
-import { promises as fsp } from "node:fs";
+import { existsSync, promises as fsp } from "node:fs";
+import { tmpdir } from "node:os";
 import type { Context as FunctionContext } from "@netlify/functions";
-import { resolve } from "pathe";
+import { execa, execaSync } from "execa";
+import { join, resolve } from "pathe";
 import { describe, expect, it } from "vitest";
-import { getStaticPaths } from "../../src/presets/netlify/utils.ts";
+import type { Nitro } from "nitro/types";
+import {
+  generateNetlifyEdgeFunction,
+  getStaticPaths,
+  writeConfig,
+} from "../../src/presets/netlify/utils.ts";
 import { getPresetTmpDir, setupTest, testNitro } from "../tests.ts";
+import { testBuiltinImports } from "./_builtin-imports.ts";
 
 describe("nitro:preset:netlify", async () => {
   const ctx = await setupTest("netlify", {
@@ -12,8 +20,10 @@ describe("nitro:preset:netlify", async () => {
         publicDir: resolve(getPresetTmpDir("netlify"), "dist"),
       },
       netlify: {
-        images: {
-          remote_images: ["https://example.com/.*"],
+        config: {
+          images: {
+            remote_images: ["https://example.com/.*"],
+          },
         },
       },
     },
@@ -74,7 +84,7 @@ describe("nitro:preset:netlify", async () => {
 
       it("writes config.json", async () => {
         const config = await fsp
-          .readFile(resolve(ctx.outDir, "../deploy/v1/config.json"), "utf8")
+          .readFile(resolve(ctx.outDir, "../config.json"), "utf8")
           .then((r) => JSON.parse(r));
         expect(config).toMatchInlineSnapshot(`
           {
@@ -87,7 +97,12 @@ describe("nitro:preset:netlify", async () => {
         `);
       });
 
-      it("writes server/server.mjs with static paths excluded", async () => {
+      // https://github.com/nitrojs/nitro/issues/5035
+      // Public asset paths stay reachable by the function: with `preferStatic`,
+      // existing assets are still served by the CDN, while missing ones reach
+      // the function and get its `no-store` 404 instead of Netlify's own 404
+      // page served with the `_headers` rules of the asset dir (immutable).
+      it("writes server/server.mjs without excluding public asset paths", async () => {
         const serverFunctionFile = await fsp.readFile(
           resolve(ctx.outDir, "server/server.mjs"),
           "utf8"
@@ -100,7 +115,7 @@ describe("nitro:preset:netlify", async () => {
             path: "/*",
             nodeBundler: "none",
             includedFiles: ["**"],
-            excludedPath: ["/.netlify/*","/build/*"],
+            excludedPath: ["/.netlify/*"],
             preferStatic: true,
           };"
         `);
@@ -120,6 +135,14 @@ describe("nitro:preset:netlify", async () => {
             "public, max-age=0, must-revalidate"
           );
         });
+      });
+
+      it("does not overwrite a Netlify-CDN-Cache-Control header set by the handler", async () => {
+        const { headers } = await callHandler({ url: "/rules/isr/cdn-cache-control" });
+        expect((headers as Record<string, string>)["netlify-cdn-cache-control"]).toBe("no-store");
+        expect((headers as Record<string, string>)["cache-control"]).toBe(
+          "public, max-age=0, must-revalidate"
+        );
       });
 
       describe("matching ISR route rule with a max-age", () => {
@@ -152,6 +175,15 @@ describe("nitro:preset:netlify", async () => {
         expect((headers as Record<string, string>)["netlify-cdn-cache-control"]).toBe(
           "public, max-age=60, stale-while-revalidate=31536000, durable"
         );
+      });
+
+      // https://github.com/nitrojs/nitro/issues/5035
+      // Missing public assets now reach the function, which opts them out of
+      // the immutable `cache-control` route rule of the asset dir.
+      it("returns a `no-store` 404 for a missing public asset", async () => {
+        const { status, headers } = await callHandler({ url: "/build/does-not-exist.js" });
+        expect(status).toBe(404);
+        expect((headers as Record<string, string>)["cache-control"]).toBe("no-store");
       });
     }
   );
@@ -203,5 +235,68 @@ describe("nitro:preset:netlify", async () => {
         "/base/nested/no-fallthrough/*",
       ]);
     });
+  });
+
+  describe("generateNetlifyEdgeFunction", () => {
+    it("inlines the edge function config with static paths excluded", () => {
+      const nitro = {
+        options: {
+          baseURL: "/",
+          framework: { name: "nitro", version: "3.x" },
+          publicAssets: [{ baseURL: "build", dir: "build-dir", maxAge: 0 }],
+        },
+      } as unknown as Nitro;
+      expect(generateNetlifyEdgeFunction(nitro)).toMatchInlineSnapshot(`
+        "export { default } from "./main.mjs";
+        export const config = {
+          name: "edge server handler",
+          generator: "nitro@3.x",
+          path: "/*",
+          excludedPath: ["/.netlify/*","/build/*"],
+        };"
+      `);
+    });
+  });
+
+  describe("writeConfig", () => {
+    it("removes stale config.json when config is empty", async () => {
+      const dir = await fsp.mkdtemp(join(tmpdir(), "nitro-netlify-config-"));
+      const configPath = join(dir, "config.json");
+      await fsp.writeFile(configPath, JSON.stringify({ redirects: [] }));
+      await writeConfig({ options: { netlify: {} } } as unknown as Nitro, configPath);
+      expect(existsSync(configPath)).toBe(false);
+      await fsp.rm(dir, { recursive: true, force: true });
+    });
+  });
+});
+
+describe("nitro:preset:netlify-edge", async () => {
+  const ctx = await setupTest("netlify-edge", {
+    config: {
+      minify: false,
+      output: {
+        serverDir: resolve(getPresetTmpDir("netlify-edge"), ".output/server"),
+        publicDir: resolve(getPresetTmpDir("netlify-edge"), "dist"),
+      },
+    },
+  });
+
+  testBuiltinImports(ctx);
+
+  // Netlify Edge Functions run on Deno, which has no global `require`
+  const hasDeno =
+    execaSync("deno", ["--version"], { stdio: "ignore", reject: false }).exitCode === 0;
+  it.runIf(hasDeno)("requires builtins from bundled CommonJS on Deno", async () => {
+    const { stdout } = await execa(
+      "deno",
+      [
+        "eval",
+        `const { default: handler } = await import("./server.mjs");
+        const res = await handler(new Request("http://localhost/cjs-builtins"), {});
+        console.log(await res.text());`,
+      ],
+      { cwd: ctx.nitro!.options.output.serverDir }
+    );
+    expect(stdout).toBe("ok");
   });
 });

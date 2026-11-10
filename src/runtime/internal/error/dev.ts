@@ -1,6 +1,6 @@
 import { HTTPError, type HTTPEvent } from "h3";
 import { getRequestURL } from "h3";
-import { defineErrorHandler } from "./utils.ts";
+import { createErrorHeaders, defineErrorHandler } from "./utils.ts";
 import type { InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
 import type { NitroErrorHandler } from "nitro/types";
@@ -59,7 +59,7 @@ export async function defaultHandler(
   // Use HTML response only when user-agent expects it (browsers)
   const useJSON = opts?.json ?? !event.req.headers.get("accept")?.includes("text/html");
 
-  const headers = new Headers(unhandled ? {} : error.headers);
+  const headers = createErrorHeaders(error, event, unhandled);
 
   if (useJSON) {
     headers.set("Content-Type", "application/json; charset=utf-8");

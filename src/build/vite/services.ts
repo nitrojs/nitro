@@ -1,61 +1,35 @@
+import type { NitroServiceLoader } from "nitro/types";
 import type { NitroPluginContext } from "./types.ts";
 import type { Plugin as VitePlugin } from "vite";
-import { resolve } from "pathe";
+import { readFile } from "node:fs/promises";
+import { join, resolve } from "pathe";
 
-export function viteServicesTemplate(ctx: NitroPluginContext): string {
-  const serviceNames = Object.keys(ctx.services);
+// Written next to each service output so a later build that skips it (`isBuilt`) finds its entry.
+export const SERVICE_MANIFEST_FILE = "nitro-service.json";
 
-  // Dev worker registers the services. Vitest runs without it: entries are imported from the
-  // nitro environment instead.
-  if (ctx.nitro!.options.dev && !ctx._isVitest) {
-    return /* js */ `
-export const viteServices = {
-${serviceNames
-  .map(
-    (name) =>
-      `  get [${JSON.stringify(name)}]() { return globalThis.__nitro_vite_envs__[${JSON.stringify(name)}] }`
-  )
-  .join(",\n")}
-};
-  `;
-  }
-
-  const serviceEntries = serviceNames.map((name) => {
-    const entry = ctx._isVitest
-      ? _resolveServiceEntry(ctx, ctx.services[name].entry)
-      : resolve(ctx.nitro!.options.buildDir, "vite/services", name, ctx._entryPoints[name]);
-    return [name, entry];
-  });
-
-  return /* js */ `
-function lazyService(name, loader) {
-  let promise, mod
-  return {
-    fetch(req) {
-      if (mod) { return mod.fetch(req) }
-      if (!promise) {
-        promise = loader().then(_mod => {
-          const m = typeof _mod.default?.fetch === "function" ? _mod.default : _mod
-          if (typeof m.fetch !== "function") {
-            throw new TypeError(\`[nitro] Vite service "\${name}" entry does not export a \\\`fetch\\\` handler.\`)
-          }
-          return (mod = m)
-        })
-      }
-      return promise.then(mod => mod.fetch(req))
-    }
+// Without a manifest (e.g. output of an older Nitro), the output dir itself is imported (`index.{mjs,js}`).
+export async function readBuiltServiceEntry(outDir: string): Promise<string | undefined> {
+  try {
+    const { entry } = JSON.parse(await readFile(join(outDir, SERVICE_MANIFEST_FILE), "utf8"));
+    return typeof entry === "string" ? entry : undefined;
+  } catch {
+    return undefined;
   }
 }
 
-export const viteServices = {
-${serviceEntries
-  .map(
-    ([name, entry]) =>
-      `[${JSON.stringify(name)}]: lazyService(${JSON.stringify(name)}, () => import(${JSON.stringify(entry)}))`
-  )
-  .join(",\n")}
-};
-  `;
+/** How the server loads the output of a service (see `nitro._serviceLoader`). */
+export function viteServiceLoader(ctx: NitroPluginContext, name: string): NitroServiceLoader {
+  // Dev worker registers the services. Vitest runs without it: entries are imported from the
+  // nitro environment instead.
+  if (ctx._isVitest) {
+    return { import: ctx.services[name].entry };
+  }
+  if (ctx.nitro!.options.dev) {
+    return { expression: `globalThis.__nitro_vite_envs__[${JSON.stringify(name)}]` };
+  }
+  return {
+    import: resolve(ctx.nitro!.options.buildDir, "vite/services", name, ctx._entryPoints[name]),
+  };
 }
 
 // Service environments (e.g. SSR) must not bundle their own copy of `nitro/*`
@@ -100,8 +74,4 @@ export function nitroDevServiceProxy(ctx: NitroPluginContext): VitePlugin {
       },
     },
   };
-}
-
-function _resolveServiceEntry(ctx: NitroPluginContext, entry: string): string {
-  return entry.startsWith(".") ? resolve(ctx.nitro!.options.rootDir, entry) : entry;
 }

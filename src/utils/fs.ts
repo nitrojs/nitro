@@ -1,10 +1,12 @@
 import type { Nitro } from "nitro/types";
-import { stat, mkdir, writeFile as fspWriteFile } from "node:fs/promises";
-import { dirname } from "pathe";
+import { randomBytes } from "node:crypto";
+import { stat, mkdir, rm, writeFile as fspWriteFile } from "node:fs/promises";
+import { dirname, join } from "pathe";
 import consola from "consola";
 import { colors } from "consola/utils";
 import { getProperty } from "dot-prop";
 import { relative, resolve } from "pathe";
+import { resolveAlias } from "pathe/utils";
 
 export function prettyPath(p: string, highlight = true) {
   p = relative(process.cwd(), p);
@@ -22,11 +24,7 @@ export function resolveNitroPath(
 
   // TODO: Skip if no template used
   path = _compilePathTemplate(path)(nitroOptions);
-  for (const base in nitroOptions.alias) {
-    if (path.startsWith(base)) {
-      path = nitroOptions.alias[base] + path.slice(base.length);
-    }
-  }
+  path = resolveAlias(path, nitroOptions.alias);
 
   // eslint-disable-next-line no-control-regex
   if (/^[#\u0000]/.test(path)) {
@@ -60,5 +58,24 @@ export async function isDirectory(path: string) {
     return (await stat(path)).isDirectory();
   } catch {
     return false;
+  }
+}
+
+/**
+ * Whether `dir` is on a case-insensitive filesystem (the default on macOS and Windows,
+ * but not on every volume), probed by looking up a temp file by its upper-cased name.
+ */
+export async function isCaseInsensitiveFS(dir: string) {
+  await mkdir(dir, { recursive: true });
+  const name = `.nitro-case-${randomBytes(6).toString("hex")}`;
+  const probe = join(dir, name);
+  await fspWriteFile(probe, "");
+  try {
+    await stat(join(dir, name.toUpperCase()));
+    return true;
+  } catch {
+    return false;
+  } finally {
+    await rm(probe, { force: true });
   }
 }

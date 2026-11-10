@@ -19,13 +19,14 @@ describe("vite dev worker entry", () => {
     await rm(buildDir, { recursive: true, force: true });
   });
 
-  async function generate() {
+  async function generate(options: Record<string, unknown> = {}) {
     const nitro = {
       options: {
         rootDir: fileURLToPath(new URL("../..", import.meta.url)),
         buildDir,
         features: {},
         experimental: {},
+        ...options,
       },
       logger: { warn },
     } as any;
@@ -55,4 +56,21 @@ describe("vite dev worker entry", () => {
       expect(warn).toHaveBeenCalledOnce();
     }
   );
+
+  test("does not add srvx plugins without tracing channels", async () => {
+    expect(await generate()).not.toContain("srvx");
+  });
+
+  // #4923
+  test("passes the srvx tracing plugin to the runner when enabled", async () => {
+    const entry = await generate({ tracingChannel: { srvx: true, h3: false } });
+    expect(entry).toMatch(
+      /import \{ tracingPlugin as srvxTracing \} from "file:\/\/.+\/tracing\.mjs";/
+    );
+    expect(entry).toContain("export const plugins = [srvxTracing()];");
+  });
+
+  test("skips the srvx tracing plugin when only h3 tracing is enabled", async () => {
+    expect(await generate({ tracingChannel: { srvx: false, h3: true } })).not.toContain("srvx");
+  });
 });

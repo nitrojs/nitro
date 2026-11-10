@@ -2,6 +2,7 @@ import type { NitroOptions } from "./config.ts";
 
 export interface NitroImportMeta {
   dev?: boolean;
+  envName?: string;
   preset?: NitroOptions["preset"];
   prerender?: boolean;
   nitro?: boolean;

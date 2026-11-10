@@ -9,10 +9,27 @@ const awsLambda = defineNitroPreset(
       streaming: false,
     },
     hooks: {
-      "rollup:before": (nitro, rollupConfig) => {
-        if (nitro.options.awsLambda?.streaming) {
-          (rollupConfig.input as string) += "-streaming";
+      "build:config": (nitro, buildConfig) => {
+        if (!nitro.options.awsLambda?.streaming) {
+          return;
         }
+        if (buildConfig.builder === "rspack") {
+          const rspack = buildConfig.rspack;
+          if (typeof rspack.entry === "string") {
+            rspack.entry += "-streaming";
+          } else {
+            (rspack.entry as Record<string, string>).index += "-streaming";
+          }
+          return;
+        }
+        if (buildConfig.bun) {
+          buildConfig.bun.entrypoints = buildConfig.bun.entrypoints?.map(
+            (entry) => `${entry}-streaming`
+          );
+          return;
+        }
+        const config = buildConfig.rollup ?? buildConfig.rolldown;
+        (config.input as string) += "-streaming";
       },
     },
   },

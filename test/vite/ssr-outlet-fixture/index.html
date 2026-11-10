@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+  <head>
+    <title>ssr outlet</title>
+    <style>
+      @import "./src/style.css";
+    </style>
+  </head>
+  <body>
+    <div id="app"><!--ssr-outlet--></div>
+    <p>method: {{ $METHOD }}</p>
+    <p>fetchViteEnv: {{ typeof fetchViteEnv }}</p>
+    <p>fetchService: {{ typeof fetchService }}</p>
+    <script type="module" src="/src/entry-client.ts"></script>
+  </body>
+</html>

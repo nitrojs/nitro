@@ -1,6 +1,7 @@
 name: "🚀 Feature request"
 description: Suggest a feature or improvement
 labels: ["pending triage"]
+type: Feature
 body:
   - type: markdown
     attributes:

@@ -21,6 +21,8 @@ export default defineConfig({
           route: joinURL(baseURL, "_assets/missing/**"),
           handler: () => new Response("missing", { status: 404 }),
         },
+        { route: joinURL(baseURL, "_assets/**"), middleware: true, handler: () => {} },
+        { route: joinURL(baseURL, "_assets/mw/**"), middleware: true, handler: probe },
         { route: joinURL(baseURL, "**"), handler: () => "catch-all" },
       ],
       devProxy: {

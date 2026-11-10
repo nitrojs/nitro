@@ -1,32 +1,30 @@
-import { execSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { defineCommand } from "citty";
-import { docsDir } from "nitro/meta";
+
+const docsOrigin = "https://nitro.build";
 
 export default defineCommand({
   meta: {
     name: "docs",
-    description: "Explore Nitro documentation",
+    description: "Open Nitro documentation",
   },
   args: {
-    page: { type: "string", description: "Page path to open" },
+    page: { type: "positional", required: false, description: "Page path to open" },
   },
-  run({ rawArgs }) {
-    const runner = (
-      [
-        ["bun", "x"],
-        ["pnpm", "dlx"],
-        ["npm", "x"],
-      ] as const
-    ).find(([pkg]) => {
-      try {
-        execSync(`${pkg} -v`, { stdio: "ignore" });
-        return true;
-      } catch {}
-    }) || ["npm", "x"];
-    const runnerCmd = runner.join(" ");
-    const args = rawArgs?.join(" ") || "";
-    execSync(`${runnerCmd} mdzilla ${docsDir!}${args ? ` ${args}` : ""}`, {
-      stdio: "inherit",
+  run({ args }) {
+    const url = new URL(args.page || "/", docsOrigin);
+    if (url.origin !== docsOrigin) {
+      throw new Error(`Invalid docs page \`${args.page}\`. Use a path such as \`/docs/routing\`.`);
+    }
+    console.log(`Opening ${url.href}`);
+    const [cmd, cmdArgs] =
+      process.platform === "win32"
+        ? ["rundll32", ["url.dll,FileProtocolHandler", url.href]]
+        : [process.platform === "darwin" ? "open" : "xdg-open", [url.href]];
+    const child = spawn(cmd, cmdArgs, { stdio: "ignore", detached: true });
+    child.on("error", (error) => {
+      console.warn(`Could not open browser (${error.message}). Visit ${url.href} manually.`);
     });
+    child.unref();
   },
 });

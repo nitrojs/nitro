@@ -53,7 +53,22 @@ export interface VercelBuildConfigV3 {
     path: string;
     schedule: string;
   }[];
+  /** Vercel Schedules, keyed by schedule name. */
+  schedules?: Record<string, VercelSchedule>;
 }
+
+/**
+ * Vercel Schedules definition in the Build Output API, keyed by its name in `schedules`
+ * @see https://vercel.com/docs/schedules
+ */
+export type VercelSchedule = {
+  /** Cron expression. */
+  schedule: string;
+  /** IANA timezone the cron expression is evaluated in. Defaults to UTC. */
+  timezone?: string;
+  /** Maximum random delay in minutes, from 1 to 15. */
+  jitter?: number;
+} & ({ function: string } | { path: string; requestMethod?: "GET" | "POST" } | { topic: string });
 
 /**
  * https://vercel.com/docs/build-output-api/primitives#serverless-function-configuration
@@ -104,25 +119,45 @@ export interface VercelServerlessFunctionConfig {
   shouldAddSourcemapSupport?: boolean;
 
   /**
-   * The runtime to use. Defaults to the auto-detected Node.js version.
+   * The runtime to use. Defaults to `engines` in `package.json`, then `bunVersion` in `vercel.json`, then the runtime used to build.
    */
-  runtime?: "nodejs20.x" | "nodejs22.x" | "bun1.x" | (string & {});
+  runtime?: "nodejs22.x" | "nodejs24.x" | "nodejs26.x" | "bun1.x" | "bun1.4.x" | (string & {});
 
   /**
    * Experimental trigger configuration (e.g., Vercel Queues).
    */
   experimentalTriggers?: VercelFunctionTrigger[];
 
+  /**
+   * Glob pattern(s) of files to remove from the function, matched against the built function
+   * output (`index.mjs`, `_chunks/`, `node_modules/`, ...), not source paths
+   * (e.g. `node_modules/sharp/**`). Patterns starting with `!` keep the files they match, and a
+   * pattern that names a directory removes all of it. The function handler cannot be removed.
+   *
+   * Symlinks are not followed: a pattern that matches a symlink removes the link only.
+   * Dependencies with multiple versions in the bundle are stored in `node_modules/.nf3/<name>@<version>/`.
+   * Removing a dependency doesn't remove the dependencies only it imports.
+   *
+   * Make sure the function never loads an excluded file at runtime.
+   *
+   * Nitro applies it at build time. It is not written to `.vc-config.json`.
+   */
+  excludeFiles?: string | string[];
+
   [key: string]: unknown;
 }
 
-export type VercelFunctionTrigger = {
-  type: "queue/v2beta";
-  topic: string;
-  retryAfterSeconds?: number;
-  initialDelaySeconds?: number;
-  consumer?: string;
-};
+export type VercelFunctionTrigger =
+  | {
+      type: "queue/v2beta";
+      topic: string;
+      retryAfterSeconds?: number;
+      initialDelaySeconds?: number;
+      consumer?: string;
+    }
+  | {
+      type: "schedule/v1beta";
+    };
 
 export interface VercelOptions {
   config?: VercelBuildConfigV3;
@@ -152,12 +187,6 @@ export interface VercelOptions {
    */
   immutableStaticFiles?: boolean;
 
-  /**
-   * If you are using `vercel-edge`, you can specify the region(s) for your edge function.
-   * @see https://vercel.com/docs/concepts/functions/edge-functions#edge-function-regions
-   */
-  regions?: string[];
-
   functions?: VercelServerlessFunctionConfig;
 
   /**
@@ -180,6 +209,26 @@ export interface VercelOptions {
    * @see https://vercel.com/docs/cron-jobs
    */
   cronHandlerRoute?: string;
+
+  /**
+   * Run [`scheduledTasks`](https://nitro.build/docs/tasks#scheduled-tasks) with Vercel Schedules
+   * instead of Vercel Cron Jobs. Nitro emits one schedule per task in the Build Output API.
+   *
+   * - `"private"`: every schedule targets a private function that runs the task. Only Vercel
+   *   Schedules can invoke it, so there is no public cron endpoint and no `CRON_SECRET` is needed.
+   * - `"public"`: every schedule targets the public cron handler route
+   *   ({@link VercelOptions.cronHandlerRoute}), which keeps working for direct requests
+   *   exactly like with Cron Jobs.
+   *
+   * Under `vercel dev`, the local Schedules broker runs scheduled tasks instead of the
+   * in-process scheduler.
+   *
+   * Defaults to the `NITRO_VERCEL_SCHEDULES` environment variable (`private` or `public`).
+   *
+   * @experimental Vercel Schedules is in beta.
+   * @default false
+   */
+  schedules?: "private" | "public" | false;
 
   /**
    * Vercel Queues configuration.
@@ -275,6 +324,8 @@ export type PrerenderFunctionConfig = {
 
   /**
    * When `true`, the query string will be present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies.
+   *
+   * Nitro sets this to `true` when the `isr` route rule has a non-empty `allowQuery` and no `passQuery`.
    */
   passQuery?: boolean;
 

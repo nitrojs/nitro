@@ -42,6 +42,7 @@ redirects:
   "/deploy/workers": "/deploy"
   "/deploy/runtimes/winterjs": "/deploy"
   "/deploy/custom-presets": "/deploy"
+  "/deploy/providers/deno-deploy": "/deploy/runtimes/deno#deno-deploy"
   "/deploy/providers/edgio": "/deploy"
   "/deploy/providers/lagon": "/deploy"
   "/deploy/providers/layer0": "/deploy"

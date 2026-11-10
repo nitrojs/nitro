@@ -84,7 +84,7 @@ export async function writeAmplifyFiles(nitro: Nitro) {
           {
             name: "default",
             entrypoint: "server.js",
-            runtime: nitro.options.awsAmplify?.runtime || "nodejs20.x",
+            runtime: nitro.options.awsAmplify?.runtime || "nodejs22.x",
           },
         ],
     framework: {

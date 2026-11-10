@@ -32,7 +32,8 @@ export default defineConfig({
     "preview": "node .output/server/index.mjs"
   },
   "devDependencies": {
-    "nitro": "latest"
+    "nitro": "latest",
+    "rolldown": "latest"
   }
 }
 ```
@@ -52,7 +53,7 @@ export default defineConfig({
 import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
 
-export default defineConfig({ plugins: [nitro()], resolve: { tsconfigPaths: true } });
+export default defineConfig({ plugins: [nitro()] });
 ```
 
 ```ts [server/routes/index.ts]
@@ -103,7 +104,7 @@ The route imports the `sum` function using `~server/` and `rand` using `#server/
 
 ## Configuration
 
-Aliases can be configured in `package.json` imports field or `nitro.config.ts`.
+Aliases can be configured in `package.json` imports field, `compilerOptions.paths` of `tsconfig.json` or the `alias` option of `nitro.config.ts`.
 
 <!-- /automd -->
 

@@ -21,11 +21,11 @@ icon: i-logos-solidjs-icon
     "build": "vite build"
   },
   "dependencies": {
-    "@solidjs/meta": "^0.29.4",
-    "@solidjs/router": "^0.15.4",
-    "@solidjs/start": "^2.0.0-alpha.2",
+    "@solidjs/meta": "^0.29.8",
+    "@solidjs/router": "^1.0.1",
+    "@solidjs/start": "^2.2.2",
     "nitro": "latest",
-    "solid-js": "^1.9.11",
+    "solid-js": "^1.9.18",
     "vite": "latest"
   },
   "engines": {

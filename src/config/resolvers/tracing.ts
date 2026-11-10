@@ -1,5 +1,5 @@
 import { join } from "pathe";
-import { runtimeDir } from "nitro/meta";
+import { runtimeDir } from "#nitro/meta";
 import type { NitroOptions } from "nitro/types";
 
 export async function resolveTracingChannelOptions(options: NitroOptions) {
@@ -8,6 +8,7 @@ export async function resolveTracingChannelOptions(options: NitroOptions) {
     srvx: true,
     h3: true,
     unstorage: true,
+    db0: true,
     ...(typeof options.tracingChannel === "object" ? options.tracingChannel : {}),
   };
   options.plugins = options.plugins || [];

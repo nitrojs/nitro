@@ -1,4 +1,6 @@
 import type {
+  Alias,
+  AliasOptions,
   ConfigEnv,
   EnvironmentModuleNode,
   EnvironmentOptions,
@@ -8,7 +10,8 @@ import type {
 } from "vite";
 import type { InputOption } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types.ts";
-import { resolve, join } from "pathe";
+import { resolve } from "pathe";
+import { normalizeAliases, resolveAlias } from "pathe/utils";
 import { createNitro, prepare } from "../../builder.ts";
 import { installModules } from "../../module.ts";
 import { getBundlerConfig } from "./bundler.ts";
@@ -20,22 +23,25 @@ import {
   createServiceEnvironments,
   createServiceEnvironment,
 } from "./env.ts";
-import { runtimeDir } from "nitro/meta";
-import { resolveModulePath } from "exsolve";
-import { defu } from "defu";
+import { mergeConfig } from "../../config/_merge.ts";
+import { NitroDefaults } from "../../config/defaults.ts";
 import { prettyPath } from "../../utils/fs.ts";
+import { escapeRegExp } from "../../utils/regex.ts";
 import { NitroDevApp } from "../../dev/app.ts";
 import { nitroPreviewPlugin } from "./preview.ts";
-import assetsPlugin from "@hiogawa/vite-plugin-fullstack/assets";
-import type { NitroConfig, NitroModule } from "nitro/types";
-import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
-import { importVite, viteImportOptions } from "./_import.ts";
+import { nitroAssetsImport } from "./_assets.ts";
+import { defu } from "defu";
+import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
+import { nitroDevServiceProxy, SERVICE_MANIFEST_FILE, viteServiceLoader } from "./services.ts";
+import { checkServerEntry, findSSREntry, useSSRServiceRenderer } from "../services.ts";
+import { resolveServiceEntry, resolveServices } from "../../config/resolvers/services.ts";
+import { nitroRequireExternals } from "./_require-externals.ts";
+import { nitroServerAliases } from "./_server-aliases.ts";
+import { importVite, setRunningVite, viteImportOptions } from "./_import.ts";
 import { isVitest, nitroVitest } from "./vitest.ts";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
-
-const DEFAULT_EXTENSIONS = [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"];
 
 const debug = process.env.NITRO_DEBUG
   ? (...args: any[]) => console.log("[nitro]", ...args)
@@ -50,19 +56,16 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
   return [
     nitroInit(ctx),
     nitroEnv(ctx),
+    nitroRootOutDir(),
+    nitroServerAliases(ctx),
     nitroMain(ctx),
     nitroPrepare(ctx),
     nitroDevServiceProxy(ctx),
+    nitroRequireExternals(),
     nitroPreviewPlugin(ctx),
     nitroVitest(ctx),
-    pluginConfig.experimental?.vite?.assetsImport !== false &&
-      assetsPlugin({
-        experimental: {
-          // See https://github.com/hi-ogawa/vite-plugins/pull/1289
-          clientBuildFallback: false,
-        },
-      }),
-  ].filter(Boolean) as VitePlugin[];
+    ...nitroAssetsImport(ctx),
+  ];
 }
 
 function nitroInit(ctx: NitroPluginContext): VitePlugin {
@@ -78,13 +81,16 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
         ctx._initialized = true;
         ctx._isVitest = isVitest(config);
         await setupNitroContext(ctx, configEnv, config);
-        if (configEnv.command === "serve") {
-          await checkViteVersion(ctx, (this.meta as Record<string, string>).viteVersion);
-        }
       }
     },
 
-    configResolved(config) {
+    async configResolved(config) {
+      setRunningVite(useNitro(ctx), config);
+      // Inline plugins are reused on `server.restart()`
+      if (config.command === "serve" && !ctx._viteVersionChecked) {
+        ctx._viteVersionChecked = true;
+        await checkViteVersion(ctx, this.meta.viteVersion);
+      }
       // Vite resolves its plugin list *before* running config hooks, so a plugin added by
       // another plugin's `config` hook is discovered by Nitro but silently ignored by Vite.
       for (const plugin of ctx._pluginModules || []) {
@@ -98,13 +104,23 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
     },
 
     applyToEnvironment(env) {
-      if (env.name === "nitro" && ctx.nitro?.options.dev) {
+      if (env.name !== "nitro") {
+        return;
+      }
+      const plugins: VitePlugin[] = [];
+      if (ctx._nitroEnvAliases?.length) {
+        plugins.push(nitroEnvAliases(ctx.bundlerConfig!.base.aliases, ctx._nitroEnvAliases));
+      }
+      if (ctx.nitro?.options.dev) {
         debug("[init] Adding rollup plugins for dev");
-        const plugins =
-          (ctx.bundlerConfig?.rolldownConfig?.plugins as VitePlugin[]) ||
-          (ctx.bundlerConfig?.rollupConfig?.plugins as VitePlugin[]) ||
-          [];
-        return [...(plugins || [])];
+        plugins.push(
+          ...((ctx.bundlerConfig?.rolldownConfig?.plugins as VitePlugin[]) ||
+            (ctx.bundlerConfig?.rollupConfig?.plugins as VitePlugin[]) ||
+            [])
+        );
+      }
+      if (plugins.length > 0) {
+        return plugins;
       }
     },
   };
@@ -185,13 +201,7 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
       }
 
       // Resolve and register as a service
-      const resolvedEntry =
-        resolveModulePath(entry, {
-          from: [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs],
-          extensions: DEFAULT_EXTENSIONS,
-          suffixes: ["", "/index"],
-          try: true,
-        }) || entry;
+      const resolvedEntry = resolveServiceEntry(ctx.nitro!.options, entry);
 
       ctx.services[name] = { entry: resolvedEntry };
       debug(`[env]  Auto-detected service "${name}" with entry: ${resolvedEntry}`);
@@ -202,15 +212,54 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
 
     configResolved() {
       // Setup default SSR renderer after all environments are configured
-      if (
-        !ctx.nitro!.options.renderer?.handler &&
-        !ctx.nitro!.options.renderer?.template &&
-        ctx.services.ssr?.entry
-      ) {
-        ctx.nitro!.options.renderer ??= {};
-        ctx.nitro!.options.renderer.handler = resolve(runtimeDir, "internal/vite/ssr-renderer");
-        ctx.nitro!.routing.sync();
-      }
+      useSSRServiceRenderer(ctx.nitro!);
+    },
+  };
+}
+
+function nitroRootOutDir(): VitePlugin {
+  // From the user config: Vite resolves an explicit `dist` to the same value as its default
+  let userOutDir: string | undefined;
+  return {
+    name: "nitro:root-outdir",
+    sharedDuringBuild: true,
+    apply: "build",
+
+    config(userConfig) {
+      userOutDir = userConfig.build?.outDir;
+    },
+
+    // Plugins read the root `build.outDir` (e.g. UnoCSS), not the one of the client environment.
+    // Set after the environments are resolved, as they would inherit it from the root, and before
+    // the `configResolved` hook of plugins listed before Nitro.
+    configResolved: {
+      order: "pre",
+      handler(config) {
+        // Kept when set by the user or by a plugin (also one listed after Nitro)
+        if (!userOutDir && config.build.outDir === "dist") {
+          config.build.outDir = config.environments.client.build.outDir;
+        }
+      },
+    },
+  };
+}
+
+function nitroEnvAliases(_aliases: Record<string, string>, keys: string[]): VitePlugin {
+  const aliases = normalizeAliases(_aliases);
+  const keysRE = keys.map((key) => escapeRegExp(key.replace(/\/$/, ""))).join("|");
+  return {
+    name: "nitro:env-aliases",
+    resolveId: {
+      order: "pre",
+      filter: { id: new RegExp(`^(?:${keysRE})(?:/|$)`) },
+      async handler(id, importer, options) {
+        const resolved = resolveAlias(id, aliases);
+        if (resolved !== id) {
+          return (
+            (await this.resolve(resolved, importer, { ...options, skipSelf: true })) || resolved
+          );
+        }
+      },
     },
   };
 }
@@ -226,16 +275,30 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       if (!ctx.bundlerConfig) {
         throw new Error("Bundler config is not initialized yet!");
       }
+      // Keep alias order and never leak `node:` builtins to client builds
+      const aliases = Object.entries(ctx.bundlerConfig.base.aliases).filter(
+        ([, replacement]) => !replacement.startsWith("node:")
+      );
+      // Scoped to the `nitro` environment (not with Vitest): `nitro/*` in dev, so
+      // they do not bypass the dev service proxy, and keys the host config maps elsewhere
+      const scopeSelfAliases = ctx.nitro?.options.dev && !ctx._isVitest;
+      const hostAliases = ctx._isVitest ? new Map() : stringAliases(userConfig.resolve?.alias);
+      const isScoped = ([find, replacement]: [string, string]) =>
+        (scopeSelfAliases && /^nitro(\/|$)/.test(find)) ||
+        (hostAliases.has(find) && hostAliases.get(find) !== replacement);
+      ctx._nitroEnvAliases = aliases.filter(isScoped).map(([find]) => find);
+      // Client assets are served under the base URL of Nitro
+      const baseURL = useNitro(ctx).options.baseURL;
       return {
+        ...(userConfig.base === undefined && baseURL !== "/" && { base: baseURL }),
         appType: userConfig.appType || "custom",
         resolve: {
-          // TODO: environment specific aliases not working
-          // https://github.com/vitejs/vite/pull/17583 (seems not effective)
-          // preserve alias order
-          alias: Object.entries(ctx.bundlerConfig.base.aliases).map(([find, replacement]) => ({
-            find,
-            replacement,
-          })),
+          alias: aliases
+            .filter((alias) => !isScoped(alias))
+            .map(([find, replacement]) => ({
+              find,
+              replacement,
+            })),
         },
         builder: {
           sharedConfigBuild: true,
@@ -250,6 +313,26 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
           cors: false,
         },
       };
+    },
+
+    configResolved(config) {
+      if (ctx._isVitest) {
+        return;
+      }
+      // Aliases added by later `config` hooks take precedence over Nitro's
+      const nitroAliases = ctx.bundlerConfig!.base.aliases;
+      const scoped = new Set(ctx._nitroEnvAliases);
+      for (const { find, replacement } of config.resolve.alias) {
+        if (
+          typeof find === "string" &&
+          Object.hasOwn(nitroAliases, find) &&
+          nitroAliases[find] !== replacement &&
+          !nitroAliases[find].startsWith("node:")
+        ) {
+          scoped.add(find);
+        }
+      }
+      ctx._nitroEnvAliases = [...scoped];
     },
 
     buildApp: {
@@ -294,6 +377,11 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
             this.error(`No entry point found for service "${this.environment.name}".`);
           }
           ctx._entryPoints![this.environment.name] = entryFile!;
+          this.emitFile({
+            type: "asset",
+            fileName: SERVICE_MANIFEST_FILE,
+            source: JSON.stringify({ entry: entryFile }),
+          });
         }
       },
     },
@@ -327,7 +415,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       if (env.config.consumer === "client" || ctx._isVitest) {
         return;
       }
-      if (ctx.pluginConfig.experimental?.vite?.serverReload === false) {
+      if (ctx.nitro?.options.vite?.serverReload === false) {
         // Keep the server module graph in sync but opt out of the reload:
         // returning an empty list also suppresses Vite's own `full-reload`,
         // which would otherwise still reach (and reload) the dev worker.
@@ -336,6 +424,10 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
           env.moduleGraph.invalidateModule(mod, invalidated, timestamp, false);
         }
         return [];
+      }
+      // Server-only changes send nothing to the browser, so tell open dev error pages to retry.
+      if (modules.length > 0) {
+        ctx.devApp?.reloadSignal.bump();
       }
       const clientEnvs = Object.values(server.environments).filter(
         (env) => env.config.consumer === "client"
@@ -387,7 +479,7 @@ function nitroPrepare(ctx: NitroPluginContext): VitePlugin {
 function createContext(pluginConfig: NitroPluginConfig): NitroPluginContext {
   return {
     pluginConfig,
-    services: { ...pluginConfig.experimental?.vite?.services },
+    services: {},
     _entryPoints: {},
   };
 }
@@ -428,11 +520,7 @@ async function setupNitroContext(
     dev: configEnv.command === "serve",
     builder: "vite",
     rootDir: userConfig.root,
-    ...defu(
-      ctx.pluginConfig,
-      (ctx.pluginConfig as any).config, // TODO: Remove shortly
-      userConfig.nitro
-    ),
+    ...mergeConfig(ctx.pluginConfig, userConfig.nitro),
   };
 
   // Register Nitro modules from Vite plugins
@@ -440,12 +528,13 @@ async function setupNitroContext(
   const pluginModules = ctx._pluginModules.map((p) => p.nitro!);
   nitroConfig.modules = [...(nitroConfig.modules || []), ...pluginModules];
 
-  // Register service entries VFS
-  const vServicesId = "#nitro/virtual/vite-services";
-  nitroConfig.virtual ??= {};
-  nitroConfig.virtual[vServicesId] = () => viteServicesTemplate(ctx);
+  // Inline `vite.services` (alias) take precedence over `services` of the config file
+  if (nitroConfig.vite?.services) {
+    nitroConfig.services = { ...nitroConfig.vite.services, ...nitroConfig.services };
+  }
+
   if (providedNitro) {
-    providedNitro.options.virtual[vServicesId] = nitroConfig.virtual[vServicesId];
+    applyInlineViteOptions(providedNitro, nitroConfig);
   }
 
   // @see https://vite.dev/guide/env-and-mode#env-files
@@ -454,9 +543,19 @@ async function setupNitroContext(
     dotenvFileNames.push(`.env.${configEnv.mode}`, `.env.${configEnv.mode}.local`);
   }
 
-  // Initialize a new Nitro instance
+  // Initialize a new Nitro instance (a Vite `base` path is the default base URL)
+  // Vitest resets the Vite `base` to `/`, so it is not used there
+  const viteBase = ctx._isVitest ? undefined : getPathBase(userConfig.base);
   ctx.nitro =
-    providedNitro || (await createNitro(nitroConfig, { dotenv: { fileName: dotenvFileNames } }));
+    providedNitro ||
+    (await createNitro(nitroConfig, {
+      dotenv: { fileName: dotenvFileNames },
+      ...(viteBase && {
+        c12: {
+          defaults: { ...NitroDefaults, baseURL: process.env.NITRO_APP_BASE_URL || viteBase },
+        },
+      }),
+    }));
 
   // Install Vite plugin modules on the provided instance (`nitro build`)
   if (providedNitro && pluginModules.length > 0) {
@@ -464,47 +563,36 @@ async function setupNitroContext(
     await installModules(providedNitro, pluginModules);
   }
 
+  // Page template context (the page HTML and the SSR outlet are set by dev and build)
+  ctx.nitro._pageTemplate = { context: [{ from: "nitro/vite/runtime", name: "fetchViteEnv" }] };
+
+  // Services (from config, modules and registered server environments) are built by Vite.
+  // The `vite.services` alias is merged after modules ran (`services` take precedence).
+  const { options } = ctx.nitro;
+  options.services = resolveServices(options, { ...options.vite?.services, ...options.services });
+  ctx.services = options.services;
+  ctx.nitro._serviceLoader = (name) => viteServiceLoader(ctx, name);
+
   // Config ssr env as a fetchable ssr service
-  if (!ctx.services?.ssr) {
+  if (!ctx.services.ssr) {
     const userSsrEnv = userConfig.environments?.ssr;
     // Vitest always defines an `ssr` environment (without an entry) for its own use
     const userSsrInput =
       userSsrEnv?.build?.rolldownOptions?.input ?? userSsrEnv?.build?.rollupOptions?.input;
     if (userSsrEnv === undefined || (ctx._isVitest && !userSsrInput)) {
-      const ssrEntry = resolveModulePath("./entry-server", {
-        from: ["app", "src", ""].flatMap((d) =>
-          [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs].map((s) => join(s, d) + "/")
-        ),
-        extensions: DEFAULT_EXTENSIONS,
-        try: true,
-      });
+      const ssrEntry = findSSREntry(ctx.nitro);
       if (ssrEntry) {
         ctx.services.ssr = { entry: ssrEntry };
         ctx.nitro!.logger.info(`Using \`${prettyPath(ssrEntry)}\` as vite ssr entry.`);
       }
     } else {
-      let ssrEntry = getEntry(userSsrInput);
+      const ssrEntry = getEntry(userSsrInput);
       if (typeof ssrEntry === "string") {
-        ssrEntry =
-          resolveModulePath(ssrEntry, {
-            from: [ctx.nitro.options.rootDir, ...ctx.nitro.options.scanDirs],
-            extensions: DEFAULT_EXTENSIONS,
-            suffixes: ["", "/index"],
-            try: true,
-          }) || ssrEntry;
-        ctx.services.ssr = { entry: ssrEntry };
+        ctx.services.ssr = { entry: resolveServiceEntry(ctx.nitro.options, ssrEntry) };
       }
     }
   }
-  if (
-    ctx.nitro.options.serverEntry &&
-    ctx.nitro.options.serverEntry.handler === ctx.services.ssr?.entry
-  ) {
-    ctx.nitro.logger.warn(
-      `Nitro server entry and Vite SSR both set to ${prettyPath(ctx.services.ssr.entry)}. Use a separate SSR entry (e.g. \`src/server.ts\`).`
-    );
-    ctx.nitro.options.serverEntry = false;
-  }
+  checkServerEntry(ctx.nitro);
 
   // Determine default Vite dist directory
   const publicDistDir = (ctx._publicDistDir =
@@ -527,11 +615,13 @@ async function setupNitroContext(
   // Resolve common rollup options
   ctx.bundlerConfig = await getBundlerConfig(ctx);
 
-  // Call rollup:before hook to allow modifying rollup config
+  // Call build:config hook to allow modifying the bundler config
   await ctx.nitro.hooks.callHook(
-    "rollup:before",
+    "build:config",
     ctx.nitro,
-    ctx.bundlerConfig.rollupConfig || (ctx.bundlerConfig.rolldownConfig as any)
+    ctx.bundlerConfig.rollupConfig
+      ? { builder: "vite", rollup: ctx.bundlerConfig.rollupConfig }
+      : { builder: "vite", rolldown: ctx.bundlerConfig.rolldownConfig! }
   );
 
   // Attach nitro.fetch to the dev env runner (started lazily, not when resolving config)
@@ -592,6 +682,15 @@ export function useLongerAssetHashes(
   }
 }
 
+function stringAliases(alias: AliasOptions | undefined): Map<string, string> {
+  const entries = Array.isArray(alias)
+    ? (alias as Alias[]).map((a) => [a.find, a.replacement] as const)
+    : Object.entries(alias || {});
+  return new Map(
+    entries.filter((entry): entry is [string, string] => typeof entry[0] === "string")
+  );
+}
+
 function getEntry(input: InputOption | undefined): string | undefined {
   if (typeof input === "string") {
     return input;
@@ -632,4 +731,20 @@ async function flattenPlugins(userConfig: UserConfig, configEnv: ConfigEnv): Pro
       ? plugin.apply({ ...userConfig, mode: configEnv.mode }, configEnv)
       : plugin.apply === configEnv.command;
   });
+}
+
+function applyInlineViteOptions(nitro: Nitro, nitroConfig: NitroConfig) {
+  if (nitroConfig.vite) {
+    nitro.options.vite = defu(nitroConfig.vite, nitro.options.vite);
+  }
+  if (nitroConfig.services) {
+    Object.assign(nitro.options.services, resolveServices(nitro.options, nitroConfig.services));
+  }
+}
+
+/** Returns the Vite `base` when it is a path other than `/` (not relative or an external URL). */
+function getPathBase(base: string | undefined): string | undefined {
+  if (base && base !== "/" && base.startsWith("/") && !base.startsWith("//")) {
+    return base;
+  }
 }

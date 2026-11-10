@@ -1,8 +1,8 @@
 import { Cron } from "croner";
 import { HTTPError } from "h3";
 import type { Task, TaskContext, TaskEvent, TaskPayload, TaskResult } from "nitro/types";
-import { useNitroHooks } from "./app.ts";
-import { scheduledTasks, tasks } from "#nitro/virtual/tasks";
+import { useNitroApp, useNitroHooks } from "./app.ts";
+import { scheduledTasks, scheduleRunner, tasks } from "#nitro/virtual/tasks";
 
 /** @experimental */
 export function defineTask<RT = unknown>(def: Task<RT>): Task<RT> {
@@ -57,13 +57,9 @@ export function startScheduleRunner({
 }: {
   waitUntil?: ((promise: Promise<unknown>) => void) | undefined;
 } = {}): void {
-  if (!scheduledTasks || scheduledTasks.length === 0 || process.env.TEST) {
+  if (!scheduleRunner || !scheduledTasks || scheduledTasks.length === 0 || process.env.TEST) {
     return;
   }
-
-  const payload: TaskPayload = {
-    scheduledTime: Date.now(),
-  };
 
   const cronJobs: Cron[] = [];
   useNitroHooks().hook("close", () => {
@@ -79,6 +75,15 @@ export function startScheduleRunner({
   for (const schedule of scheduledTasks) {
     cronJobs.push(
       new Cron(schedule.cron, async () => {
+        try {
+          await useNitroApp().ready;
+        } catch {
+          // Plugin initialization failed and was already reported
+          return;
+        }
+        const payload: TaskPayload = {
+          scheduledTime: Date.now(),
+        };
         await Promise.all(
           schedule.tasks.map((name) =>
             runTask(name, {
@@ -100,9 +105,10 @@ export function getCronTasks(cron: string): string[] {
 }
 
 /** @experimental */
-export function runCronTasks(
+export async function runCronTasks(
   cron: string,
   ctx: { payload?: TaskPayload; context?: TaskContext }
 ): Promise<TaskResult[]> {
+  await useNitroApp().ready;
   return Promise.all(getCronTasks(cron).map((name) => runTask(name, ctx)));
 }

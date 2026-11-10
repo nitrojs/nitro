@@ -1,7 +1,7 @@
 import { defineCommand } from "citty";
 import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
-import { startPreview } from "../../preview.ts";
+import { applyPreviewDotEnv, startPreview } from "../../preview.ts";
 import { serve } from "srvx";
 import { loggerMiddleware } from "srvx/log";
 
@@ -18,6 +18,9 @@ export default defineCommand({
   async run({ args }) {
     const rootDir = resolve((args.dir || args._dir || ".") as string);
 
+    // Apply .env before srvx resolves the listen port from `process.env.PORT`
+    await applyPreviewDotEnv(rootDir);
+
     const server = serve({
       fetch(req) {
         return preview.fetch(req);
@@ -26,12 +29,15 @@ export default defineCommand({
       gracefulShutdown: false,
       port: args.port,
       hostname: args.host,
+      // Listen once the build output is loaded
+      manual: true,
     });
 
     const preview = await startPreview({
       rootDir,
       loader: { srvxServer: server },
     });
+    await server.serve();
 
     if (preview.upgrade) {
       server.node?.server?.on("upgrade", (req, socket, head) => {

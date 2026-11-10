@@ -1,12 +1,14 @@
-import type { Nitro } from "nitro/types";
+import type { Nitro, RolldownConfig } from "nitro/types";
 import type { OutputOptions, RolldownOptions, RolldownPlugin } from "rolldown";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
-import { builtinModules } from "node:module";
+import { assetUrls } from "../plugins/asset-urls.ts";
+import { excludeSourcemapSources } from "../plugins/sourcemap.ts";
 import { defu } from "defu";
 import { getChunkName, libChunksGroup } from "../chunks.ts";
+import { builtinExternals, builtins } from "../plugins/builtins.ts";
 
-export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> => {
+export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownConfig> => {
   const base = await baseBuildConfig(nitro);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
@@ -19,17 +21,21 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
     // Disable Rolldown's own tsconfig discovery to avoid `CONFIGURATION_FIELD_CONFLICT` warnings
     // and keep behavior consistent with the Rollup builder.
     tsconfig: false,
-    external: [
-      ...base.env.external,
-      // Builtins aliased to polyfills are bundled (rolldown checks `external` before aliases and plugins)
-      ...[...builtinModules, ...builtinModules.map((m) => `node:${m}`)].filter(
-        (id) => !base.env.alias[id] || base.env.alias[id].startsWith("node:")
-      ),
-    ],
-    plugins: await withBuildPlugins(
-      nitro,
-      (await baseBuildPlugins(nitro, base)) as RolldownPlugin[]
-    ),
+    // Rolldown checks `external` before aliases and plugins: builtins aliased to polyfills are
+    // bundled, and the ones aliased to another id (all of them without the node platform) are
+    // left to `nitro:builtins`
+    external: nitro.options.node
+      ? [
+          ...base.env.external,
+          ...builtins.filter((id) => !base.env.alias[id] || base.env.alias[id] === id),
+        ]
+      : [],
+    plugins: await withBuildPlugins(nitro, [
+      builtinExternals(base.env, { node: nitro.options.node }),
+      ...((await baseBuildPlugins(nitro, base)) as RolldownPlugin[]),
+      // Emitted files are read from the filesystem, which worker runtimes do not have
+      nitro.options.node && ((await assetUrls(nitro)) as RolldownPlugin),
+    ]),
     resolve: {
       alias: base.aliases,
       extensions: base.extensions,
@@ -59,13 +65,15 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
       minifyInternalExports: false,
       chunkFileNames: (chunk) => getChunkName(chunk, nitro),
       codeSplitting: {
-        groups: [libChunksGroup()],
+        groups: [libChunksGroup(nitro)],
       },
       dir: nitro.options.output.serverDir,
       inlineDynamicImports: nitro.options.inlineDynamicImports,
       // https://github.com/rolldown/rolldown/issues/7235
       minify: nitro.options.minify ? true : "dce-only",
       sourcemap: nitro.options.sourcemap,
+      // nitro:sourcemap removes `sourcesContent` from production maps, so don't generate it
+      sourcemapExcludeSources: excludeSourcemapSources(nitro),
       sourcemapIgnoreList(relativePath) {
         return relativePath.includes("node_modules");
       },
@@ -85,5 +93,5 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
   // `inlineDynamicImports` is deprecated in favor of `codeSplitting: false`
   delete outputConfig.inlineDynamicImports;
 
-  return config as RolldownOptions;
+  return config as RolldownConfig;
 };

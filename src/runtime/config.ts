@@ -4,4 +4,5 @@ export function defineConfig(config: Omit<NitroConfig, "rootDir">): Omit<NitroCo
   return config;
 }
 
-export { defineConfig as defineNitroConfig };
+/** @deprecated Use `defineConfig` from `nitro` instead. */
+export const defineNitroConfig: typeof defineConfig = defineConfig;

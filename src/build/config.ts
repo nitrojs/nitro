@@ -1,5 +1,5 @@
 import type { Nitro, NitroImportMeta } from "nitro/types";
-import { pkgDir } from "nitro/meta";
+import { pkgDir } from "#nitro/meta";
 import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
 import { BUILD_EXTENSIONS } from "./_extensions.ts";
 import { resolveBuildEnv } from "./env.ts";
@@ -16,6 +16,7 @@ export async function baseBuildConfig(nitro: Nitro) {
 
   const importMetaInjections: NitroImportMeta = {
     dev: nitro.options.dev,
+    envName: nitro.options.envName,
     preset: nitro.options.preset,
     prerender: nitro.options.preset === "nitro-prerender",
     nitro: true,

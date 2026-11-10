@@ -6,6 +6,7 @@ import "nitro/database";
 import "nitro/h3";
 import "nitro/kv";
 import "nitro/runtime-config";
+import "nitro/services";
 import "nitro/storage";
 import "nitro/task";
 

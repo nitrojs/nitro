@@ -9,7 +9,7 @@ const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
 
 /**
  * Calls `onChange` when files are added to or removed from the scan dirs (or a root `server.*`
- * entry), and on the `rollup:reload` hook.
+ * entry), and on the `build:reload` hook.
  */
 export function watchScanDirs(nitro: Nitro, server: ViteDevServer, onChange: () => void): void {
   const scanDirs = nitro.options.scanDirs.flatMap((dir) => [
@@ -36,7 +36,7 @@ export function watchScanDirs(nitro: Nitro, server: ViteDevServer, onChange: () 
       onChange();
     }
   });
-  nitro.hooks.hook("rollup:reload", () => onChange());
+  nitro.hooks.hook("build:reload", () => onChange());
 }
 
 /**

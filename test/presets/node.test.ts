@@ -1,11 +1,20 @@
 import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { execa } from "execa";
-import { getRandomPort, waitForPort } from "get-port-please";
+import { getRandomPort } from "get-port-please";
 import { resolve } from "pathe";
-// import { isWindows } from "std-env";
+import { isBun, isWindows } from "std-env";
 import { describe, expect, it } from "vitest";
 import { setupTest, startServer, testNitro } from "../tests.ts";
 import { testCloseHook } from "./_close-hook.ts";
+import { testListenError } from "./_listen-error.ts";
+import { testUnixSocket } from "./_unix-socket.ts";
+import { waitForServer } from "./_wait-for-server.ts";
+
+// Tests spawning the output are skipped on Bun: under `bun --bun`, `node` resolves to Bun,
+// where the crossws Node.js adapter refuses to run (the `bun` preset is the native path)
+
+const presetFixturesDir = resolve(import.meta.dirname, "fixtures");
 
 describe("nitro:preset:node-middleware", async () => {
   const ctx = await setupTest("node-middleware");
@@ -44,12 +53,39 @@ describe("nitro:preset:node-middleware", async () => {
       true
     );
   });
+
+  it("writes the entry chunk as server entry of the build info", async () => {
+    const buildInfo = JSON.parse(await readFile(resolve(ctx.outDir, "nitro.json"), "utf8"));
+    expect(buildInfo.serverEntry).toBe("server/index.mjs");
+  });
+
+  // Bun names chunks itself (`_chunks/[name]-[hash].mjs`)
+  it.skipIf(process.env.NITRO_BUILDER === "bun")("names chunks by their modules", () => {
+    const serverDir = resolve(ctx.outDir, "server");
+    for (const file of [
+      "_routes/api/echo.mjs",
+      "_tasks/test.mjs",
+      "_libs/unstorage.mjs",
+      "_wasm/sum.mjs",
+    ]) {
+      expect(existsSync(resolve(serverDir, file)), file).toBe(true);
+    }
+  });
 });
 
 describe("nitro:preset:node-server", async () => {
-  const ctx = await setupTest("node-server");
+  const ctx = await setupTest("node-server", {
+    config: {
+      features: { websocket: true },
+      handlers: [
+        { route: "/_ws", handler: resolve(presetFixturesDir, "websocket.ts") },
+        { route: "/_ws-protocol", handler: resolve(presetFixturesDir, "websocket-protocol.ts") },
+      ],
+    },
+  });
 
-  it("passes server entry options to srvx", async () => {
+  it("passes server entry options to srvx", async ({ skip }) => {
+    skip(isBun);
     const port = await getRandomPort();
     const child = execa(process.execPath, [resolve(ctx.outDir, "server/index.mjs")], {
       env: { NITRO_PORT: String(port), NITRO_HOST: "127.0.0.1" },
@@ -57,7 +93,7 @@ describe("nitro:preset:node-server", async () => {
       reject: false,
     });
     try {
-      await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
+      await waitForServer(`http://127.0.0.1:${port}/`, child.nodeChildProcess);
       const res = await fetch(`http://127.0.0.1:${port}/srvx-middleware`);
       expect(await res.text()).not.toBe("server entry middleware works!");
       expect(res.headers.get("x-srvx-plugin")).toBeNull();
@@ -71,16 +107,114 @@ describe("nitro:preset:node-server", async () => {
     }
   }, 40_000);
 
-  testCloseHook(ctx, { command: process.execPath, args: (entry) => [entry] });
+  // #3925: browsers fail the handshake unless the server accepts one of the offered subprotocols
+  it.skipIf(isBun || typeof WebSocket !== "function")(
+    "negotiates WebSocket subprotocols",
+    async () => {
+      const port = await getRandomPort();
+      const child = execa(process.execPath, [resolve(ctx.outDir, "server/index.mjs")], {
+        env: { NITRO_PORT: String(port), NITRO_HOST: "127.0.0.1" },
+        stdio: process.env.TEST_DEBUG ? "inherit" : "ignore",
+        reject: false,
+      });
+      try {
+        await waitForServer(`http://127.0.0.1:${port}/`, child.nodeChildProcess);
+        await expect(
+          negotiateProtocol(`ws://127.0.0.1:${port}/_ws-protocol`, ["graphql-transport-ws"])
+        ).resolves.toBe("graphql-transport-ws");
+        // No subprotocol is accepted unless a handler opts in
+        await expect(
+          negotiateProtocol(`ws://127.0.0.1:${port}/_ws`, ["graphql-transport-ws"])
+        ).rejects.toThrow("WebSocket handshake failed");
+      } finally {
+        child.kill("SIGKILL");
+      }
+    },
+    40_000
+  );
+
+  if (!isBun) {
+    testCloseHook(ctx, { command: process.execPath, args: (entry) => [entry] });
+    testUnixSocket(ctx, { command: process.execPath, args: (entry) => [entry] });
+    testListenError(ctx, { command: process.execPath, args: (entry) => [entry] });
+  }
 });
 
 describe("nitro:preset:node-cluster", async () => {
   const ctx = await setupTest("node-cluster");
 
-  // `index.mjs` only forks workers (signals sent to it are not forwarded), so the
-  // worker entry -- the one holding the server -- is spawned directly.
+  // Signals sent to the primary (`index.mjs`) must be forwarded to workers, and the
+  // primary must exit once every worker has shut down.
   testCloseHook(ctx, {
     command: process.execPath,
-    args: (entry) => [resolve(entry, "../worker.mjs")],
+    args: (entry) => [entry],
+    env: { NITRO_CLUSTER_WORKERS: "2" },
+    exitCode: 0,
+  });
+
+  it.skipIf(isWindows || isBun)(
+    "exits non-zero when all workers exit unexpectedly",
+    async () => {
+      const port = await getRandomPort();
+      const child = execa(process.execPath, [resolve(ctx.outDir, "server/index.mjs")], {
+        env: {
+          NITRO_CLUSTER_WORKERS: "1",
+          NITRO_PORT: String(port),
+          NITRO_HOST: "127.0.0.1",
+        },
+        extendEnv: false,
+        reject: false,
+      });
+
+      try {
+        await waitForServer(`http://127.0.0.1:${port}/`, child.nodeChildProcess);
+
+        // SIGKILL the sole worker (child of the primary) like a crash would.
+        const { stdout: workerPids } = await execa("pgrep", [
+          "-P",
+          String(child.nodeChildProcess.pid),
+        ]);
+        process.kill(Number.parseInt(workerPids.trim()), "SIGKILL");
+
+        const { exitCode } = await child;
+        expect(exitCode).toBe(1);
+      } finally {
+        child.kill("SIGKILL");
+      }
+    },
+    40_000
+  );
+
+  testUnixSocket(ctx, {
+    command: process.execPath,
+    args: (entry) => [entry],
+    env: { NITRO_CLUSTER_WORKERS: "2" },
+  });
+
+  testListenError(ctx, {
+    command: process.execPath,
+    args: (entry) => [entry],
+    env: { NITRO_CLUSTER_WORKERS: "2" },
+    skip: isBun,
   });
 });
+
+// Opens a connection offering `protocols` and resolves with the subprotocol the server accepted.
+function negotiateProtocol(url: string, protocols: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url, protocols);
+    const timer = setTimeout(() => {
+      ws.close();
+      reject(new Error("Timed out waiting for the WebSocket handshake"));
+    }, 5000);
+    ws.addEventListener("open", () => {
+      clearTimeout(timer);
+      resolve(ws.protocol);
+      ws.close();
+    });
+    ws.addEventListener("error", () => {
+      clearTimeout(timer);
+      reject(new Error("WebSocket handshake failed"));
+    });
+  });
+}

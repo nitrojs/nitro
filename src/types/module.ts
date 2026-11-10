@@ -6,7 +6,7 @@ import type { Nitro } from "./nitro.ts";
  * Can be a module path string, a {@link NitroModule} object, a bare setup
  * function, or an object with a `nitro` key containing a {@link NitroModule}.
  *
- * @see https://nitro.build/config#modules
+ * @see https://nitro.build/config/features#modules
  */
 export type NitroModuleInput = string | NitroModule | NitroModule["setup"] | { nitro: NitroModule };
 
@@ -30,7 +30,7 @@ export type NitroModuleInput = string | NitroModule | NitroModule["setup"] | { n
  * };
  * ```
  *
- * @see https://nitro.build/config#modules
+ * @see https://nitro.build/config/features#modules
  */
 export interface NitroModule {
   name?: string;

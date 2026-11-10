@@ -1,9 +1,10 @@
 import { execa } from "execa";
-import { getRandomPort, waitForPort } from "get-port-please";
+import { getRandomPort } from "get-port-please";
 import { resolve } from "pathe";
 import { isWindows } from "std-env";
 import { expect, it } from "vitest";
 import type { Context } from "../tests.ts";
+import { waitForServer } from "./_wait-for-server.ts";
 
 const CLOSE_HOOK_MARKER = "[fixture] close hook called";
 
@@ -15,7 +16,14 @@ const CLOSE_HOOK_MARKER = "[fixture] close hook called";
  */
 export function testCloseHook(
   ctx: Context,
-  opts: { command: string; args: (entry: string) => string[]; cwd?: string }
+  opts: {
+    command: string;
+    args: (entry: string) => string[];
+    cwd?: string;
+    env?: Record<string, string>;
+    /** When set, also wait for the process to exit and assert its exit code. */
+    exitCode?: number;
+  }
 ): void {
   it.skipIf(isWindows)(
     "calls `close` hooks on shutdown",
@@ -26,6 +34,7 @@ export function testCloseHook(
       // `TEST` are set, so the child runs without them to exercise the real signal path.
       const env: Record<string, string | undefined> = {
         ...process.env,
+        ...opts.env,
         NITRO_PORT: String(port),
         PORT: String(port),
         NITRO_HOST: "127.0.0.1",
@@ -48,19 +57,28 @@ export function testCloseHook(
       child.nodeChildProcess.once("close", () => (exited = true));
 
       try {
-        await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
+        await waitForServer(`http://127.0.0.1:${port}/`, child.nodeChildProcess);
 
         child.kill("SIGTERM");
 
         // The fixture schedule runner can keep the event loop alive after the server
         // closed, so wait for the marker (or the process to exit) instead of exit alone.
         const deadline = Date.now() + 10_000;
-        while (!output.includes(CLOSE_HOOK_MARKER) && !exited && Date.now() < deadline) {
+        const waitForExit = opts.exitCode !== undefined;
+        while (
+          (waitForExit || !output.includes(CLOSE_HOOK_MARKER)) &&
+          !exited &&
+          Date.now() < deadline
+        ) {
           await new Promise((r) => setTimeout(r, 50));
         }
 
         expect(output).toContain(CLOSE_HOOK_MARKER);
         expect(output).not.toContain("unhandledRejection");
+        if (waitForExit) {
+          expect(exited).toBe(true);
+          expect(child.nodeChildProcess.exitCode).toBe(opts.exitCode);
+        }
       } finally {
         // Not awaited: the fixture schedule runner can outlive the server, and a
         // dangling child is cleaned up by execa when the test process exits.

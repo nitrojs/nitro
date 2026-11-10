@@ -10,9 +10,10 @@
 import type { Nitro, RedirectRuleOptions } from "nitro/types";
 import { join } from "pathe";
 import { compareRoutes, routeToRegExp } from "rou3";
-import { hasProtocol, joinURL } from "ufo";
+import { joinURL } from "ufo";
 import { writeFile } from "../../utils/fs.ts";
-import { catchAllRef, sortRoutes } from "../_utils/routes.ts";
+import { getPublicAssetCorsHeaders } from "../_utils/cors.ts";
+import { catchAllRef, hasHeaders, parseRouteKey, sortRoutes } from "../_utils/routes.ts";
 
 const NAMED_GROUP_RE = /\(\?<(?![=!])[^>]+>/g;
 
@@ -48,31 +49,38 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
 
   // Phase 1 — rules evaluated before the filesystem handler (headers, redirects).
   const rules = sortRoutes(Object.keys(nitro.options.routeRules || {})).map(
-    (path) => [path, nitro.options.routeRules[path]] as const
+    (key) => [parseRouteKey(key), nitro.options.routeRules[key]] as const
   );
 
   config.routes.push(
     // Header-only rules (least specific first, so more specific headers override on `continue`)
     ...rules
-      .filter(([_, routeRules]) => routeRules.headers && !routeRules.redirect)
+      .filter(([_, routeRules]) => hasHeaders(routeRules) && !routeRules.redirect)
       .reverse()
-      .map(([path, routeRules]) => ({
+      .map(([{ path, methods }, routeRules]) => ({
         src: routeToRE2(joinURL(baseURL, path)).source,
+        ...(methods && { methods }),
         headers: routeRules.headers as Record<string, string>,
         continue: true,
       })),
+    // CORS headers of public asset dirs, which the server function does not serve
+    ...getPublicAssetCorsHeaders(nitro).map(({ base, headers }) => ({
+      src: routeToRE2(joinURL(baseURL, base, "**")).source,
+      headers,
+      continue: true,
+    })),
     // Redirect rules (most specific first, as the first match stops routing)
     ...rules
       .filter(([_, routeRules]) => routeRules.redirect)
-      .map(([path, routeRules]) => {
+      .map(([{ path, methods }, routeRules]) => {
         const redirect = routeRules.redirect as RedirectRuleOptions;
         const src = routeToRE2(joinURL(baseURL, path));
-        const to = redirect.to.replaceAll("**", catchAllRef(src));
         return {
           src: src.source,
+          ...(methods && { methods }),
           status: redirect.status || 302,
           headers: {
-            Location: hasProtocol(to, { acceptRelative: true }) ? to : joinURL(baseURL, to),
+            Location: redirect.to.replaceAll("**", catchAllRef(src)),
             ...(routeRules.headers as Record<string, string>),
           },
         };

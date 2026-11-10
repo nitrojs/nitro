@@ -66,16 +66,17 @@ export async function resolveVersion(
 }
 
 async function main() {
-  console.log(c.bold("\nBump version to beta\n"));
-
   const pkgPath = resolve(process.cwd(), "package.json");
   const pkg = JSON.parse(await fsp.readFile(pkgPath, "utf8"));
   const oldVersion = pkg.version;
+  const prerelease = /-([a-z]+)/.exec(oldVersion)?.[1] ?? "";
+
+  console.log(c.bold(`\nBump version${prerelease ? ` to ${prerelease}` : ""}\n`));
 
   const dateStr = fmtDate(new Date());
   console.log(c.gray(`Date: ${c.cyan(dateStr)}`));
 
-  const newVersion = await resolveVersion(pkg.name, dateStr);
+  const newVersion = await resolveVersion(pkg.name, dateStr, prerelease);
 
   console.log();
   console.log(`  ${c.cyan(pkg.name)} ${c.gray(oldVersion)} → ${c.green(newVersion)}`);

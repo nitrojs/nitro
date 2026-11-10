@@ -34,7 +34,7 @@ export interface SwaggerUIConfig {
 /**
  * Nitro OpenAPI configuration.
  *
- * @see https://nitro.build/config#openapi
+ * @see https://nitro.build/config/features#openapi
  * @see https://nitro.build/docs/openapi
  */
 export interface NitroOpenAPIConfig {
@@ -61,7 +61,7 @@ export interface NitroOpenAPIConfig {
    * - `"prerender"` — prerender the JSON response at build time (most efficient).
    * - `false` — disable in production.
    *
-   * @see https://nitro.build/config#openapi
+   * @see https://nitro.build/config/features#openapi
    */
   production?: false | "runtime" | "prerender";
 

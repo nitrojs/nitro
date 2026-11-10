@@ -27,7 +27,8 @@ export default defineConfig({});
   },
   "devDependencies": {
     "mono-jsx": "latest",
-    "nitro": "latest"
+    "nitro": "latest",
+    "rolldown": "latest"
   }
 }
 ```

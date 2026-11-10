@@ -14,7 +14,7 @@
 - `aws-amplify/` — AWS Amplify
 - `azure/` — Azure Static Web Apps
 - `cloudflare/` — Cloudflare Pages/Workers
-- `deno/` — Deno Deploy
+- `deno/` — Deno server (also used for Deno Deploy)
 - `digitalocean/` — DigitalOcean App Platform
 - `edgeone/` — Tencent EdgeOne
 - `firebase/` — Firebase Hosting
@@ -25,7 +25,6 @@
 - `render.com/` — Render
 - `stormkit/` — Stormkit
 - `vercel/` — Vercel Functions/Edge
-- `winterjs/` — WinterJS
 - `zeabur/` — Zeabur
 - `zephyr/` — Zephyr
 - `zerops/` — Zerops

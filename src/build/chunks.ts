@@ -1,8 +1,11 @@
 import type { Nitro } from "nitro/types";
+import { isAbsolute, normalize } from "pathe";
 
 // Tests in @test/unit/chunks.test.ts
 
 const virtualRe = /^(?:\0|#|virtual:)/;
+
+const RSPACK_PLACEHOLDER_RE = /\[(id|name|runtime|(?:full|chunk|content)?hash)\]/g;
 
 export const NODE_MODULES_RE = /node_modules[/\\](?!(?:nitro|nitro-nightly)[/\\])[^.]/;
 
@@ -12,8 +15,14 @@ export function libChunkName(id: string) {
 }
 
 /** Rolldown `codeSplitting` group for library (`node_modules`) chunks. */
-export function libChunksGroup() {
-  const group = { test: NODE_MODULES_RE, name: (id: string) => libChunkName(id) };
+export function libChunksGroup(nitro: Nitro) {
+  const group = {
+    test: NODE_MODULES_RE,
+    name: (id: string) => libChunkName(id),
+    // A package's chunk also takes in the packages it imports. Without this, startup code that imports one of them
+    // loads the whole chunk, lazy routes' dependencies included.
+    entriesAware: nitro.options.experimental.entriesAwareLibChunks !== false,
+  };
   // Rolldown >= 1.2.10 warns without `debugName`, older versions reject unknown (enumerable) keys
   Object.defineProperty(group, "debugName", { value: "libs" });
   return group;
@@ -35,6 +44,11 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
     return "_runtime.mjs";
   }
 
+  // `entriesAware` suffixes split lib chunk names with `~<entries>`. Keep the group name, Rolldown dedupes file names
+  if (chunk.name.startsWith("_libs/")) {
+    chunk = { ...chunk, name: chunk.name.split("~")[0]! };
+  }
+
   // Library chunks
   if (chunk.moduleIds.every((id) => NODE_MODULES_RE.test(id))) {
     const chunkName = joinPkgNames(chunk.moduleIds);
@@ -54,7 +68,10 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
     return `_chunks/${chunk.name}.mjs`;
   }
 
-  const ids = chunk.moduleIds.filter((id) => !virtualRe.test(id));
+  // Module paths have `\` separators on Windows, unlike Nitro's handler paths
+  const ids = chunk.moduleIds
+    .filter((id) => !virtualRe.test(id))
+    .map((id) => (isAbsolute(id) ? normalize(id) : id));
 
   // All virtual
   if (ids.length === 0) {
@@ -90,6 +107,9 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
       if (nitro.options.builder === "rollup") {
         // rollup treats [name] in chunkFileNames as an invalid placeholder
         routePath = routePath.replace(/\[/g, "%5B").replace(/\]/g, "%5D");
+      } else if (nitro.options.builder === "rspack") {
+        // rspack replaces these placeholders in chunk file names (other brackets are kept)
+        routePath = routePath.replace(RSPACK_PLACEHOLDER_RE, "_$1_");
       }
       return `_routes/${routePath}.mjs`;
     }
@@ -124,6 +144,7 @@ export function routeToFsPath(route: string) {
       .slice(1)
       .map((s) =>
         s
+          .replace(/^:(\w+)\(\.\*\)$/, "[...$1]")
           .replace(/:(\w+)/g, "[$1]")
           .replace(/\*+/g, "[...]")
           .replace(/[^a-zA-Z0-9_.[\]]/g, "_")

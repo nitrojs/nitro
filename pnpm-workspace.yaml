@@ -48,9 +48,6 @@ updateConfig:
     - vite7
     - miniflare
 
-patchedDependencies:
-  '@hiogawa/vite-plugin-fullstack': patches/@hiogawa__vite-plugin-fullstack.patch
-
 minimumReleaseAgeExcludePrune: true
 minimumReleaseAgeExclude:
   - automd*
@@ -74,7 +71,6 @@ minimumReleaseAgeExclude:
   - hookable*
   - httpxy*
   - knitwork*
-  - mdzilla*
   - mlly*
   - nf3*
   - nypm*

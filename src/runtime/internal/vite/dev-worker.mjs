@@ -1,5 +1,4 @@
 import { createViteTransport } from "env-runner/vite";
-import { createDevRPC } from "../dev-rpc.mjs";
 
 // `vite` is an optional dependency Nitro resolves from the app, so the module runner cannot be
 // imported from here. The generated entry injects it instead (see `build/vite/_dev-worker.ts`).
@@ -213,10 +212,6 @@ class ViteEnvRunner {
   }
 }
 
-// ----- RPC -----
-
-const rpc = createDevRPC((message) => sendMessage?.(message));
-
 // Trap unhandled errors to avoid worker crash
 if (typeof process !== "undefined" && typeof process.on === "function") {
   process.on("unhandledRejection", (error) => console.error(error));
@@ -259,19 +254,6 @@ async function reload(payload) {
 // eslint-disable-next-line unicorn/prefer-top-level-await
 reload();
 
-// ----- HTML Transform -----
-
-globalThis.__transform_html__ = async function (html) {
-  html = await rpc.call("transformHTML", html).catch((error) => {
-    console.warn("Failed to transform HTML via Vite:", error);
-    return html;
-  });
-  return html;
-};
-
-// Fallback when the runner cannot read the template itself (e.g. workerd)
-globalThis.__nitro_renderer_template__ = () => rpc.call("rendererTemplate");
-
 // ----- Exports (env-runner AppEntry) -----
 
 export async function fetch(req) {
@@ -298,14 +280,23 @@ export const websocketOptions = {
   },
 };
 
+// Worker classes for the miniflare runner: the server entry exports re-exported by the nitro
+// environment's entry (`dev-entry.mjs`). Resolved on each use so they follow reloads, and
+// share the module state of the routes.
+export async function resolveExports() {
+  const env = envs.nitro || (await waitForEnv("nitro"));
+  if (!env) {
+    throw httpError(503, `Vite environment "nitro" is unavailable`);
+  }
+  const entry = await env.waitForEntry();
+  return entry.serverEntryExports || {};
+}
+
 export const ipc = {
   onOpen(ctx) {
     sendMessage = ctx.sendMessage;
   },
   onMessage(message) {
-    if (rpc.handleMessage(message)) {
-      return;
-    }
     if (message?.type === "custom") {
       if (message.event === "nitro:vite-env") {
         const { name, entry } = message.data;
@@ -314,6 +305,19 @@ export const ipc = {
           envWaiters.get(name)?.resolve();
           envWaiters.delete(name);
         }
+        return;
+      }
+      // Drops the evaluation of a module imported on demand (the renderer template), without
+      // reloading its importers. Acknowledged so the host can wait for it before dispatching
+      // requests (requests and messages are not ordered in workerd).
+      if (message.event === "nitro:invalidate") {
+        const { id, env: name, moduleId } = message.data;
+        const evaluatedModules = envs[name]?.runner.evaluatedModules;
+        const mod = evaluatedModules?.getModuleById(moduleId);
+        if (mod) {
+          evaluatedModules.invalidateModule(mod);
+        }
+        sendMessage?.({ type: "custom", event: "nitro:invalidated", data: { id } });
         return;
       }
     }

@@ -6,13 +6,18 @@ import type { LogLevel } from "./_consola.ts";
 import type { ConnectorName, ConnectorOptions } from "db0";
 import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
+import type {
+  CacheOptions as OCacheOptions,
+  CachedEventHandlerOptions as OCacheEventHandlerOptions,
+  MemoryStorageOptions as OCacheMemoryStorageOptions,
+} from "ocache";
 import type { PresetName, PresetNameInput, PresetOptions } from "../presets/index.ts";
 import type { DeployOptions } from "../deploy.ts";
 import type { TSConfig } from "pkg-types";
 import type { BuiltinDriverName, BuiltinDriverOptions } from "unstorage";
 import type { ExternalsTraceOptions } from "nf3";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
-import type { RunnerName } from "env-runner";
+import type { RunnerName, RunnerReloadOptions } from "env-runner";
 import type {
   EventHandlerFormat,
   NitroDevEventHandler,
@@ -25,11 +30,17 @@ import type { Nitro, NitroFrameworkInfo } from "./nitro.ts";
 import type { NitroOpenAPIConfig } from "./openapi.ts";
 export type { NitroOpenAPIConfig } from "./openapi.ts";
 import type { NitroPreset } from "./preset.ts";
-import type { NitroBuildPluginOption, OXCOptions, RolldownConfig } from "./build.ts";
+import type {
+  BunConfig,
+  NitroBuildPluginOption,
+  OXCOptions,
+  RolldownConfig,
+  RspackConfig,
+} from "./build.ts";
 import type { CommonJSOptions } from "./_bundler.ts";
 import type { RollupConfig } from "./build.ts";
 import type { NormalizedRouteRules, RouteRuleConfig } from "./route-rules.ts";
-import type { JsonValue, SerializableOptions } from "./_utils.ts";
+import type { JsonValue, OptionalDepType, SerializableOptions } from "./_utils.ts";
 
 /**
  * Fully resolved Nitro options available on `nitro.options`.
@@ -47,6 +58,15 @@ export interface NitroOptions extends PresetOptions {
     command?: string;
   };
 
+  /**
+   * Resolved config layers, ordered from highest to lowest priority.
+   *
+   * The first layer is always the project root. It is followed by layers
+   * added with `extends` (local directories, config files, npm packages, or
+   * remote sources). Presets and inline config overrides are not included.
+   */
+  layers: NitroConfigLayer[];
+
   // General
 
   /**
@@ -57,14 +77,14 @@ export interface NitroOptions extends PresetOptions {
    * in `YYYY-MM-DD` format.
    *
    * @default "latest"
-   * @see https://nitro.build/config#compatibilitydate
+   * @see https://nitro.build/config/general#compatibilitydate
    */
   compatibilityDate: CompatibilityDates;
 
   /**
    * Enables debugging nitro (build time) hooks in the console.
    *
-   * @see https://nitro.build/config#debug
+   * @see https://nitro.build/config/general#debug
    */
   debug: boolean;
 
@@ -76,7 +96,7 @@ export interface NitroOptions extends PresetOptions {
    * environments when not set. Use the `NITRO_PRESET` environment
    * variable as an alternative.
    *
-   * @see https://nitro.build/config#preset
+   * @see https://nitro.build/config/general#preset
    */
   preset: PresetName;
 
@@ -88,7 +108,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * Note: This does not enable prerendering on its own — configure `prerender` options separately.
    *
-   * @see https://nitro.build/config#static
+   * @see https://nitro.build/config/general#static
    */
   static: boolean;
 
@@ -97,7 +117,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * Defaults to `3`, or `1` when a testing environment is detected.
    *
-   * @see https://nitro.build/config#loglevel
+   * @see https://nitro.build/config/general#loglevel
    * @see https://github.com/unjs/consola
    */
   logLevel: LogLevel;
@@ -118,7 +138,7 @@ export interface NitroOptions extends PresetOptions {
    * }
    * ```
    *
-   * @see https://nitro.build/config#runtimeconfig
+   * @see https://nitro.build/config/general#runtimeconfig
    */
   runtimeConfig: NitroRuntimeConfig;
 
@@ -129,14 +149,14 @@ export interface NitroOptions extends PresetOptions {
    *
    * Auto-detected from the workspace (e.g. pnpm workspace) when not set.
    *
-   * @see https://nitro.build/config#workspacedir
+   * @see https://nitro.build/config/directories#workspacedir
    */
   workspaceDir: string;
 
   /**
    * Project main root directory.
    *
-   * @see https://nitro.build/config#rootdir
+   * @see https://nitro.build/config/directories#rootdir
    */
   rootDir: string;
 
@@ -148,7 +168,7 @@ export interface NitroOptions extends PresetOptions {
    * the root directory, or `"./server"` to use a `server/` subdirectory.
    *
    * @default false
-   * @see https://nitro.build/config#serverdir
+   * @see https://nitro.build/config/directories#serverdir
    */
   serverDir: string | false;
 
@@ -156,7 +176,7 @@ export interface NitroOptions extends PresetOptions {
    * Additional directories to scan and auto-register files such as API
    * route handlers.
    *
-   * @see https://nitro.build/config#scandirs
+   * @see https://nitro.build/config/directories#scandirs
    */
   scanDirs: string[];
 
@@ -164,7 +184,7 @@ export interface NitroOptions extends PresetOptions {
    * Directory name to scan for API route handlers.
    *
    * @default "api"
-   * @see https://nitro.build/config#apidir
+   * @see https://nitro.build/config/directories#apidir
    */
   apiDir: string;
 
@@ -172,7 +192,7 @@ export interface NitroOptions extends PresetOptions {
    * Directory name to scan for route handlers.
    *
    * @default "routes"
-   * @see https://nitro.build/config#routesdir
+   * @see https://nitro.build/config/directories#routesdir
    */
   routesDir: string;
 
@@ -180,14 +200,14 @@ export interface NitroOptions extends PresetOptions {
    * Nitro's temporary working directory for build-related files.
    *
    * @default "node_modules/.nitro"
-   * @see https://nitro.build/config#builddir
+   * @see https://nitro.build/config/directories#builddir
    */
   buildDir: string;
 
   /**
    * Output directories for the production bundle.
    *
-   * @see https://nitro.build/config#output
+   * @see https://nitro.build/config/directories#output
    */
   output: {
     /** Production output root directory. */
@@ -219,7 +239,7 @@ export interface NitroOptions extends PresetOptions {
    * Keys are mount-point paths; values specify the unstorage driver and
    * its options.
    *
-   * @see https://nitro.build/config#kv
+   * @see https://nitro.build/config/storage#kv
    * @see https://nitro.build/docs/storage
    */
   kv: KVMounts;
@@ -234,7 +254,7 @@ export interface NitroOptions extends PresetOptions {
    * Cache storage and global default options for cached functions, cached handlers
    * and `cache` route rules.
    *
-   * @see https://nitro.build/config#cache
+   * @see https://nitro.build/config/storage#cache
    * @see https://nitro.build/docs/cache
    */
   cache: NitroCacheConfig;
@@ -244,7 +264,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * Requires `experimental.database: true`.
    *
-   * @see https://nitro.build/config#database
+   * @see https://nitro.build/config/storage#database
    * @see https://nitro.build/docs/database
    */
   database: DatabaseConnectionConfigs;
@@ -252,7 +272,7 @@ export interface NitroOptions extends PresetOptions {
   /**
    * Database connection overrides for development mode.
    *
-   * @see https://nitro.build/config#devdatabase
+   * @see https://nitro.build/config/storage#devdatabase
    * @see https://nitro.build/docs/database
    */
   devDatabase: DatabaseConnectionConfigs;
@@ -263,7 +283,7 @@ export interface NitroOptions extends PresetOptions {
    * Points to the main render handler (the file should export an event
    * handler as default). Set to `false` to disable.
    *
-   * @see https://nitro.build/config#renderer
+   * @see https://nitro.build/config/features#renderer
    * @see https://nitro.build/docs/renderer
    */
   renderer?: { handler?: string; static?: boolean; template?: string };
@@ -282,7 +302,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * Most self-hosted presets (e.g. `node-server`, `bun`) enable this by default.
    *
-   * @see https://nitro.build/config#servestatic
+   * @see https://nitro.build/config/assets#servestatic
    */
   serveStatic: boolean | "node" | "inline";
 
@@ -292,7 +312,7 @@ export interface NitroOptions extends PresetOptions {
    * Skips preparing the `.output/public` directory, copying public
    * assets, and prerendering routes.
    *
-   * @see https://nitro.build/config#nopublicdir
+   * @see https://nitro.build/config/assets#nopublicdir
    */
   noPublicDir: boolean;
   tracingChannel?: undefined | TracingChannelOptions;
@@ -307,7 +327,7 @@ export interface NitroOptions extends PresetOptions {
   /**
    * Built-in feature flags.
    *
-   * @see https://nitro.build/config#features
+   * @see https://nitro.build/config/features#features
    */
   features: {
     /**
@@ -321,6 +341,14 @@ export interface NitroOptions extends PresetOptions {
      * Enable WebSocket support.
      */
     websocket?: boolean;
+
+    /**
+     * Replace the global `Response` with srvx `FastResponse`, so that
+     * `new Response()` skips the native Response overhead in Node.js.
+     *
+     * Enabled by default when `node` is `true`.
+     */
+    fastResponse?: boolean;
   };
 
   /**
@@ -328,7 +356,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * Set to `false` to disable.
    *
-   * @see https://nitro.build/config#wasm
+   * @see https://nitro.build/config/features#wasm
    * @see https://github.com/unjs/unwasm
    */
   wasm?: false | UnwasmPluginOptions;
@@ -336,7 +364,7 @@ export interface NitroOptions extends PresetOptions {
   /**
    * OpenAPI specification generation and UI configuration.
    *
-   * @see https://nitro.build/config#openapi
+   * @see https://nitro.build/config/features#openapi
    * @see https://nitro.build/docs/openapi
    */
   openAPI?: NitroOpenAPIConfig;
@@ -346,7 +374,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * These features are not yet stable and may change in future releases.
    *
-   * @see https://nitro.build/config#experimental
+   * @see https://nitro.build/config/features#experimental
    */
   experimental: {
     /**
@@ -369,6 +397,14 @@ export interface NitroOptions extends PresetOptions {
      * Sourcemap minification is enabled by default when `sourcemap` is on.
      */
     sourcemapMinify?: false;
+    /**
+     * Set to `false` to disable entries-aware library chunks (Rolldown and Vite builders).
+     *
+     * By default, each `node_modules` package chunk is split by the entries (main entry and lazy
+     * route handlers) that use it, so startup does not load code that only lazy routes need.
+     * Disabling it produces fewer, larger library chunks.
+     */
+    entriesAwareLibChunks?: false;
     /**
      * Allow env expansion in runtime config
      *
@@ -398,26 +434,16 @@ export interface NitroOptions extends PresetOptions {
      * Log Nitro tracing-channel spans to the console.
      *
      * Enables a built-in, dependency-free telemetry sink that `console.log`s
-     * each completed span (h3, srvx, unstorage, …). Requires `tracingChannel`
+     * each completed span (h3, srvx, unstorage, db0, …). Requires `tracingChannel`
      * to be enabled.
      */
     tracingLogger?: boolean;
   };
 
   /**
-   * Future features pending a major version to avoid breaking changes.
-   *
-   * @see https://nitro.build/config#future
-   */
-  future: {
-    /** Opt in to Nitro's native `isr` route rule handling on Vercel and suppress backwards-compatibility warnings for legacy `swr`/`static` route options. */
-    nativeSWR?: boolean;
-  };
-
-  /**
    * Server-side asset directories bundled at build time.
    *
-   * @see https://nitro.build/config#serverassets
+   * @see https://nitro.build/config/assets#serverassets
    * @see https://nitro.build/docs/assets#server-assets
    */
   serverAssets: ServerAssetDir[];
@@ -427,7 +453,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * A `public/` directory is added by default when detected.
    *
-   * @see https://nitro.build/config#publicassets
+   * @see https://nitro.build/config/assets#publicassets
    * @see https://nitro.build/docs/assets
    */
   publicAssets: PublicAssetDir[];
@@ -437,7 +463,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * Accepts module path strings, {@link NitroModule} objects, or bare setup functions.
    *
-   * @see https://nitro.build/config#modules
+   * @see https://nitro.build/config/features#modules
    */
   modules?: NitroModuleInput[];
 
@@ -446,7 +472,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * Plugins in the `plugins/` directory are auto-registered.
    *
-   * @see https://nitro.build/config#plugins
+   * @see https://nitro.build/config/features#plugins
    * @see https://nitro.build/docs/plugins
    */
   plugins: string[];
@@ -466,7 +492,7 @@ export interface NitroOptions extends PresetOptions {
    * }
    * ```
    *
-   * @see https://nitro.build/config#tasks
+   * @see https://nitro.build/config/features#tasks
    * @see https://nitro.build/docs/tasks
    */
   tasks: { [name: string]: { handler?: string; description?: string } };
@@ -482,10 +508,29 @@ export interface NitroOptions extends PresetOptions {
    * }
    * ```
    *
-   * @see https://nitro.build/config#scheduledtasks
+   * @see https://nitro.build/config/features#scheduledtasks
    * @see https://nitro.build/docs/tasks
    */
   scheduledTasks: { [cron: string]: string | string[] };
+
+  /**
+   * Scheduler options for `scheduledTasks`.
+   *
+   * @see https://nitro.build/config/features#scheduler
+   */
+  scheduler: {
+    /**
+     * Run `scheduledTasks` in-process with the built-in cron runner, in presets that use it
+     * (`dev`, `node_*`, `bun` and `deno_server`).
+     *
+     * Set to `false` when something else invokes the scheduled tasks, such as a system cron.
+     * The tasks stay registered, so `runCronTasks()` and the `/_nitro/tasks` dev route keep
+     * working. Platform schedules (Cloudflare Cron Triggers, Vercel Cron Jobs) are not affected.
+     *
+     * @default true
+     */
+    runner?: boolean;
+  };
 
   /**
    * Virtual module definitions.
@@ -493,7 +538,7 @@ export interface NitroOptions extends PresetOptions {
    * A map from dynamic virtual import names to their contents or an async
    * function that returns them.
    *
-   * @see https://nitro.build/config#virtual
+   * @see https://nitro.build/config/features#virtual
    */
   virtual: Record<string, string | (() => string | Promise<string>)>;
 
@@ -504,16 +549,27 @@ export interface NitroOptions extends PresetOptions {
    * variants of compressible assets larger than 1024 bytes. Pass an
    * object to selectively enable/disable each encoding.
    *
-   * @see https://nitro.build/config#compresspublicassets
+   * @see https://nitro.build/config/assets#compresspublicassets
    */
   compressPublicAssets: boolean | CompressOptions;
 
   /**
    * Glob patterns to ignore when scanning directories.
    *
-   * @see https://nitro.build/config#ignore
+   * @see https://nitro.build/config/directories#ignore
    */
   ignore: string[];
+
+  /**
+   * Additional dotted suffixes to keep as part of scanned file names (e.g. `"prompt"` for
+   * `routes/system.prompt.ts` → `/system.prompt`).
+   *
+   * Nitro reserves trailing lowercase suffixes in scanned file names. Known file extensions
+   * (e.g. `.json`, `.md`, `.xml`) are always kept.
+   *
+   * @see https://nitro.build/config/directories#scansuffixes
+   */
+  scanSuffixes: string[];
 
   // Dev
 
@@ -522,14 +578,26 @@ export interface NitroOptions extends PresetOptions {
    *
    * Defaults to `true` during development and `false` for production.
    *
-   * @see https://nitro.build/config#dev
+   * @see https://nitro.build/config/advanced#dev
    */
   dev: boolean;
 
   /**
+   * Environment name used to apply `$env.<envName>` (or `$<envName>`) config overrides.
+   *
+   * Defaults to `"development"` in development and `"production"` otherwise. A custom
+   * name (for example `"staging"`) can be set with the `--envName` CLI flag or the
+   * `c12.envName` load option of `createNitro()`. Available in server code as
+   * `import.meta.envName`.
+   *
+   * @see https://nitro.build/docs/configuration#environment-specific-config
+   */
+  envName: string;
+
+  /**
    * Development server options.
    *
-   * @see https://nitro.build/config#devserver
+   * @see https://nitro.build/config/dev#devserver
    */
   devServer: {
     /** Port number for the dev server. */
@@ -540,6 +608,15 @@ export interface NitroOptions extends PresetOptions {
     watch?: string[];
     /** Runtime runner to use for the dev server. */
     runner?: RunnerName;
+    /**
+     * Let the previous dev worker finish the requests and WebSockets it already accepted on
+     * reloads, and shut it down once they settle (or after `timeout` ms, default `60_000`).
+     *
+     * New requests go to the new worker right away.
+     *
+     * @default false
+     */
+    drain?: RunnerReloadOptions["drain"];
     /**
      * Serve `/.well-known/appspecific/com.chrome.devtools.json` so Chrome DevTools can connect
      * the project folder as an automatic workspace.
@@ -553,7 +630,7 @@ export interface NitroOptions extends PresetOptions {
   /**
    * File watcher options for development mode.
    *
-   * @see https://nitro.build/config#watchoptions
+   * @see https://nitro.build/config/dev#watchoptions
    * @see https://github.com/paulmillr/chokidar
    */
   watchOptions: ChokidarOptions;
@@ -571,7 +648,7 @@ export interface NitroOptions extends PresetOptions {
    * }
    * ```
    *
-   * @see https://nitro.build/config#devproxy
+   * @see https://nitro.build/config/dev#devproxy
    * @see https://github.com/unjs/httpxy
    */
   devProxy: Record<string, string | ProxyServerOptions>;
@@ -581,7 +658,7 @@ export interface NitroOptions extends PresetOptions {
   /**
    * Build logging behavior.
    *
-   * @see https://nitro.build/config#logging
+   * @see https://nitro.build/config/general#logging
    */
   logging: {
     /** Report compressed bundle sizes after build. */
@@ -598,7 +675,7 @@ export interface NitroOptions extends PresetOptions {
    * Can also be set via the `NITRO_APP_BASE_URL` environment variable.
    *
    * @default "/"
-   * @see https://nitro.build/config#baseurl
+   * @see https://nitro.build/config/routing#baseurl
    */
   baseURL: string;
 
@@ -606,7 +683,7 @@ export interface NitroOptions extends PresetOptions {
    * Base URL prefix for API routes.
    *
    * @default "/api"
-   * @see https://nitro.build/config#apibaseurl
+   * @see https://nitro.build/config/routing#apibaseurl
    */
   apiBaseURL: string;
 
@@ -625,7 +702,7 @@ export interface NitroOptions extends PresetOptions {
    * Handlers in `routes/`, `api/`, and `middleware/` directories are
    * auto-registered when {@link NitroOptions.serverDir | serverDir} is set.
    *
-   * @see https://nitro.build/config#handlers
+   * @see https://nitro.build/config/routing#handlers
    * @see https://nitro.build/docs/routing
    */
   handlers: NitroEventHandler[];
@@ -635,7 +712,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * Not included in production builds.
    *
-   * @see https://nitro.build/config#devhandlers
+   * @see https://nitro.build/config/routing#devhandlers
    */
   devHandlers: NitroDevEventHandler[];
 
@@ -646,7 +723,7 @@ export interface NitroOptions extends PresetOptions {
    * Rules are matched using rou3 patterns and deep-merged when multiple
    * patterns match.
    *
-   * @see https://nitro.build/config#routerules
+   * @see https://nitro.build/config/routing#routerules
    * @see https://nitro.build/docs/routing#route-rules
    */
   routeRules: { [path: string]: NormalizedRouteRules };
@@ -656,7 +733,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * A map from route pattern to handler path or handler options.
    *
-   * @see https://nitro.build/config#routes
+   * @see https://nitro.build/config/routing#routes
    */
   routes: Record<string, string | Omit<NitroEventHandler, "route" | "middleware">>;
 
@@ -666,14 +743,14 @@ export interface NitroOptions extends PresetOptions {
    * Custom handlers run before the built-in error handler, which is
    * always added as a fallback.
    *
-   * @see https://nitro.build/config#errorhandler
+   * @see https://nitro.build/config/routing#errorhandler
    */
   errorHandler: string | string[];
 
   /**
    * Custom error handler function for development mode.
    *
-   * @see https://nitro.build/config#deverrorhandler
+   * @see https://nitro.build/config/advanced#deverrorhandler
    */
   devErrorHandler: NitroErrorHandler;
 
@@ -683,7 +760,7 @@ export interface NitroOptions extends PresetOptions {
    * Routes specified here are fetched during the build and copied to
    * `.output/public` as static assets.
    *
-   * @see https://nitro.build/config#prerender
+   * @see https://nitro.build/config/routing#prerender
    */
   prerender: {
     /**
@@ -698,22 +775,20 @@ export interface NitroOptions extends PresetOptions {
     crawlLinks?: boolean;
     /** Fail the build when a route cannot be prerendered. */
     failOnError?: boolean;
-    /** Patterns (string, RegExp, or function) of routes to skip. */
+    /**
+     * Patterns of routes to skip: a string prefix, a rou3 route pattern (a string
+     * containing `*` or `:`, e.g. `/blog/**`), a RegExp, or a function.
+     */
     ignore?: Array<string | RegExp | ((path: string) => undefined | null | boolean)>;
+    /**
+     * Status codes of failed routes that do not fail the build when `failOnError` is enabled
+     * (e.g. `[404]`). These routes are still reported and not written.
+     */
+    ignoreStatusCodes?: number[];
     /** Skip prerendering assets without a base URL prefix. */
     ignoreUnprefixedPublicAssets?: boolean;
     /** Explicit list of routes to prerender. */
     routes?: string[];
-    /**
-     * Amount of retries. Pass Infinity to retry indefinitely.
-     * @default 3
-     */
-    retry?: number;
-    /**
-     * Delay between each retry in ms.
-     * @default 500
-     */
-    retryDelay?: number;
   };
 
   // Build
@@ -729,9 +804,23 @@ export interface NitroOptions extends PresetOptions {
    * Set to `false` to run the server sources without bundling (experimental, `dev` and
    * `preview` only).
    *
-   * @see https://nitro.build/config#builder
+   * `"rspack"` bundles the server with [Rspack](https://rspack.rs) (experimental).
+   * Set to `"bun"` (experimental) to bundle with `Bun.build`. It requires running Nitro with Bun.
+   *
+   * @see https://nitro.build/config/build#builder
    */
-  builder?: "rollup" | "rolldown" | "vite" | false;
+  builder?: "rollup" | "rolldown" | "rspack" | "vite" | "bun" | false;
+
+  /**
+   * Services of the app: server entries exporting a `fetch` handler, built by the builder
+   * integration (e.g. `nitro/vite`) and fetched with `fetchService()` from `nitro/services`.
+   *
+   * An `ssr` service is detected from an `entry-server` file in `app/`, `src/` or the root
+   * directory, and server environments with an entry are registered automatically.
+   *
+   * @see https://nitro.build/config/build#services
+   */
+  services: Record<string, NitroServiceConfig>;
 
   /**
    * Options for the `vite` builder and the `nitro/vite` plugin.
@@ -741,15 +830,46 @@ export interface NitroOptions extends PresetOptions {
      * The `vite` package to use, as a path or `file://` URL to its directory or entry
      * (e.g. `import.meta.resolve("vite")`).
      *
-     * By default, `vite` is resolved from the project root. A framework running Vite
-     * programmatically should pass its own `vite` so the dev module runner matches the
-     * running instance (in a monorepo, another version could be hoisted next to the app).
+     * By default, the `nitro/vite` plugin uses the running `vite` and the `vite` builder
+     * resolves it from the project root.
      */
     path?: string;
+
+    /**
+     * Alias of the top-level `services` option (which takes precedence).
+     *
+     * @deprecated Use the top-level `services` option.
+     */
+    services?: Record<string, ViteServiceConfig>;
+
+    /**
+     * Enable `?assets` imports proposed by https://github.com/vitejs/vite/discussions/20913.
+     *
+     * @default true
+     */
+    assetsImport?: boolean;
+
+    /**
+     * Reload the dev server (and the browser) when a server-only module is updated.
+     *
+     * When disabled, server-only modules are still invalidated but the dev worker
+     * keeps its current evaluations.
+     *
+     * @default true
+     */
+    serverReload?: boolean;
   };
 
   /**
-   * Build plugins, applied with every builder (`rollup`, `rolldown`, `vite` and `false`).
+   * Options for the optional dependencies Nitro installs on demand (such as `vite`, `rolldown`,
+   * `unstorage` or `db0`).
+   *
+   * @see https://nitro.build/config/build#deps
+   */
+  deps?: NitroDepsOptions;
+
+  /**
+   * Build plugins, applied with every builder (`rollup`, `rolldown`, `rspack`, `vite`, `bun` and `false`).
    *
    * Plugins use the Rollup plugin interface. Only the `resolveId`, `load` and `transform` hooks
    * are supported by all builders; with `builder: false`, plugins run in
@@ -758,28 +878,42 @@ export interface NitroOptions extends PresetOptions {
    * Plugins with `enforce: "pre"` are placed before Nitro's own plugins, the others after them
    * (a hook's own `order` takes precedence).
    *
-   * @see https://nitro.build/config#buildplugins
+   * @see https://nitro.build/config/build#buildplugins
    */
   buildPlugins: NitroBuildPluginOption[];
 
   /**
    * Additional Rollup configuration.
    *
-   * @see https://nitro.build/config#rollupconfig
+   * @see https://nitro.build/config/build#rollupconfig
    */
   rollupConfig?: RollupConfig;
 
   /**
    * Additional Rolldown configuration.
    *
-   * @see https://nitro.build/config#rolldownconfig
+   * @see https://nitro.build/config/build#rolldownconfig
    */
   rolldownConfig?: RolldownConfig;
 
   /**
+   * Additional Rspack configuration (experimental `rspack` builder).
+   *
+   * @see https://nitro.build/config/build#rspackconfig
+   */
+  rspackConfig?: RspackConfig;
+
+  /**
+   * Additional `Bun.build` options for the `bun` builder.
+   *
+   * @see https://nitro.build/config/build#bunconfig
+   */
+  bunConfig?: BunConfig;
+
+  /**
    * Bundler entry point path.
    *
-   * @see https://nitro.build/config#entry
+   * @see https://nitro.build/config/build#entry
    */
   entry: string;
 
@@ -797,7 +931,7 @@ export interface NitroOptions extends PresetOptions {
    * }
    * ```
    *
-   * @see https://nitro.build/config#alias
+   * @see https://nitro.build/config/build#alias
    */
   alias: Record<string, string>;
 
@@ -815,7 +949,7 @@ export interface NitroOptions extends PresetOptions {
    * }
    * ```
    *
-   * @see https://nitro.build/config#inject
+   * @see https://nitro.build/config/build#inject
    */
   inject: Record<string, string | [id: string, exportName: string] | false>;
 
@@ -824,7 +958,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * Prefix an entry with `!` to remove a default polyfill.
    *
-   * @see https://nitro.build/config#polyfills
+   * @see https://nitro.build/config/build#polyfills
    */
   polyfills: string[];
 
@@ -838,14 +972,14 @@ export interface NitroOptions extends PresetOptions {
    *
    * Prefix an entry with `!` to remove a default (e.g. one added by a preset).
    *
-   * @see https://nitro.build/config#builtinmodules
+   * @see https://nitro.build/config/build#builtinmodules
    */
   builtinModules: string[];
 
   /**
    * Minify the production bundle.
    *
-   * @see https://nitro.build/config#minify
+   * @see https://nitro.build/config/build#minify
    */
   minify: boolean;
 
@@ -855,14 +989,14 @@ export interface NitroOptions extends PresetOptions {
    * When `false`, each route handler becomes a separate chunk loaded
    * on-demand. Some presets enable this by default.
    *
-   * @see https://nitro.build/config#inlinedynamicimports
+   * @see https://nitro.build/config/build#inlinedynamicimports
    */
   inlineDynamicImports: boolean;
 
   /**
    * Enable source map generation.
    *
-   * @see https://nitro.build/config#sourcemap
+   * @see https://nitro.build/config/build#sourcemap
    */
   sourcemap: boolean;
 
@@ -876,35 +1010,35 @@ export interface NitroOptions extends PresetOptions {
    * entries that polyfill Node.js globals and built-ins for non-Node
    * runtimes (workers, edge, Deno).
    *
-   * @see https://nitro.build/config#node
+   * @see https://nitro.build/config/build#node
    */
   node: boolean;
 
   /**
    * OXC options for Rolldown builds (minification and transforms).
    *
-   * @see https://nitro.build/config#oxc
+   * @see https://nitro.build/config/build#oxc
    */
   oxc?: OXCOptions;
 
   /**
    * Build-time string replacements.
    *
-   * @see https://nitro.build/config#replace
+   * @see https://nitro.build/config/build#replace
    */
   replace: Record<string, string | ((id: string) => string)>;
 
   /**
    * Additional configuration for the Rollup CommonJS plugin.
    *
-   * @see https://nitro.build/config#commonjs
+   * @see https://nitro.build/config/build#commonjs
    */
   commonJS?: CommonJSOptions;
 
   /**
    * Custom export conditions for module resolution.
    *
-   * @see https://nitro.build/config#exportconditions
+   * @see https://nitro.build/config/build#exportconditions
    */
   exportConditions?: string[];
 
@@ -914,7 +1048,7 @@ export interface NitroOptions extends PresetOptions {
    * Set to `true` to bundle all dependencies, or pass an array of patterns
    * matched against both the import specifier and the resolved module path.
    *
-   * @see https://nitro.build/config#noexternals
+   * @see https://nitro.build/config/build#noexternals
    */
   noExternals?: boolean | (string | RegExp)[];
 
@@ -923,14 +1057,14 @@ export interface NitroOptions extends PresetOptions {
    *
    * Supports `!pkg` to exclude and `pkg*` for full package trace.
    *
-   * @see https://nitro.build/config#tracedeps
+   * @see https://nitro.build/config/build#tracedeps
    */
   traceDeps?: (string | RegExp)[];
 
   /**
    * Advanced options for dependency tracing via nf3.
    *
-   * @see https://nitro.build/config#traceopts
+   * @see https://nitro.build/config/build#traceopts
    * @see https://github.com/unjs/nf3
    */
   traceOpts?: Pick<ExternalsTraceOptions, "nft" | "traceAlias" | "chmod" | "transform" | "hooks">;
@@ -940,7 +1074,7 @@ export interface NitroOptions extends PresetOptions {
   /**
    * TypeScript configuration options.
    *
-   * @see https://nitro.build/config#typescript
+   * @see https://nitro.build/config/advanced#typescript
    */
   typescript: {
     /**
@@ -949,12 +1083,19 @@ export interface NitroOptions extends PresetOptions {
      * Defaults to the resolved `tsconfig.json` of the project root.
      */
     tsConfig?: Partial<TSConfig>;
+
+    /**
+     * Resolve path aliases (`compilerOptions.paths`) of `tsConfig` for the server sources.
+     *
+     * @default true
+     */
+    tsconfigPaths?: boolean;
   };
 
   /**
    * Nitro lifecycle hooks.
    *
-   * @see https://nitro.build/config#hooks
+   * @see https://nitro.build/config/advanced#hooks
    * @see https://nitro.build/docs/lifecycle
    * @see https://github.com/unjs/hookable
    */
@@ -963,7 +1104,7 @@ export interface NitroOptions extends PresetOptions {
   /**
    * Preview and deploy command hints (usually filled by deployment presets).
    *
-   * @see https://nitro.build/config#commands
+   * @see https://nitro.build/config/advanced#commands
    */
   commands: {
     /** Command to preview the production build locally. */
@@ -982,7 +1123,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * Used by presets and included in build info output.
    *
-   * @see https://nitro.build/config#framework
+   * @see https://nitro.build/config/advanced#framework
    */
   framework: NitroFrameworkInfo;
 }
@@ -1010,6 +1151,8 @@ export interface NitroConfig
         | "serverDir"
         | "_config"
         | "_c12"
+        | "layers"
+        | "envName"
         | "serverEntry"
         | "renderer"
         | "output"
@@ -1017,7 +1160,7 @@ export interface NitroConfig
       >
     >,
     C12InputConfig<NitroConfig> {
-  /** Config overrides applied when prerendering (on top of `$production`). */
+  /** Config overrides applied when prerendering (on top of the build env overrides, `$production` by default). */
   $prerender?: NitroConfig;
 
   preset?: PresetNameInput;
@@ -1033,7 +1176,7 @@ export interface NitroConfig
    *
    * Accepts a preset name or an inline preset definition.
    *
-   * @see https://nitro.build/config#defaultpreset
+   * @see https://nitro.build/config/general#defaultpreset
    */
   defaultPreset?: PresetNameInput | NitroPreset;
 
@@ -1067,10 +1210,76 @@ export interface LoadConfigOptions {
 // ------------------------------------------------------------
 
 /**
+ * A resolved config layer available on `nitro.options.layers`.
+ */
+export interface NitroConfigLayer {
+  /** Absolute path to the layer directory. */
+  cwd: string;
+
+  /** Absolute path to the layer config file, if one exists. */
+  configFile?: string;
+
+  /**
+   * Config defined by this layer (before merging with other layers and
+   * defaults). Environment-specific overrides such as `$production` are
+   * already applied.
+   */
+  config: NitroConfig;
+
+  /** Layer metadata from `$meta` in the layer config or `extends` options. */
+  meta?: { name?: string; [key: string]: unknown };
+}
+
+/**
+ * Options for the optional dependencies Nitro installs on demand.
+ *
+ * @see https://nitro.build/config/build#deps
+ */
+export interface NitroDepsOptions {
+  /**
+   * Explicit packages to use, by package name, as a path or `file://` URL to the package
+   * directory or entry (e.g. `import.meta.resolve("unstorage")`). Relative paths resolve
+   * against `rootDir`.
+   *
+   * By default, these packages are resolved from the project root and installed on demand. A
+   * framework built on top of Nitro can pass its own copies, so the versions it depends on are
+   * the ones that run. `deps.paths.vite` and `vite.path` are aliases.
+   */
+  paths?: Record<string, string>;
+
+  /**
+   * Whether a missing package may be installed. Disable it to fail with the install command
+   * instead, so a build only uses the committed dependencies.
+   *
+   * Interactive environments prompt before installing (except for the packages the server
+   * bundle imports). Nothing is installed in tests, for an explicit package in `paths`, or
+   * when `rootDir` is inside `node_modules`.
+   *
+   * @default true, or `false` in CI
+   */
+  install?: boolean;
+}
+
+/**
+ * Server entry exporting a `fetch` handler, fetched with `fetchService()` from `nitro/services`.
+ *
+ * @see https://nitro.build/config/build#services
+ */
+export interface NitroServiceConfig {
+  /** Path to the service entry. */
+  entry: string;
+}
+
+/**
+ * @deprecated Use {@link NitroServiceConfig}.
+ */
+export type ViteServiceConfig = NitroServiceConfig;
+
+/**
  * Configuration for a public asset directory served in development and
  * bundled in production.
  *
- * @see https://nitro.build/config#publicassets
+ * @see https://nitro.build/config/assets#publicassets
  * @see https://nitro.build/docs/assets
  */
 export interface PublicAssetDir {
@@ -1098,7 +1307,7 @@ export interface PublicAssetDir {
 /**
  * Pre-compression options for public assets and prerendered routes.
  *
- * @see https://nitro.build/config#compresspublicassets
+ * @see https://nitro.build/config/assets#compresspublicassets
  */
 export interface CompressOptions {
   /** Enable gzip pre-compression. */
@@ -1112,7 +1321,7 @@ export interface CompressOptions {
 /**
  * Configuration for a server-side asset directory bundled at build time.
  *
- * @see https://nitro.build/config#serverassets
+ * @see https://nitro.build/config/assets#serverassets
  * @see https://nitro.build/docs/assets#server-assets
  */
 export interface ServerAssetDir {
@@ -1129,16 +1338,15 @@ export interface ServerAssetDir {
 /**
  * Tracing channel options.
  *
- * @see https://nitro.build/config#tracingchannel
+ * @see https://nitro.build/config/advanced#tracingchannel
  */
 export interface TracingChannelOptions {
   srvx?: boolean;
   h3?: boolean;
   unstorage?: boolean;
+  /** Database queries made with `useDatabase()` (`db0.query`). Requires `experimental.database`. */
+  db0?: boolean;
 }
-
-/** @deprecated Use {@link TracingChannelOptions}. */
-export type TracingOptions = TracingChannelOptions;
 
 /**
  * Preset shape accepted by the deprecated `unenv` option (compatible with
@@ -1168,10 +1376,13 @@ type CustomDriverName = string & { _custom?: any };
  * Driver options are inferred from the `driver` name.
  */
 export type BuiltinKVMount = {
-  [Name in BuiltinDriverName]: { driver: Name } & (Name extends keyof BuiltinDriverOptions
+  [Name in KVDriverName]: { driver: Name } & (Name extends keyof BuiltinDriverOptions
     ? SerializableOptions<BuiltinDriverOptions[Name]>
     : unknown);
-}[BuiltinDriverName];
+}[KVDriverName];
+
+/** Builtin driver names (none when `unstorage` is not installed). */
+type KVDriverName = OptionalDepType<BuiltinDriverName, never>;
 
 /** Mount configuration for a custom driver (module id or alias). */
 export type CustomKVMount = {
@@ -1187,18 +1398,12 @@ export type KVMount = BuiltinKVMount | CustomKVMount;
  * Keys are mount-point paths; values specify the unstorage driver
  * and its options.
  *
- * @see https://nitro.build/config#kv
+ * @see https://nitro.build/config/storage#kv
  * @see https://nitro.build/docs/storage
  */
 export interface KVMounts {
   [path: string]: KVMount;
 }
-
-/** @deprecated Use {@link BuiltinKVMount}. */
-export type BuiltinStorageMount = BuiltinKVMount;
-
-/** @deprecated Use {@link CustomKVMount}. */
-export type CustomStorageMount = CustomKVMount;
 
 /** @deprecated Use {@link KVMount}. */
 export type StorageMount = KVMount;
@@ -1213,13 +1418,13 @@ export type NitroCacheDriver = "memory" | "fs" | "kv";
 
 /** Options shared by cached functions and cached handlers. */
 export type NitroCacheFunctionDefaults = Pick<
-  import("ocache").CacheOptions,
+  OCacheOptions,
   "maxAge" | "swr" | "staleMaxAge" | "maxResolveTime" | "base"
 >;
 
 /** Options that only apply to cached handlers and `cache` route rules. */
 export type NitroCacheHandlerDefaults = Pick<
-  import("ocache").CachedEventHandlerOptions,
+  OCacheEventHandlerOptions,
   | "varies"
   | "allowQuery"
   | "allowCookies"
@@ -1235,7 +1440,7 @@ export interface NitroCacheDefaults extends NitroCacheFunctionDefaults, NitroCac
 /**
  * Cache configuration.
  *
- * @see https://nitro.build/config#cache
+ * @see https://nitro.build/config/storage#cache
  */
 export interface NitroCacheConfig {
   /**
@@ -1251,7 +1456,7 @@ export interface NitroCacheConfig {
   driver?: NitroCacheDriver;
 
   /** Options for the `memory` driver. */
-  memory?: Omit<import("ocache").MemoryStorageOptions, "sizeOf">;
+  memory?: Omit<OCacheMemoryStorageOptions, "sizeOf">;
 
   /** Options for the `fs` driver. */
   fs?: {
@@ -1284,17 +1489,22 @@ export type DatabaseConnectionName = "default" | (string & {});
 /**
  * Database connection configuration specifying a db0 connector and options.
  *
- * @see https://nitro.build/config#database
+ * @see https://nitro.build/config/storage#database
  * @see https://nitro.build/docs/database
  */
-export type DatabaseConnectionConfig = {
-  [Name in ConnectorName]: {
-    connector: Name;
-    options?: Name extends keyof ConnectorOptions
-      ? SerializableOptions<ConnectorOptions[Name]>
-      : Record<string, JsonValue>;
-  };
-}[ConnectorName];
+export type DatabaseConnectionConfig = [DatabaseConnectorName] extends [never]
+  ? { connector: string; options?: Record<string, JsonValue> }
+  : {
+      [Name in DatabaseConnectorName]: {
+        connector: Name;
+        options?: Name extends keyof ConnectorOptions
+          ? SerializableOptions<ConnectorOptions[Name]>
+          : Record<string, JsonValue>;
+      };
+    }[DatabaseConnectorName];
+
+/** Connector names (none when `db0` is not installed). */
+type DatabaseConnectorName = OptionalDepType<ConnectorName, never>;
 
 /** Map of {@link DatabaseConnectionName} to {@link DatabaseConnectionConfig}. */
 export type DatabaseConnectionConfigs = Record<DatabaseConnectionName, DatabaseConnectionConfig>;
@@ -1308,7 +1518,7 @@ export type DatabaseConnectionConfigs = Record<DatabaseConnectionName, DatabaseC
  * the `NITRO_` prefix. An alternative prefix can be configured via
  * `nitro.envPrefix` or `NITRO_ENV_PREFIX`.
  *
- * @see https://nitro.build/config#runtimeconfig
+ * @see https://nitro.build/config/general#runtimeconfig
  */
 export interface NitroRuntimeConfig {
   nitro?: {
