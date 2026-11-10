@@ -184,6 +184,11 @@ describeIf(supported, "nitro:preset:nitro-dev", async () => {
           `);
         });
 
+        it("keeps the HTTP operation of a path shared with a `.ws` route", () => {
+          expect(spec.paths?.["/ws-shared"]?.get?.description).toBe("HTTP");
+          expect(spec.components?.schemas?.WebSocketMessage).toEqual({ type: "string" });
+        });
+
         it("named catch-all params", () => {
           expect(spec.paths?.["/api/wildcard/{param}"]?.get?.parameters).toEqual([
             { name: "param", in: "path", required: true, schema: { type: "string" } },
