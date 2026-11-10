@@ -64,20 +64,19 @@ function getHandlersMeta(): {
   let globals: OpenAPIGlobals = {};
 
   for (const h of handlersMeta) {
-    const { $global, ...openAPI } = h.meta?.openAPI || {};
-    const { route, parameters: _parameters } = normalizeRoute(h.route || "", openAPI);
-    const parameters = defu(openAPI.parameters || [], _parameters);
+    const { route, parameters } = normalizeRoute(h.route || "");
     const tags = defaultTags(h.route || "");
     const method = (h.method || "get").toLowerCase() as Lowercase<HTTPMethod>;
+    const { $global, ...openAPI } = h.meta?.openAPI || {};
 
     const item: PathItemObject = {
       [method]: {
         tags,
-        parameters,
         responses: {
           200: { description: "OK" },
         },
         ...openAPI,
+        parameters: mergeParameters(parameters, openAPI.parameters),
       } as OperationObject,
     };
 
@@ -96,11 +95,8 @@ function getHandlersMeta(): {
   return { paths, globals };
 }
 
-function normalizeRoute(_route: string, openAPI: OperationObject) {
+function normalizeRoute(_route: string) {
   const parameters: ParameterObject[] = [];
-  const userDefinedParameters = (
-    Array.isArray(openAPI.parameters) ? openAPI.parameters : []
-  ) as ParameterObject[];
 
   let anonymousCtr = 0;
   const route = _route
@@ -114,12 +110,6 @@ function normalizeRoute(_route: string, openAPI: OperationObject) {
   for (const match of paramMatches) {
     const name = match[1];
     if (!parameters.some((p) => p.name === name)) {
-      if (userDefinedParameters.some((p) => p.name === name)) {
-        /**
-         * If user has already defined the path variable, let that take precedence.
-         */
-        continue;
-      }
       parameters.push({
         name,
         in: "path",
@@ -147,4 +137,19 @@ function defaultTags(route: string) {
   }
 
   return tags;
+}
+
+function mergeParameters(
+  inferred: ParameterObject[],
+  configured: OperationObject["parameters"]
+): OperationObject["parameters"] {
+  if (!configured?.length) {
+    return inferred;
+  }
+  return [
+    ...inferred.filter(
+      (p) => !configured.some((c) => "name" in c && c.name === p.name && c.in === p.in)
+    ),
+    ...configured,
+  ];
 }
