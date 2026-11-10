@@ -137,6 +137,14 @@ describe("nitro:preset:netlify", async () => {
         });
       });
 
+      it("does not overwrite a Netlify-CDN-Cache-Control header set by the handler", async () => {
+        const { headers } = await callHandler({ url: "/rules/isr/cdn-cache-control" });
+        expect((headers as Record<string, string>)["netlify-cdn-cache-control"]).toBe("no-store");
+        expect((headers as Record<string, string>)["cache-control"]).toBe(
+          "public, max-age=0, must-revalidate"
+        );
+      });
+
       describe("matching ISR route rule with a max-age", () => {
         it("sets Netlify-CDN-Cache-Control header with SWC=1yr, given max-age, and durable directive", async () => {
           const { headers } = await callHandler({ url: "/rules/isr-ttl" });
