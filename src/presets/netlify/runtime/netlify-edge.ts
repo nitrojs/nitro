@@ -2,7 +2,6 @@ import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitropack/runtime";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
 import type { Context } from "@netlify/edge-functions";
-
 const nitroApp = useNitroApp();
 
 // https://docs.netlify.com/edge-functions/api/
@@ -22,7 +21,7 @@ export default async function netlifyEdge(request: Request, _context: Context) {
     body = await request.arrayBuffer();
   }
 
-  return nitroApp.localFetch(url.pathname + url.search, {
+  const response = await nitroApp.localFetch(url.pathname + url.search, {
     host: url.hostname,
     protocol: url.protocol,
     headers: request.headers,
@@ -30,4 +29,11 @@ export default async function netlifyEdge(request: Request, _context: Context) {
     redirect: request.redirect,
     body,
   });
+
+  // Netlify edge CDN ignores the query string in the cache key (#4165)
+  if (!response.headers.has("netlify-vary")) {
+    response.headers.set("netlify-vary", "query");
+  }
+
+  return response;
 }
