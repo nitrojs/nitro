@@ -693,6 +693,17 @@ export function testNitro(
       expect(headers["accept-ranges"]).toBeUndefined();
     });
 
+    it.runIf(ctx.nitro!.options.prerender.autoSubfolderIndex)(
+      "serves a directory index for its directory path",
+      async () => {
+        for (const url of ["/prerender", "/prerender/"]) {
+          const { status, headers } = await callHandler({ url });
+          expect(status).toBe(200);
+          expect(headers["last-modified"]).toBeDefined();
+        }
+      }
+    );
+
     it("serve static asset via internal fetch", async () => {
       const { data } = await callHandler({ url: "/fetch-public-asset" });
       expect(data.status).toBe(200);

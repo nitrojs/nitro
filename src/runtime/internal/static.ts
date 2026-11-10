@@ -23,7 +23,7 @@ export default defineHandler((event) => {
   let id = path.includes("%") ? decodePath(path) : path;
 
   // Most requests are not for public assets: skip the encoding negotiation for them
-  if (!hasAsset(id) && !hasAsset(joinURL(id, "index.html")) && !isPublicAssetURL(id)) {
+  if (!hasAsset(id) && !isPublicAssetURL(id)) {
     return;
   }
 

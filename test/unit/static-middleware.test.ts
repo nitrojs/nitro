@@ -12,7 +12,10 @@ const { getAsset, isPublicAssetURL, readAsset } = vi.hoisted(() => ({
 
 vi.mock("#nitro/virtual/public-assets", () => ({
   getAsset,
-  hasAsset: (id: string) => [id, `${id}.gz`, `${id}.br`, `${id}.zst`].some((i) => getAsset(i)),
+  hasAsset: (id: string) =>
+    [id, `${id.replace(/\/$/, "")}/index.html`].some((i) =>
+      [i, `${i}.gz`, `${i}.br`, `${i}.zst`].some((j) => getAsset(j))
+    ),
   isPublicAssetURL,
   readAsset,
 }));

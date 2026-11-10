@@ -153,8 +153,21 @@ export function getAsset (id) {
   return assets[id]
 }
 
+let _servableIds
+
 export function hasAsset (id = '') {
-  return !!(assets[id] || assets[id + '.gz'] || assets[id + '.br'] || assets[id + '.zst'])
+  if (!_servableIds) {
+    _servableIds = new Set()
+    for (const assetId in assets) {
+      const plainId = assetId.replace(/\\.(gz|br|zst)$/, '')
+      _servableIds.add(assetId).add(plainId)
+      if (plainId.endsWith('/index.html')) {
+        const dir = plainId.slice(0, -10)
+        _servableIds.add(dir).add(dir.slice(0, -1))
+      }
+    }
+  }
+  return _servableIds.has(id)
 }
 `;
       },
