@@ -443,6 +443,10 @@ export function externals(opts: NodeExternalsOptions): Plugin {
 
       // Write packages with multiple versions
       for (const [pkgName, pkgVersions] of Object.entries(multiVersionPkgs)) {
+        const isBundleImport = (version: string) =>
+          tracedPackages[pkgName].versions[version].files.some(
+            (file) => tracedFiles[file]?.initial
+          );
         // Hoisting priority: 0 = no parent packages, 1 = has parent packages,
         // 2 = only untraced parents (their code is not copied to the output)
         // and not directly imported by the bundle
@@ -453,16 +457,15 @@ export function externals(opts: NodeExternalsOptions): Plugin {
           if (!pkgsWithMissingParents.has(`${pkgName}@${version}`)) {
             return 0;
           }
-          const isEntry = tracedPackages[pkgName].versions[version].files.some(
-            (file) => tracedFiles[file]?.initial
-          );
-          return isEntry ? 0 : 2;
+          return isBundleImport(version) ? 0 : 2;
         };
         const versionEntries = Object.entries(pkgVersions).sort(
           ([v1, p1], [v2, p2]) =>
-            // 1. Package with no parent packages to be hoisted
+            // 1. Version imported by the bundle to be hoisted
+            Number(isBundleImport(v2)) - Number(isBundleImport(v1)) ||
+            // 2. Package with no parent packages to be hoisted
             hoistRank(v1, p1) - hoistRank(v2, p2) ||
-            // 2. Newest version to be hoisted
+            // 3. Newest version to be hoisted
             compareVersions(v1, v2)
         );
         for (const [version, parentPkgs] of versionEntries) {
