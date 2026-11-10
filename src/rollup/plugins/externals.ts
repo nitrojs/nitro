@@ -18,6 +18,8 @@ import { readPackageJSON, writePackageJSON } from "pkg-types";
 import type { Plugin } from "rollup";
 import semver from "semver";
 
+const URI_SCHEME_RE = /^[a-z0-9]{2,}:/;
+
 export type TracedFile = {
   path: string;
   subpath: string;
@@ -115,6 +117,17 @@ export function externals(opts: NodeExternalsOptions): Plugin {
 
       // Skip relative paths
       if (originalId.startsWith(".")) {
+        return null;
+      }
+
+      // `file:` ids (e.g. `#build` on Windows) still need resolving
+      if (URI_SCHEME_RE.test(originalId) && !originalId.startsWith("file:")) {
+        if (
+          originalId.startsWith("node:") &&
+          !isExplicitInline(originalId, importer)
+        ) {
+          return { id: originalId, external: true };
+        }
         return null;
       }
 
