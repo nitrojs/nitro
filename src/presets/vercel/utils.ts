@@ -17,7 +17,8 @@ import { ISR_URL_PARAM } from "./runtime/consts";
 // https://vercel.com/docs/build-output-api/configuration
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
-const SUPPORTED_NODE_VERSIONS = [18, 20, 22, 24];
+// https://github.com/vercel/vercel/blob/main/packages/build-utils/src/fs/node-version.ts
+const SUPPORTED_NODE_VERSIONS = [22, 24, 26];
 
 const FALLBACK_ROUTE = "/__fallback";
 
@@ -39,6 +40,15 @@ function getSystemNodeVersion() {
   return Number.isNaN(systemNodeVersion) ? 22 : systemNodeVersion;
 }
 
+export function resolveNodeRuntime(
+  systemNodeVersion = getSystemNodeVersion()
+): `nodejs${number}.x` {
+  const usedNodeVersion =
+    SUPPORTED_NODE_VERSIONS.find((version) => version >= systemNodeVersion) ??
+    SUPPORTED_NODE_VERSIONS.at(-1)!;
+  return `nodejs${usedNodeVersion}.x`;
+}
+
 export async function generateFunctionFiles(nitro: Nitro) {
   const o11Routes = getObservabilityRoutes(nitro);
 
@@ -58,12 +68,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
       runtime = `bun${vercelConfig.bunVersion || "1.x"}`;
     } else {
       // 3. Auto-detect runtime based on system Node.js version
-      const systemNodeVersion = getSystemNodeVersion();
-      const usedNodeVersion =
-        SUPPORTED_NODE_VERSIONS.find(
-          (version) => version >= systemNodeVersion
-        ) ?? SUPPORTED_NODE_VERSIONS.at(-1);
-      runtime = `nodejs${usedNodeVersion}.x`;
+      runtime = resolveNodeRuntime();
     }
   }
 

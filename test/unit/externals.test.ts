@@ -1,10 +1,21 @@
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { resolveModulePath } from "exsolve";
-import { normalize } from "pathe";
+import { join, normalize } from "pathe";
 import { describe, expect, it, vi } from "vitest";
 import {
   applyProductionCondition,
   externals,
+  findPackageParents,
   normalizeMatcher,
 } from "../../src/rollup/plugins/externals";
 
@@ -182,4 +193,230 @@ describe("externals:applyProductionCondition", () => {
       expect(t.in).toEqual(t.out);
     });
   }
+});
+
+describe("externals:findPackageParents", () => {
+  it("retains known parents when a traced parent is missing from tracedFiles (#4803)", () => {
+    const pkg = {
+      name: "dependency",
+      versions: {
+        "1.0.0": {
+          files: ["child"],
+        },
+      },
+    };
+    const tracedFiles = {
+      child: {
+        path: "child",
+        parents: ["missing", "known"],
+      },
+      known: {
+        path: "known",
+        pkgName: "parent",
+        pkgVersion: "2.0.0",
+      },
+    };
+
+    const result = findPackageParents(pkg as any, "1.0.0", tracedFiles as any);
+    expect(result).toEqual(["parent@2.0.0"]);
+  });
+
+  it("filters out parents belonging to the same package", () => {
+    const pkg = {
+      name: "dependency",
+      versions: {
+        "1.0.0": {
+          files: ["child"],
+        },
+      },
+    };
+    const tracedFiles = {
+      child: {
+        path: "child",
+        parents: ["sibling"],
+      },
+      sibling: {
+        path: "sibling",
+        pkgName: "dependency",
+        pkgVersion: "1.0.0",
+      },
+    };
+
+    const result = findPackageParents(pkg as any, "1.0.0", tracedFiles as any);
+    expect(result).toEqual([]);
+  });
+
+  it("ignores parent files without a pkgName", () => {
+    const pkg = {
+      name: "dependency",
+      versions: {
+        "1.0.0": {
+          files: ["child"],
+        },
+      },
+    };
+    const tracedFiles = {
+      child: {
+        path: "child",
+        parents: ["app-entry", "known"],
+      },
+      "app-entry": {
+        path: "app-entry",
+        // No pkgName, e.g. root app file
+      },
+      known: {
+        path: "known",
+        pkgName: "parent",
+        pkgVersion: "2.0.0",
+      },
+    };
+
+    const result = findPackageParents(pkg as any, "1.0.0", tracedFiles as any);
+    expect(result).toEqual(["parent@2.0.0"]);
+  });
+
+  it("handles missing version or files safely", () => {
+    const pkg = {
+      name: "dependency",
+      versions: {},
+    };
+    const tracedFiles = {};
+
+    expect(findPackageParents(pkg as any, "1.0.0", tracedFiles as any)).toEqual(
+      []
+    );
+  });
+});
+
+describe("externals:buildEnd", () => {
+  type Pkg = { dir: string; version: string; code: string };
+
+  // Writes the packages, runs buildEnd tracing `entries` from `node_modules`
+  // and returns a reader for the version of a package in the output
+  const traceFixture = async (opts: {
+    pkgs: Pkg[];
+    links?: [target: string, path: string][];
+    entries: string[];
+    test: (readVersion: (dir: string) => Promise<string>) => Promise<void>;
+  }) => {
+    const root = await realpath(
+      await mkdtemp(join(tmpdir(), "nitro-externals-"))
+    );
+    try {
+      for (const { dir, version, code } of opts.pkgs) {
+        await mkdir(join(root, dir), { recursive: true });
+        await writeFile(
+          join(root, dir, "package.json"),
+          JSON.stringify({
+            name: dir.split("/").pop(),
+            version,
+            main: "index.js",
+          })
+        );
+        await writeFile(join(root, dir, "index.js"), code);
+      }
+      for (const [target, path] of opts.links || []) {
+        await symlink(target, join(root, path), "dir");
+      }
+
+      const outDir = join(root, "out");
+      const plugin = externals({
+        outDir,
+        rootDir: root,
+        moduleDirectories: [],
+        traceInclude: opts.entries.map((name) =>
+          join(root, "node_modules", name, "index.js")
+        ),
+        traceOptions: { base: "/", processCwd: root },
+      });
+      await (plugin.buildEnd as any).call({
+        resolve: async (id: string) => ({ id }),
+      });
+
+      await opts.test(
+        async (dir) =>
+          JSON.parse(await readFile(join(outDir, dir, "package.json"), "utf8"))
+            .version
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  };
+
+  it("does not hoist a version whose only parents are untraced (#4803)", async () => {
+    await traceFixture({
+      pkgs: [
+        // app -> dep@2 (direct) and app -> pkg-b -> dep@2
+        {
+          dir: "node_modules/dep",
+          version: "2.0.0",
+          code: `module.exports = 2;`,
+        },
+        {
+          dir: "node_modules/pkg-b",
+          version: "1.0.0",
+          code: `require("dep");`,
+        },
+        // app -> pkg-a -> linked (symlink outside node_modules, untraced) -> dep@1
+        {
+          dir: "node_modules/pkg-a",
+          version: "1.0.0",
+          code: `require("linked");`,
+        },
+        { dir: "linked", version: "1.0.0", code: `require("dep");` },
+        {
+          dir: "linked/node_modules/dep",
+          version: "1.0.0",
+          code: `module.exports = 1;`,
+        },
+      ],
+      links: [["../linked", "node_modules/linked"]],
+      entries: ["pkg-a", "pkg-b", "dep"],
+      test: async (readVersion) => {
+        expect(await readVersion("node_modules/dep")).toBe("2.0.0");
+        expect(await readVersion("node_modules/pkg-b/node_modules/dep")).toBe(
+          "2.0.0"
+        );
+      },
+    });
+  });
+
+  it("hoists a directly imported version that also has untraced parents", async () => {
+    await traceFixture({
+      pkgs: [
+        // app -> dep@1 (direct)
+        {
+          dir: "node_modules/dep",
+          version: "1.0.0",
+          code: `module.exports = 1;`,
+        },
+        // app -> pkg-a -> linked (symlink outside node_modules, untraced) -> dep@1
+        {
+          dir: "node_modules/pkg-a",
+          version: "1.0.0",
+          code: `require("linked");`,
+        },
+        { dir: "linked", version: "1.0.0", code: `require("dep");` },
+        // app -> pkg-c -> dep@2
+        {
+          dir: "node_modules/pkg-c",
+          version: "1.0.0",
+          code: `require("dep");`,
+        },
+        {
+          dir: "node_modules/pkg-c/node_modules/dep",
+          version: "2.0.0",
+          code: `module.exports = 2;`,
+        },
+      ],
+      links: [["../linked", "node_modules/linked"]],
+      entries: ["dep", "pkg-a", "pkg-c"],
+      test: async (readVersion) => {
+        expect(await readVersion("node_modules/dep")).toBe("1.0.0");
+        expect(await readVersion("node_modules/pkg-c/node_modules/dep")).toBe(
+          "2.0.0"
+        );
+      },
+    });
+  });
 });
