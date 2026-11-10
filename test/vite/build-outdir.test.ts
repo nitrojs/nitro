@@ -32,7 +32,7 @@ function outDirSpy() {
   return { plugin, seen };
 }
 
-async function build(name: string, viteConfig: InlineConfig = {}) {
+async function build(name: string, viteConfig: InlineConfig = {}, laterPlugins: Plugin[] = []) {
   const { plugin, seen } = outDirSpy();
   const cwd = process.cwd();
   process.chdir(rootDir);
@@ -51,6 +51,7 @@ async function build(name: string, viteConfig: InlineConfig = {}) {
       plugins: [
         plugin,
         nitro({ preset: "standard", output: { dir: join(rootDir, ".output", name) } }),
+        ...laterPlugins,
       ],
     });
     await builder.buildApp();
@@ -79,6 +80,15 @@ describe("vite: root `build.outDir`", () => {
   it("keeps an explicit `dist` set by the user", async () => {
     const seen = await build("explicit", { build: { outDir: "dist" } });
     expect(seen.rootOutDir).toBe("dist");
+  }, 60_000);
+
+  it("keeps the one set by a plugin listed after Nitro", async () => {
+    const later: Plugin = {
+      name: "test:later",
+      config: () => ({ build: { outDir: "later-dist" } }),
+    };
+    const seen = await build("later", {}, [later]);
+    expect(seen.rootOutDir).toBe("later-dist");
   }, 60_000);
 
   // Environments inherit the root value: a server environment must not write to the public dir
