@@ -31,11 +31,14 @@ if (Deno.env.get("DEBUG")) {
   );
 }
 
+// `PORT=0` lets the OS pick a random free port
+const _port = destr<number>(Deno.env.get("NITRO_PORT") || Deno.env.get("PORT"));
+
 // https://deno.land/api@v1.42.4?s=Deno.serve
 const serveOptions: _Deno.ServeOptions & Partial<_Deno.ServeTlsOptions> = {
   key: Deno.env.get("NITRO_SSL_KEY"),
   cert: Deno.env.get("NITRO_SSL_CERT"),
-  port: destr(Deno.env.get("NITRO_PORT") || Deno.env.get("PORT")) || 3000,
+  port: _port === 0 ? 0 : _port || 3000,
   hostname: Deno.env.get("NITRO_HOST") || Deno.env.get("HOST"),
   onListen: (opts) => {
     const baseURL = (useRuntimeConfig().app.baseURL || "").replace(/\/$/, "");

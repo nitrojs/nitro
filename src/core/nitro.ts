@@ -38,7 +38,7 @@ export async function createNitro(
     close: () => nitro.hooks.callHook("close"),
     storage: undefined as any,
     async updateConfig(config: NitroDynamicConfig) {
-      updateNitroConfig(nitro, config);
+      await updateNitroConfig(nitro, config);
     },
   };
 

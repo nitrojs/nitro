@@ -4,6 +4,7 @@ import { findStaticImports } from "mlly";
 import { defineNitroPreset } from "nitropack/kit";
 import { writeFile } from "nitropack/kit";
 import { isAbsolute, resolve } from "pathe";
+import type { RenderedChunk } from "rollup";
 
 // nitro/src/rollup/plugin/import-meta.ts
 const ImportMetaRe = /import\.meta|globalThis._importMeta_/;
@@ -36,7 +37,7 @@ export const denoServerLegacy = defineNitroPreset(
       plugins: [
         {
           name: "rollup-plugin-node-deno",
-          resolveId(id) {
+          resolveId(id: string) {
             id = id.replace("node:", "");
             if (builtinModules.includes(id)) {
               return {
@@ -52,7 +53,7 @@ export const denoServerLegacy = defineNitroPreset(
               };
             }
           },
-          renderChunk(code) {
+          renderChunk(code: string) {
             const s = new MagicString(code);
             const imports = findStaticImports(code);
             for (const i of imports) {
@@ -88,7 +89,7 @@ export const denoServerLegacy = defineNitroPreset(
           name: "inject-process",
           renderChunk: {
             order: "post",
-            handler(code, chunk) {
+            handler(code: string, chunk: RenderedChunk) {
               if (
                 !chunk.isEntry &&
                 (!ImportMetaRe.test(code) || code.includes("ROLLUP_NO_REPLACE"))

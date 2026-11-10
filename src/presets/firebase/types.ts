@@ -6,8 +6,7 @@ export type FirebaseOptions = FirebaseFunctionsOptions | AppHostingOptions;
 // ---- Firebase Functions ----
 
 export type FirebaseFunctionsOptions =
-  | FirebaseOptionsGen1
-  | FirebaseOptionsGen2;
+  FirebaseOptionsGen1 | FirebaseOptionsGen2;
 
 export interface FirebaseOptionsBase {
   gen: 1 | 2;

@@ -1,9 +1,15 @@
 import fsp from "node:fs/promises";
 import { defu } from "defu";
+import mime from "mime";
 import { writeFile } from "nitropack/kit";
-import type { Nitro, NitroRouteRules } from "nitropack/types";
+import type { Nitro, NitroRouteRules, PrerenderRoute } from "nitropack/types";
 import { dirname, relative, resolve } from "pathe";
-import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
+import {
+  joinURL,
+  withLeadingSlash,
+  withTrailingSlash,
+  withoutLeadingSlash,
+} from "ufo";
 import type {
   PrerenderFunctionConfig,
   VercelBuildConfigV3,
@@ -16,7 +22,8 @@ import { ISR_URL_PARAM } from "./runtime/consts";
 // https://vercel.com/docs/build-output-api/configuration
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
-const SUPPORTED_NODE_VERSIONS = [18, 20, 22];
+// https://github.com/vercel/vercel/blob/main/packages/build-utils/src/fs/node-version.ts
+const SUPPORTED_NODE_VERSIONS = [22, 24, 26];
 
 const FALLBACK_ROUTE = "/__fallback";
 
@@ -24,12 +31,29 @@ const ISR_SUFFIX = "-isr"; // Avoid using . as it can conflict with routing
 
 const SAFE_FS_CHAR_RE = /[^a-zA-Z0-9_.[\]/]/g;
 
+// Vercel serves `<dir>/index.html` (and extensionless `<dir>/index`) at `<dir>`
+// using built-in directory indexes.
+const INDEX_FILE_RE = /(^|\/)index(\.html)?$/;
+
+const SURROUNDING_SLASH_RE = /^\/+|\/+$/g;
+
+const PARAM_SEGMENT_RE = /^:\w+$/;
+
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(
     process.versions.node.split(".")[0]
   );
 
   return Number.isNaN(systemNodeVersion) ? 22 : systemNodeVersion;
+}
+
+export function resolveNodeRuntime(
+  systemNodeVersion = getSystemNodeVersion()
+): `nodejs${number}.x` {
+  const usedNodeVersion =
+    SUPPORTED_NODE_VERSIONS.find((version) => version >= systemNodeVersion) ??
+    SUPPORTED_NODE_VERSIONS.at(-1)!;
+  return `nodejs${usedNodeVersion}.x`;
 }
 
 export async function generateFunctionFiles(nitro: Nitro) {
@@ -51,12 +75,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
       runtime = `bun${vercelConfig.bunVersion || "1.x"}`;
     } else {
       // 3. Auto-detect runtime based on system Node.js version
-      const systemNodeVersion = getSystemNodeVersion();
-      const usedNodeVersion =
-        SUPPORTED_NODE_VERSIONS.find(
-          (version) => version >= systemNodeVersion
-        ) ?? SUPPORTED_NODE_VERSIONS.at(-1);
-      runtime = `nodejs${usedNodeVersion}.x`;
+      runtime = resolveNodeRuntime();
     }
   }
 
@@ -154,40 +173,53 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
   );
 
+  // Route rule keys are relative to the baseURL, as at runtime
+  const routeSrc = (route: string, requireCatchAll?: boolean) =>
+    `^${routeToVercelSrc(route, { baseURL: nitro.options.baseURL, requireCatchAll })}$`;
+
   const config = defu(nitro.options.vercel?.config, <VercelBuildConfigV3>{
     version: 3,
-    overrides: {
-      // Nitro static prerendered route overrides
-      ...Object.fromEntries(
-        (
-          nitro._prerenderedRoutes?.filter((r) => r.fileName !== r.route) || []
-        ).map(({ route, fileName }) => [
-          withoutLeadingSlash(fileName),
-          { path: route.replace(/^\//, "") },
-        ])
-      ),
+    framework: {
+      name: nitro.options.framework.name,
+      version: nitro.options.framework.version,
     },
+    overrides: getPrerenderOverrides(nitro._prerenderedRoutes),
     routes: [
-      // Redirect and header rules
+      // Header-only rules (least specific first, so more specific headers override on `continue`)
       ...rules
-        .filter(([_, routeRules]) => routeRules.redirect || routeRules.headers)
-        .map(([path, routeRules]) => {
-          let route = {
-            src: path.replace("/**", "/(.*)"),
-          };
-          if (routeRules.redirect) {
-            route = defu(route, {
-              status: routeRules.redirect.statusCode,
-              headers: {
-                Location: routeRules.redirect.to.replace("/**", "/$1"),
-              },
-            });
-          }
-          if (routeRules.headers) {
-            route = defu(route, { headers: routeRules.headers });
-          }
-          return route;
-        }),
+        .filter(([_, routeRules]) => routeRules.headers && !routeRules.redirect)
+        .reverse()
+        .map(([path, routeRules]) => ({
+          src: routeSrc(path),
+          headers: routeRules.headers,
+          continue: true,
+        })),
+      // Redirect rules (most specific first)
+      ...rules.flatMap(([path, routeRules]) => {
+        if (!routeRules.redirect) {
+          return [];
+        }
+        const location = getRedirectLocation(path, routeRules.redirect.to);
+        if (location === undefined) {
+          // Left to the server function, routed here so that less specific redirects cannot match
+          return [{ src: routeSrc(path), dest: FALLBACK_ROUTE }];
+        }
+        const expanded = location !== routeRules.redirect.to;
+        let route = {
+          src: routeSrc(path, expanded),
+          status: routeRules.redirect.statusCode,
+          headers: {
+            Location: location,
+          },
+        };
+        if (routeRules.headers) {
+          route = defu(route, { headers: routeRules.headers });
+        }
+        // The bare base of an expanded wildcard is left to the server function
+        return expanded
+          ? [route, { src: routeSrc(path.slice(0, -3)), dest: FALLBACK_ROUTE }]
+          : [route];
+      }),
       // Skew protection
       ...(nitro.options.vercel?.skewProtection &&
       process.env.VERCEL_DEPLOYMENT_ID
@@ -202,7 +234,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
                 },
               ],
               headers: {
-                "Set-Cookie": `__vdpl=${process.env.VERCEL_DEPLOYMENT_ID}; Path=${nitro.options.baseURL}; SameSite=Strict; Secure; HttpOnly`,
+                "Set-Cookie": `__vdpl=${process.env.VERCEL_DEPLOYMENT_ID}; Path=${nitro.options.baseURL}; SameSite=Lax; Secure; HttpOnly`,
               },
               continue: true,
             },
@@ -213,7 +245,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         .filter((asset) => !asset.fallthrough)
         .map((asset) => joinURL(nitro.options.baseURL, asset.baseURL || "/"))
         .map((baseURL) => ({
-          src: baseURL + "(.*)",
+          src: `^${escapeRegExp(withTrailingSlash(baseURL))}(.*)$`,
           headers: {
             "cache-control": "public,max-age=31536000,immutable",
           },
@@ -234,7 +266,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...(nitro.options.routeRules["/"]?.isr
       ? [
           {
-            src: `(?<${ISR_URL_PARAM}>/)`,
+            src: `^(?<${ISR_URL_PARAM}>${routeToVercelSrc("/", { baseURL: nitro.options.baseURL })})$`,
             dest: `/index${ISR_SUFFIX}?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`,
           },
         ]
@@ -243,7 +275,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...rules
       .filter(([key, value]) => value.isr !== undefined && key !== "/")
       .map(([key, value]) => {
-        const src = `(?<${ISR_URL_PARAM}>${normalizeRouteSrc(key)})`;
+        const src = `^(?<${ISR_URL_PARAM}>${routeToVercelSrc(key, { baseURL: nitro.options.baseURL })})$`;
         if (value.isr === false) {
           // We need to write a rule to avoid route being shadowed by another cache rule elsewhere
           return {
@@ -281,6 +313,53 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   );
 
   return config;
+}
+
+/**
+ * Map prerendered files to the route and content type they should be served with.
+ *
+ * Paths are always slash-free: Vercel strips slashes when matching, so a path
+ * that keeps a trailing slash matches nothing at all (#4392), and the root
+ * route has to map to an empty path (ufo's slash helpers cannot produce one).
+ *
+ * Files that Vercel already serves at the route using its built-in directory
+ * indexes keep their path, and only get an entry when their content type
+ * cannot be inferred from the file name.
+ */
+export function getPrerenderOverrides(
+  prerenderedRoutes: PrerenderRoute[] = []
+) {
+  const overrides: Record<string, { path?: string; contentType?: string }> = {};
+
+  for (const { route, fileName, contentType } of prerenderedRoutes) {
+    if (!fileName) {
+      continue;
+    }
+    const file = withoutLeadingSlash(fileName);
+    const path = route.replace(SURROUNDING_SLASH_RE, "");
+    const override: { path?: string; contentType?: string } = {};
+
+    // Only re-key when Vercel does not already serve the file at `path`: it
+    // serves `<dir>/index.*` at `<dir>` via its built-in directory index, and
+    // re-keying a file onto its own path would delete it, since Vercel drops
+    // the original entry.
+    if (file !== path && file.replace(INDEX_FILE_RE, "") !== path) {
+      override.path = path;
+    }
+
+    // Vercel infers the content type from the file name, which has no
+    // extension to go on for a non-HTML route ending in `/` (`/data/` is
+    // prerendered to `data/index`) and would be served as a download.
+    if (contentType && !mime.getType(file)) {
+      override.contentType = contentType;
+    }
+
+    if (override.path !== undefined || override.contentType) {
+      overrides[file] = override;
+    }
+  }
+
+  return overrides;
 }
 
 export function deprecateSWR(nitro: Nitro) {
@@ -419,6 +498,72 @@ function normalizeRouteSrc(route: string): string {
     .join("/");
 }
 
+/**
+ * Convert a route rule pattern (relative to `baseURL`) to a `src` regex body
+ * that matches the same paths as the radix3 route rules matcher at runtime:
+ * a trailing `/**` also matches its base, `*` and `:name` match one segment,
+ * a trailing slash is optional and literal characters are escaped.
+ *
+ * Other segments that radix3 does not match as patterns (`**:name`, a `**`
+ * before the end, `:name.ext`) are matched literally, so that they never
+ * widen what the rule applies to.
+ *
+ * The trailing catch-all is the only capturing group, so `$1` refers to it.
+ * With `requireCatchAll`, it must be a non-empty path below the base, which
+ * `$1` then holds without its leading slash.
+ */
+export function routeToVercelSrc(
+  route: string,
+  opts: { baseURL?: string; requireCatchAll?: boolean } = {}
+): string {
+  const segments = joinURL(opts.baseURL || "/", route)
+    .split("/")
+    .filter(Boolean);
+  const catchAll = segments.at(-1) === "**";
+  if (catchAll) {
+    segments.pop();
+  }
+  let src = "";
+  for (const segment of segments) {
+    src +=
+      segment === "*" || PARAM_SEGMENT_RE.test(segment)
+        ? "/[^/]+"
+        : "/" + escapeRegExp(segment);
+  }
+  if (catchAll) {
+    return src + (opts.requireCatchAll ? "/(.+)" : "(?:/(.*))?");
+  }
+  return src ? src + "/?" : "/";
+}
+
+/**
+ * Redirect `Location` for a route rule, with a trailing `/**` in the target
+ * expanded to the path matched by the trailing `/**` of the rule, as the
+ * runtime does. `$1` refers to the catch-all of
+ * `routeToVercelSrc(path, { requireCatchAll: true })`.
+ *
+ * Returns `undefined` when it cannot be expanded the same way (e.g. into the
+ * query), in which case the server function handles it.
+ */
+export function getRedirectLocation(
+  path: string,
+  to: string
+): string | undefined {
+  if (!to.includes("**")) {
+    return to;
+  }
+  const base = to.slice(0, -3);
+  if (
+    !path.endsWith("/**") ||
+    !to.endsWith("/**") ||
+    base.includes("**") ||
+    /[?#]/.test(base)
+  ) {
+    return undefined;
+  }
+  return base + "/$1";
+}
+
 // Valid PCRE capture group name
 function namedGroup(input = "") {
   if (/\d/.test(input[0])) {
@@ -475,12 +620,26 @@ async function writePrerenderConfig(
     ...isrConfig,
   };
 
-  if (
-    prerenderConfig.allowQuery &&
-    !prerenderConfig.allowQuery.includes(ISR_URL_PARAM)
-  ) {
-    prerenderConfig.allowQuery.push(ISR_URL_PARAM);
+  if (prerenderConfig.allowQuery) {
+    // Vercel only forwards the query to the function with `passQuery`. Without
+    // it, `allowQuery` params split the cache but never reach the render.
+    if (
+      prerenderConfig.passQuery === undefined &&
+      prerenderConfig.allowQuery.some((key) => key !== ISR_URL_PARAM)
+    ) {
+      prerenderConfig.passQuery = true;
+    }
+    if (!prerenderConfig.allowQuery.includes(ISR_URL_PARAM)) {
+      prerenderConfig.allowQuery = [
+        ...prerenderConfig.allowQuery,
+        ISR_URL_PARAM,
+      ];
+    }
   }
 
   await writeFile(filename, JSON.stringify(prerenderConfig, null, 2));
+}
+
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
