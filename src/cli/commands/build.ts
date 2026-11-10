@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
 import type { DateString } from "compatx";
-import { build, copyPublicAssets, createNitro, prepare, prerender } from "nitro/builder";
+import { build, copyPublicAssets, createNitro, prepare, prerender } from "../../builder.ts";
 import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
 

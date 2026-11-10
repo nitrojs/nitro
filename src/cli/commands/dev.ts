@@ -1,7 +1,7 @@
 import type { Nitro, NitroConfig } from "nitro/types";
 import { defineCommand } from "citty";
 import { consola } from "consola";
-import { build, createNitro, prepare } from "nitro/builder";
+import { build, createNitro, prepare } from "../../builder.ts";
 import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
 import { createDevServer } from "../../dev/server.ts";

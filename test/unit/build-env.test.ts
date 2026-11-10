@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "pathe";
 import { describe, expect, it, vi } from "vitest";
@@ -74,7 +74,6 @@ describe("resolveBuildEnv", () => {
       expect.stringMatching(/runtime\/internal\/polyfills\/fast-response\.(ts|mjs)$/),
     ]);
     expect(env.external).toEqual(["my-external"]);
-    expect(env.alias.nitro).toBeUndefined();
   });
 
   it("respects `features.fastResponse`", async () => {
@@ -84,6 +83,29 @@ describe("resolveBuildEnv", () => {
       createNitro({ node: false, features: { fastResponse: true } })
     );
     expect(enabled.polyfills.some((p) => p.includes("fast-response"))).toBe(true);
+  });
+
+  it("aliases `nitro` imports to the running package when the project resolves another one", async () => {
+    // e.g. the nightly (`nitro-nightly`) package installed next to another `nitro` version
+    const rootDir = mkdtempSync(join(tmpdir(), "nitro-env-"));
+    try {
+      const otherDir = join(rootDir, "node_modules/nitro");
+      mkdirSync(join(otherDir, "dist/runtime"), { recursive: true });
+      writeFileSync(
+        join(otherDir, "package.json"),
+        JSON.stringify({
+          name: "nitro",
+          type: "module",
+          exports: { ".": "./dist/runtime/nitro.mjs" },
+        })
+      );
+      writeFileSync(join(otherDir, "dist/runtime/nitro.mjs"), "");
+      const env = await resolveBuildEnv(createNitro({ rootDir }));
+      expect(env.alias.nitro).toBe(join(process.cwd(), "dist/runtime/nitro.mjs"));
+      expect(env.alias["nitro/app"]).toBe(join(process.cwd(), "dist/runtime/app.mjs"));
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
   });
 
   it("aliases `nitro` imports when the project cannot resolve it", async () => {

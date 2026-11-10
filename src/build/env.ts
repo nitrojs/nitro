@@ -69,7 +69,7 @@ export async function resolveBuildEnv(nitro: Nitro): Promise<BuildEnv> {
   }
   layers.push(
     commonEnv,
-    selfEnv(nitro.options.rootDir),
+    selfEnv(),
     ...(presetEnvs.get(nitro) || []),
     ...legacyUnenvLayers(nitro.options, nitro.logger),
     (nitro.options.features?.fastResponse ?? nitro.options.node) ? fastResponseEnv : {},
@@ -128,11 +128,9 @@ function resolveEnvPaths(env: BuildEnv, rootDir: string) {
   }
 }
 
-// Projects without their own `nitro` dependency (e.g. built by a global CLI) import this one
-function selfEnv(rootDir: string): PresetEnv {
-  if (resolveModulePath("nitro", { from: rootDir, try: true })) {
-    return {};
-  }
+// `nitro/*` imports use the running Nitro package, also when the project resolves another one
+// (e.g. `nitro-nightly` installed as `nitro`) or none (e.g. built by a global CLI)
+function selfEnv(): PresetEnv {
   const { exports } = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8"));
   return {
     alias: Object.fromEntries(
