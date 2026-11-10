@@ -11,12 +11,15 @@ export default function app(nitro: Nitro) {
       const hasPlugins = nitro.options.plugins.length > 0;
       const hasHooks = nitro.options.features?.runtimeHooks ?? hasPlugins;
       const hasAsyncContext = !!nitro.options.experimental.asyncContext;
-      const routeMethods = [
-        ...new Set(
-          nitro.routing.routes.routes.filter((r) => r.method).map((r) => r.method.toUpperCase())
-        ),
-      ].sort();
-      const hasMethodRoutes = routeMethods.length > 0;
+      const routeMethods = new Set(
+        nitro.routing.routes.routes.filter((r) => r.method).map((r) => r.method.toUpperCase())
+      );
+      // `GET` routes also match `HEAD` (unless opted out), so `405` responses list it too
+      if (routeMethods.has("GET")) {
+        routeMethods.add("HEAD");
+      }
+      const allowMethods = [...routeMethods].sort();
+      const hasMethodRoutes = allowMethods.length > 0;
       const hasWebSocketRoutes = nitro.routing.webSocketRoutes.hasRoutes();
 
       const routingImports = [
@@ -174,16 +177,6 @@ export default function app(nitro: Nitro) {
             `    }`
           );
         }
-        if (hasRoutes) {
-          // `HEAD` is served by the `GET` route unless a `HEAD` route matches
-          // (a method-agnostic match, such as a catch-all, would hide the `GET` one).
-          code.push(
-            `    if (event.req.method === "HEAD") {`,
-            `      const route = findRoute("HEAD", event.url.pathname);`,
-            `      return route?.data.method ? route : findRoute("GET", event.url.pathname);`,
-            `    }`
-          );
-        }
         code.push(
           hasMethodRoutes
             ? `    return findRoute(event.req.method, event.url.pathname) ?? findMethodNotAllowed(event.req.method, event.url.pathname);`
@@ -208,7 +201,7 @@ export default function app(nitro: Nitro) {
       }
       if (hasMethodRoutes) {
         code.push(
-          `  const findMethodNotAllowed = createMethodNotAllowedMatcher(findRoute, ${JSON.stringify(routeMethods)});`
+          `  const findMethodNotAllowed = createMethodNotAllowedMatcher(findRoute, ${JSON.stringify(allowMethods)});`
         );
       }
       if (hasRouteRules) {

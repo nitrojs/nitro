@@ -114,6 +114,12 @@ export default defineConfig({
       middleware: true,
     },
     {
+      route: "/api/methods/no-head",
+      handler: "./server/handlers/no-head.ts",
+      method: "GET",
+      head: false,
+    },
+    {
       route: "/virtual",
       handler: "#virtual-route",
     },

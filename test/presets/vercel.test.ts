@@ -531,6 +531,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/api\\/middleware-order\\/?$",
               },
               {
+                "dest": "/api/methods/no-head",
+                "src": "^\\/api\\/methods\\/no-head\\/?$",
+              },
+              {
                 "dest": "/api/methods/search",
                 "src": "^\\/api\\/methods\\/search\\/?$",
               },
@@ -827,6 +831,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/methods/get.func (symlink)",
             "functions/api/methods/guarded.func (symlink)",
             "functions/api/methods/head.func (symlink)",
+            "functions/api/methods/no-head.func (symlink)",
             "functions/api/methods/search.func (symlink)",
             "functions/api/middleware-order.func (symlink)",
             "functions/api/param/[test_id].func (symlink)",

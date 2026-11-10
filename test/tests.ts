@@ -1144,6 +1144,15 @@ export function testNitro(
       expect(head.headers["x-handler"]).toBe("head");
     });
 
+    it("Does not answer HEAD requests with `head: false` GET routes (config)", async () => {
+      const get = await callHandler({ url: "/api/methods/no-head" });
+      expect(get.status).toBe(200);
+      expect(get.headers["x-handler"]).toBe("get");
+      const head = await callHandler({ url: "/api/methods/no-head", method: "HEAD" });
+      expect(head.status).not.toBe(200);
+      expect(head.headers["x-handler"]).toBeUndefined();
+    });
+
     it("Runs GET-scoped middleware for HEAD requests", async () => {
       for (const method of ["GET", "HEAD"]) {
         const denied = await callHandler({ url: "/api/methods/guarded", method });

@@ -353,7 +353,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     const pathname = new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost")
       .pathname;
     let match = nitro.routing.routes.match(req.method || "", pathname);
-    // Mirrors the runtime: `HEAD` is served by the `GET` route unless a `HEAD` route matches
+    // A `GET` route with `head: false` does not match `HEAD`, but the request is still Nitro's (`405`)
     if (req.method === "HEAD" && !(match && !Array.isArray(match) && match.method)) {
       match = nitro.routing.routes.match("GET", pathname);
     }
