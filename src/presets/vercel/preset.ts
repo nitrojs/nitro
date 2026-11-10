@@ -6,6 +6,10 @@ import {
   generateFunctionFiles,
   generateStaticFiles,
 } from "./utils";
+import {
+  setupImmutableStaticFiles,
+  generateImmutableManifest,
+} from "./immutable";
 import { builtnNodeModules } from "../_unenv/node-compat/vercel";
 
 export type { VercelOptions as PresetOptions } from "./types";
@@ -18,6 +22,8 @@ const vercel = defineNitroPreset(
     entry: "./runtime/vercel",
     vercel: {
       skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
+      immutableStaticFiles:
+        !!process.env.NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED,
     },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
@@ -28,12 +34,17 @@ const vercel = defineNitroPreset(
       preview: "",
       deploy: "npx vercel deploy --prebuilt",
     },
+    // Immutable static files (opt-in, guarded by Vercel platform support).
+    // Runs as a module (during `createNitro`) so `buildAssetsDir` is resolved
+    // before frameworks (e.g. Nuxt) run their client build.
+    modules: [setupImmutableStaticFiles],
     hooks: {
       "rollup:before": (nitro: Nitro) => {
         deprecateSWR(nitro);
       },
       async compiled(nitro: Nitro) {
         await generateFunctionFiles(nitro);
+        await generateImmutableManifest(nitro);
       },
     },
   },
@@ -98,6 +109,8 @@ const vercelStatic = defineNitroPreset(
     extends: "static",
     vercel: {
       skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
+      immutableStaticFiles:
+        !!process.env.NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED,
     },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
@@ -107,12 +120,15 @@ const vercelStatic = defineNitroPreset(
       preview: "npx serve {{ output.publicDir }}",
       deploy: "npx vercel deploy --prebuilt",
     },
+    // Immutable static files (see `vercel` preset)
+    modules: [setupImmutableStaticFiles],
     hooks: {
       "rollup:before": (nitro: Nitro) => {
         deprecateSWR(nitro);
       },
       async compiled(nitro: Nitro) {
         await generateStaticFiles(nitro);
+        await generateImmutableManifest(nitro);
       },
     },
   },
