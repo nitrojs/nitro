@@ -50,6 +50,18 @@ export interface CapturedErrorContext {
   tags?: string[];
 }
 
+/** Context of the `shutdown` runtime hook. */
+export interface NitroShutdownContext {
+  /**
+   * Keep the shutdown pending until the promise settles, for up to the graceful shutdown
+   * timeout. Can be called until in-flight requests are drained and all registered work has
+   * settled. `close` hooks are called after that. Ignored once the timeout is reached.
+   */
+  waitUntil: (promise: Promise<unknown>) => void;
+  /** Aborted when the graceful shutdown timeout is reached. */
+  signal: AbortSignal;
+}
+
 /** Error capture callback used by `nitroApp.captureError`. */
 export type CaptureError = (error: Error, context: CapturedErrorContext) => void;
 
@@ -61,6 +73,16 @@ export type CaptureError = (error: Error, context: CapturedErrorContext) => void
  */
 export interface NitroRuntimeHooks {
   close: () => void;
+  /**
+   * Called as soon as the server starts shutting down, while in-flight requests are drained
+   * and before `close` hooks.
+   *
+   * Hooks are called in order: register long-running work with `ctx.waitUntil` instead of
+   * awaiting it, so that other hooks are not delayed.
+   *
+   * Only called by the `node_server`, `node_cluster`, `bun` and `deno_server` presets.
+   */
+  shutdown: (ctx: NitroShutdownContext) => void | Promise<void>;
   error: CaptureError;
   request: (event: HTTPEvent) => void | Promise<void>;
   response: (res: Response, event: HTTPEvent) => void | Promise<void>;
