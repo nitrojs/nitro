@@ -2,7 +2,13 @@ import { HTTPError, defineHandler } from "h3";
 import type { EventHandler, HTTPMethod } from "h3";
 import type { PublicAsset } from "nitro/types";
 import { decodePath, joinURL, withLeadingSlash, withoutTrailingSlash } from "ufo";
-import { getAsset, hasAsset, isPublicAssetURL, readAsset } from "#nitro/virtual/public-assets";
+import {
+  getAsset,
+  hasAsset,
+  isPublicAssetBaseURL,
+  isPublicAssetURL,
+  readAsset,
+} from "#nitro/virtual/public-assets";
 
 const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 
@@ -23,7 +29,7 @@ export default defineHandler((event) => {
   let id = path.includes("%") ? decodePath(path) : path;
 
   // Most requests are not for public assets: skip the encoding negotiation for them
-  if (!hasAsset(id) && !hasAsset(joinURL(id, "index.html")) && !isPublicAssetURL(id)) {
+  if (!hasAsset(id) && !isPublicAssetBaseURL(id)) {
     return;
   }
 

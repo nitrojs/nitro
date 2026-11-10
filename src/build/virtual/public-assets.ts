@@ -133,9 +133,10 @@ export { readAsset } from "${readAssetImport}"
 export const publicAssetBases = ${JSON.stringify(publicAssetBases)}
 
 export function isPublicAssetURL(id = '') {
-  if (assets[id]) {
-    return true
-  }
+  return !!assets[id] || isPublicAssetBaseURL(id)
+}
+
+export function isPublicAssetBaseURL(id = '') {
   for (const base in publicAssetBases) {
     if (id.startsWith(base)) { return true }
   }
@@ -153,8 +154,24 @@ export function getAsset (id) {
   return assets[id]
 }
 
+let _servableIds
+
 export function hasAsset (id = '') {
-  return !!(assets[id] || assets[id + '.gz'] || assets[id + '.br'] || assets[id + '.zst'])
+  if (!_servableIds) {
+    _servableIds = new Set()
+    for (const assetId in assets) {
+      const plainId = assetId.replace(/\\.(gz|br|zst)$/, '')
+      _servableIds.add(assetId).add(plainId)
+      if (plainId.endsWith('/index.html')) {
+        const dir = plainId.slice(0, -10 /* index.html */)
+        _servableIds.add(dir)
+        if (dir !== '/') {
+          _servableIds.add(dir.slice(0, -1))
+        }
+      }
+    }
+  }
+  return _servableIds.has(id)
 }
 `;
       },

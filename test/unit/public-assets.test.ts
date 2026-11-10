@@ -43,6 +43,28 @@ function nodeReaderTemplate(): string {
   return reader() as string;
 }
 
+function loadPublicAssets(
+  assets: object,
+  { publicAssets: dirs = [] }: { publicAssets?: { baseURL: string }[] } = {}
+) {
+  const nitro = {
+    options: { serveStatic: true, baseURL: "/", publicAssets: dirs },
+  } as unknown as Nitro;
+  const template = publicAssets(nitro).find((t) => t.id === "#nitro/virtual/public-assets")!
+    .template as () => string;
+  const body = template()
+    .replace(/^\s*(import|export \{).*$/gm, "")
+    .replace(/^export /gm, "");
+  return new Function(
+    "assets",
+    `${body}\nreturn { hasAsset, isPublicAssetURL, isPublicAssetBaseURL };`
+  )(assets) as {
+    hasAsset: (id: string) => boolean;
+    isPublicAssetURL: (id: string) => boolean;
+    isPublicAssetBaseURL: (id: string) => boolean;
+  };
+}
+
 // Evaluate the generated `readAsset` template against the real node helpers it
 // imports, recording the filesystem target it asks `fs` to read.
 function loadReadAsset(
@@ -134,6 +156,75 @@ describe("virtual/public-assets node reader", () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("virtual/public-assets lookup", () => {
+  const asset = { type: "text/plain", etag: "", mtime: "", size: 1, path: "" };
+  const { hasAsset, isPublicAssetURL, isPublicAssetBaseURL } = loadPublicAssets(
+    Object.fromEntries(
+      [
+        "/index.html",
+        "/robots.txt",
+        "/foo.css.gz",
+        "/foo.css.br",
+        "/bar.js.zst",
+        "/archive.tgz",
+        "/docs/index.html",
+        "/blog/index.html.br",
+        "/a b/ü.txt",
+        "/_nuxt/entry.js",
+      ].map((id) => [id, asset])
+    ),
+    { publicAssets: [{ baseURL: "/_nuxt" }] }
+  );
+
+  it.each([
+    "/index.html",
+    "/",
+    "/robots.txt",
+    "/foo.css",
+    "/foo.css.gz",
+    "/foo.css.br",
+    "/bar.js",
+    "/docs",
+    "/docs/",
+    "/docs/index.html",
+    "/blog",
+    "/blog/index.html",
+    "/blog/index.html.br",
+    "/a b/ü.txt",
+    "/_nuxt/entry.js",
+  ])("has %s", (id) => {
+    expect(hasAsset(id)).toBe(true);
+  });
+
+  it.each([
+    "/api/hello",
+    "/foo",
+    "/foo.css.gz.gz",
+    "/archive.",
+    "/robots.txt/index.html",
+    "/doc",
+    "/docs/index",
+    "/a%20b/%C3%BC.txt",
+    "/_nuxt/missing.js",
+    "",
+  ])("does not have %s", (id) => {
+    expect(hasAsset(id)).toBe(false);
+  });
+
+  it("treats unknown ids under a public asset base as public", () => {
+    expect(isPublicAssetURL("/_nuxt/missing.js")).toBe(true);
+    expect(isPublicAssetURL("/robots.txt")).toBe(true);
+    expect(isPublicAssetURL("/api/hello")).toBe(false);
+  });
+
+  it("matches only public asset bases with isPublicAssetBaseURL", () => {
+    expect(isPublicAssetBaseURL("/_nuxt/missing.js")).toBe(true);
+    expect(isPublicAssetBaseURL("/_nuxt/entry.js")).toBe(true);
+    expect(isPublicAssetBaseURL("/robots.txt")).toBe(false);
+    expect(isPublicAssetBaseURL("/api/hello")).toBe(false);
   });
 });
 

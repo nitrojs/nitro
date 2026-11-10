@@ -5,6 +5,8 @@ export const publicAssetBases: string[] = [];
 
 export const isPublicAssetURL: (id: string) => boolean = () => false;
 
+export const isPublicAssetBaseURL: (id: string) => boolean = () => false;
+
 export const getPublicAssetMeta: (id: string) => { maxAge?: number } | null = () => null;
 
 export const readAsset: (
