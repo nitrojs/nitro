@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
+import { request } from "node:http";
 import { execa } from "execa";
 import { getRandomPort } from "get-port-please";
 import { resolve } from "pathe";
@@ -80,6 +81,7 @@ describe("nitro:preset:node-server", async () => {
       handlers: [
         { route: "/_ws", handler: resolve(presetFixturesDir, "websocket.ts") },
         { route: "/_ws-protocol", handler: resolve(presetFixturesDir, "websocket-protocol.ts") },
+        { route: "/_ws-denied", handler: resolve(presetFixturesDir, "websocket-denied.ts") },
       ],
     },
   });
@@ -126,6 +128,29 @@ describe("nitro:preset:node-server", async () => {
         await expect(
           negotiateProtocol(`ws://127.0.0.1:${port}/_ws`, ["graphql-transport-ws"])
         ).rejects.toThrow("WebSocket handshake failed");
+      } finally {
+        child.kill("SIGKILL");
+      }
+    },
+    40_000
+  );
+
+  // #5052: upgrades to routes without WebSocket hooks must be rejected, not opened with no-op hooks
+  it.skipIf(isBun)(
+    "rejects WebSocket upgrades on routes without WebSocket hooks",
+    async () => {
+      const port = await getRandomPort();
+      const child = execa(process.execPath, [resolve(ctx.outDir, "server/index.mjs")], {
+        env: { NITRO_PORT: String(port), NITRO_HOST: "127.0.0.1" },
+        stdio: process.env.TEST_DEBUG ? "inherit" : "ignore",
+        reject: false,
+      });
+      try {
+        await waitForServer(`http://127.0.0.1:${port}/`, child.nodeChildProcess);
+        expect(await upgradeStatus(port, "/_ws")).toBe(101);
+        expect(await upgradeStatus(port, "/api/hello")).toBe(200);
+        expect(await upgradeStatus(port, "/_does-not-exist")).toBe(404);
+        expect(await upgradeStatus(port, "/_ws-denied")).toBe(403);
       } finally {
         child.kill("SIGKILL");
       }
@@ -216,5 +241,35 @@ function negotiateProtocol(url: string, protocols: string[]): Promise<string> {
       clearTimeout(timer);
       reject(new Error("WebSocket handshake failed"));
     });
+  });
+}
+
+// Sends a WebSocket upgrade request and resolves with the response status (101 when upgraded).
+function upgradeStatus(port: number, path: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const req = request({
+      host: "127.0.0.1",
+      port,
+      path,
+      headers: {
+        connection: "Upgrade",
+        upgrade: "websocket",
+        "sec-websocket-key": "dGhlIHNhbXBsZSBub25jZQ==",
+        "sec-websocket-version": "13",
+      },
+    });
+    req.setTimeout(5000, () =>
+      req.destroy(new Error("Timed out waiting for the upgrade response"))
+    );
+    req.on("upgrade", (res, socket) => {
+      socket.destroy();
+      resolve(res.statusCode!);
+    });
+    req.on("response", (res) => {
+      res.resume();
+      resolve(res.statusCode!);
+    });
+    req.on("error", reject);
+    req.end();
   });
 }

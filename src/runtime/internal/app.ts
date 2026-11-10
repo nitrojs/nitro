@@ -64,11 +64,15 @@ export async function resolveWebsocketHooks(req: ServerRequest): Promise<Partial
   // The `crossws` property on the response is best-effort only: any staged
   // response header (a `headers` route rule, CORS, ...) makes h3 rebuild the
   // response, and a rebuild carries none of the original's own properties.
-  const res = (await serverFetch(req)) as { crossws?: Partial<WebSocketHooks> };
+  const res = (await serverFetch(req)) as Response & { crossws?: Partial<WebSocketHooks> };
   const carrier = req as unknown as Record<symbol, Partial<WebSocketHooks> | undefined> & {
     context?: Record<symbol, Partial<WebSocketHooks> | undefined>;
   };
-  return res.crossws ?? carrier[kWebSocketHooks] ?? carrier.context?.[kWebSocketHooks] ?? {};
+  const hooks = res.crossws ?? carrier[kWebSocketHooks] ?? carrier.context?.[kWebSocketHooks];
+  if (hooks && (res.ok || res.status === 101 || res.status === 426)) {
+    return hooks;
+  }
+  return { upgrade: () => res };
 }
 
 export function fetch(
