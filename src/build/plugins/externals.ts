@@ -3,13 +3,14 @@ import type { PackageJson } from "pkg-types";
 import type { ExternalsTraceOptions, TracedLayout } from "nf3";
 
 import { pathToFileURL } from "node:url";
-import { builtinModules, createRequire } from "node:module";
+import { createRequire } from "node:module";
 import { dirname, isAbsolute, join, normalize, relative } from "pathe";
 import MagicString from "magic-string";
 import { resolveModulePath } from "exsolve";
 import consola from "consola";
 
 import { escapeRegExp, toPathRegExp } from "../../utils/regex.ts";
+import { isNodeBuiltin } from "./builtins.ts";
 import { NodeNativePackages, NonBundleablePackages, FullTracePackages } from "nf3/db";
 
 export type ExternalsOptions = {
@@ -87,7 +88,7 @@ export function externals(opts: ExternalsOptions): Plugin {
       filter: { id: { exclude, include } },
       async handler(id, importer, rOpts) {
         // Externalize built-in modules with normalized prefix
-        if (builtinModules.includes(id)) {
+        if (isNodeBuiltin(id)) {
           return {
             resolvedBy: PLUGIN_NAME,
             external: true,
