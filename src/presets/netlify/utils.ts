@@ -4,7 +4,13 @@ import { dirname, join } from "pathe";
 import { joinURL, withoutTrailingSlash } from "ufo";
 import { escapeRegExp } from "../../utils/regex.ts";
 import { getPublicAssetCorsHeaders } from "../_utils/cors.ts";
-import { hasHeaders, routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
+import {
+  findShadowedRoute,
+  hasHeaders,
+  routeToSplat,
+  skipUnsupportedRoute,
+  sortRoutes,
+} from "../_utils/routes.ts";
 
 export async function writeRedirects(nitro: Nitro) {
   let contents = "";
@@ -12,6 +18,7 @@ export async function writeRedirects(nitro: Nitro) {
   // Most specific first, as the first matching rule wins
   const routes = sortRoutes(Object.keys(nitro.options.routeRules));
   const redirects = routes.filter((key) => nitro.options.routeRules[key].redirect);
+  const optOuts = routes.filter((key) => nitro.options.routeRules[key].redirect === false);
   for (const key of routes) {
     const redirect = nitro.options.routeRules[key].redirect;
     if (
@@ -31,7 +38,9 @@ export async function writeRedirects(nitro: Nitro) {
       code = 301;
     }
     const from = joinURL(nitro.options.baseURL, routeToSplat(key));
-    contents += `${from}\t${redirect.to.replaceAll("**", ":splat")}\t${code}\n`;
+    const to = redirect.to.replaceAll("**", ":splat");
+    const force = shouldForceRedirect(nitro, { route: key, from, to, optOuts });
+    contents += `${from}\t${to}\t${code}${force ? "!" : ""}\n`;
   }
 
   if (nitro.options.static && existsSync(join(nitro.options.output.publicDir, "404.html"))) {
@@ -171,6 +180,32 @@ async function writePublishFile(nitro: Nitro, name: "_redirects" | "_headers", c
   }
 
   await fsp.writeFile(targetPath, contents);
+}
+
+/**
+ * Whether to force (`!`) a `_redirects` rule, so that Netlify also redirects
+ * where a file exists (prerendered routes, public assets), like the runtime
+ * that applies route rules first. Not forced:
+ * - when a more specific rule opts out with `redirect: false`, as a file there
+ *   would be redirected too: Netlify cannot exclude a path from a splat rule.
+ * - when the target is the same path with or without a trailing slash, which
+ *   Netlify matches as the same path, as it would redirect in a loop.
+ */
+function shouldForceRedirect(
+  nitro: Nitro,
+  opts: { route: string; from: string; to: string; optOuts: string[] }
+): boolean {
+  if (withoutTrailingSlash(opts.from) === withoutTrailingSlash(opts.to)) {
+    return false;
+  }
+  const optOut = findShadowedRoute(opts.route, opts.optOuts);
+  if (optOut) {
+    nitro.logger.warn(
+      `Not forcing route rule \`${opts.route}\` in \`_redirects\`, as the route rule \`${optOut}\` opts out of it. Netlify serves files matching it instead of redirecting.`
+    );
+    return false;
+  }
+  return true;
 }
 
 // Public assets are output to `dist/{{ baseURL }}`, unless `publicDir` is customized

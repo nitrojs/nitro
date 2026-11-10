@@ -78,7 +78,7 @@ describe("netlify _redirects and _headers", () => {
     await writeRedirects(nitro);
     await writeHeaders(nitro);
     expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
-      "/old/*\t/new/:splat\t302\n"
+      "/old/*\t/new/:splat\t302!\n"
     );
     expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe("/hdr/*\n  x-hdr: 1\n");
   });
@@ -99,7 +99,7 @@ describe("netlify _redirects and _headers", () => {
     await writeRedirects(nitro);
     await writeHeaders(nitro);
     expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
-      "/base/old/*\t/new/:splat\t301\n/base/* /base/404.html 404"
+      "/base/old/*\t/new/:splat\t301!\n/base/* /base/404.html 404"
     );
     expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe("/base/hdr/*\n  x-hdr: 1\n");
 
@@ -107,7 +107,7 @@ describe("netlify _redirects and _headers", () => {
     await writeRedirects(nitro);
     await writeHeaders(nitro);
     expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
-      "/base/old/*\t/new/:splat\t301\n/base/* /base/404.html 404"
+      "/base/old/*\t/new/:splat\t301!\n/base/* /base/404.html 404"
     );
     expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe("/base/hdr/*\n  x-hdr: 1\n");
   });
@@ -127,7 +127,7 @@ describe("netlify _redirects and _headers", () => {
     await writeRedirects(nitro);
     await writeHeaders(nitro);
     expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
-      "/user /other 302\n/base/old/*\t/new/:splat\t301\n"
+      "/user /other 302\n/base/old/*\t/new/:splat\t301!\n"
     );
     expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe(
       "/user\n  x-user: 1\n/base/hdr/*\n  x-hdr: 1\n"
@@ -160,7 +160,7 @@ describe("netlify _redirects and _headers", () => {
     });
     await writeRedirects(nitro);
     expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
-      "/app/old/*\t/new/:splat\t301\n"
+      "/app/old/*\t/new/:splat\t301!\n"
     );
     expect(existsSync(join(dir, "_redirects"))).toBe(false);
   });
@@ -213,7 +213,7 @@ describe("netlify _redirects and _headers", () => {
     await writeRedirects(nitro);
     await writeHeaders(nitro);
     expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
-      "/plain/*\t/other/:splat\t302\n"
+      "/plain/*\t/other/:splat\t302!\n"
     );
     expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe("/hdr/*\n  x-hdr: 1\n");
     expect(nitro.logger.warn).toHaveBeenCalledTimes(2);
@@ -260,7 +260,7 @@ describe("netlify _redirects and _headers", () => {
     });
     await writeRedirects(nitro);
     await writeHeaders(nitro);
-    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe("/ok/:id\t/id\t302\n");
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe("/ok/:id\t/id\t302!\n");
     expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe(
       "/files/*.png\n  x-png: 1\n/ok/*\n  x-ok: 1\n"
     );
@@ -279,10 +279,58 @@ describe("netlify _redirects and _headers", () => {
       },
     });
     await writeRedirects(nitro);
-    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe("/keep/*\t/k\t302\n");
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe("/keep/*\t/k\t302!\n");
     expect(nitro.logger.warn).toHaveBeenCalledTimes(2);
     expect(nitro.logger.warn).toHaveBeenCalledWith(
       expect.stringMatching(/`\/num\/\*\*`.*`\/num\/:id\(\\d\+\)`/)
+    );
+  });
+
+  // https://github.com/nitrojs/nitro/issues/1415
+  it("forces redirects so that they apply where a file exists", async () => {
+    const { dir, nitro } = await createNitro({
+      static: true,
+      routeRules: {
+        "/old/**": { redirect: { to: "/new/**", status: 307 } },
+        "/moved": { redirect: { to: "https://nitro.build", status: 301 } },
+      },
+    });
+    await writeFile(join(dir, "public/404.html"), "");
+    await writeRedirects(nitro);
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
+      "/moved\thttps://nitro.build\t301!\n/old/*\t/new/:splat\t302!\n/* /404.html 404"
+    );
+  });
+
+  it("does not force redirects that a more specific rule opts out of", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "/old/**": { redirect: { to: "/new/**", status: 302 } },
+        "/old/keep": { redirect: false },
+        "/old/keep/sub": { redirect: { to: "/sub", status: 302 } },
+        "/other/**": { redirect: { to: "/o/**", status: 302 } },
+      },
+    });
+    await writeRedirects(nitro);
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
+      "/other/*\t/o/:splat\t302!\n/old/keep/sub\t/sub\t302!\n/old/*\t/new/:splat\t302\n"
+    );
+    expect(nitro.logger.warn).toHaveBeenCalledTimes(1);
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`\/old\/\*\*`.*`\/old\/keep`/)
+    );
+  });
+
+  it("does not force redirects to the same path with or without a trailing slash", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "/docs": { redirect: { to: "/docs/", status: 301 } },
+        "/guide/": { redirect: { to: "/guide", status: 301 } },
+      },
+    });
+    await writeRedirects(nitro);
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
+      "/guide/\t/guide\t301\n/docs\t/docs/\t301\n"
     );
   });
 });
