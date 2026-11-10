@@ -1,6 +1,7 @@
 import type { ServerHandler, ServerRequest } from "srvx";
 import type { LoadOptions } from "srvx/loader";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn, type ChildProcess } from "node:child_process";
+import { readdirSync, readFileSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import consola from "consola";
 import { basename, join, resolve } from "pathe";
@@ -149,57 +150,66 @@ async function runPreviewCommand(opts: {
 
   const { getRandomPort, waitForPort } = await import("get-port-please");
   const randomPort = await getRandomPort();
-  // `npx` runs the command through `sh -c` and `dash` does not forward signals,
-  // so the command gets its own process group and signals go to the whole group.
-  const useGroup = process.platform !== "win32";
   const child = spawn(arg0, [...args, "--port", String(randomPort), "--host", "localhost"], {
     stdio: "inherit",
     cwd: opts.rootDir,
-    detached: useGroup,
     env: {
       ...process.env,
       ...Object.fromEntries(opts.env ?? []),
       PORT: String(randomPort),
     },
   });
-  const exited = new Promise<void>((resolve) => child.once("exit", () => resolve()));
-  child.once("exit", (code) => {
-    if (code && code !== 0) {
-      consola.error(`[nitro] Preview server exited with code ${code}`);
+
+  const signals = ["SIGINT", "SIGHUP"] as const;
+  const forwardSignal = (signal: NodeJS.Signals) => signalProcessTree(child, signal);
+  // When Nitro exits or crashes without `close()` (a fatal signal skips this)
+  const onExit = () => {
+    try {
+      signalProcessTree(child, "SIGTERM");
+    } catch {
+      // Nitro is exiting anyway
     }
+  };
+  const removeListeners = () => {
+    for (const sig of signals) {
+      process.off(sig, forwardSignal);
+    }
+    process.off("exit", onExit);
+  };
+
+  let stopping = false;
+  const exited = new Promise<void>((resolve) => {
+    child.once("exit", (code) => {
+      removeListeners();
+      if (code && !stopping) {
+        consola.error(`[nitro] Preview server exited with code ${code}`);
+      }
+      resolve();
+    });
   });
 
-  const killChild = (signal: NodeJS.Signals) => {
-    if (!useGroup || !child.pid) {
-      child.kill(signal);
-      return;
-    }
-    try {
-      process.kill(-child.pid, signal);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
-        throw error;
-      }
-    }
-  };
+  // A command that cannot be started emits `error` and never `exit`
+  await new Promise<void>((resolve, reject) => {
+    child.once("error", reject);
+    child.once("spawn", () => {
+      child.off("error", reject);
+      resolve();
+    });
+  });
+  child.on("error", (error) => consola.error("[nitro] Preview server error:", error));
+  for (const sig of signals) {
+    process.once(sig, forwardSignal);
+  }
+  process.once("exit", onExit);
 
-  const signals = ["SIGINT", "SIGHUP", "SIGTERM"] as const;
-  const removeSignalListeners = () => signals.forEach((sig) => process.off(sig, onSignal));
-  const onSignal = (signal: NodeJS.Signals) => {
-    killChild(signal);
-    removeSignalListeners();
-    if (process.listenerCount(signal) === 0) {
-      process.kill(process.pid, signal);
-    }
-  };
-  signals.forEach((sig) => process.on(sig, onSignal));
-
-  const stop = async () => {
-    removeSignalListeners();
-    killChild("SIGTERM");
-    await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 5000).unref())]);
-    killChild("SIGKILL");
-    await exited;
+  let stopped: Promise<void> | undefined;
+  const stop = () => {
+    stopped ??= (async () => {
+      stopping = true;
+      removeListeners();
+      await stopProcessTree(child, exited);
+    })();
+    return stopped;
   };
 
   await waitForPort(randomPort, { retries: 20, delay: 500, host: "localhost" }).catch(
@@ -218,6 +228,138 @@ async function runPreviewCommand(opts: {
     },
     close: stop,
   };
+}
+
+const PREVIEW_CLOSE_TIMEOUT = 5000;
+const PREVIEW_KILL_TIMEOUT = 1000;
+const PREVIEW_CLOSE_POLL_INTERVAL = 100;
+
+interface ProcessInfo {
+  pid: number;
+  ppid: number;
+  /** Start time from `/proc/<pid>/stat` (Linux only), to notice a reused pid. */
+  start?: string;
+}
+
+/**
+ * Stops the preview command and every process it started.
+ *
+ * `npx` runs the command through `sh -c`, and `dash` does not forward signals,
+ * so signalling the child alone leaves the actual server running. The tree is
+ * listed before signalling because descendants are reparented once `npx` exits.
+ * The command stays in Nitro's process group, so group-wide signals (Ctrl+C,
+ * `timeout`, CI cancellation) still reach it if Nitro never calls `close()`.
+ */
+async function stopProcessTree(child: ChildProcess, exited: Promise<void>) {
+  if (!child.pid || child.exitCode !== null || child.signalCode !== null) {
+    return;
+  }
+  if (process.platform === "win32") {
+    child.kill("SIGTERM");
+    await exited;
+    return;
+  }
+  const tree = signalProcessTree(child, "SIGTERM");
+  await waitForProcesses(tree, PREVIEW_CLOSE_TIMEOUT);
+  signalProcesses(tree, "SIGKILL");
+  await waitForProcesses(tree, PREVIEW_KILL_TIMEOUT);
+  await exited;
+}
+
+async function waitForProcesses(processes: ProcessInfo[], timeout: number) {
+  const deadline = Date.now() + timeout;
+  while (processes.some(isRunning) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, PREVIEW_CLOSE_POLL_INTERVAL));
+  }
+}
+
+/** Signals the child and everything below it; returns the processes it signalled. */
+function signalProcessTree(child: ChildProcess, signal: NodeJS.Signals): ProcessInfo[] {
+  if (!child.pid || child.exitCode !== null || child.signalCode !== null) {
+    return [];
+  }
+  if (process.platform === "win32") {
+    child.kill(signal);
+    return [];
+  }
+  const tree = listProcessTree(child.pid);
+  signalProcesses(tree, signal);
+  return tree;
+}
+
+function listProcessTree(rootPid: number): ProcessInfo[] {
+  const processes = listProcesses();
+  const tree = processes.filter((proc) => proc.pid === rootPid);
+  if (tree.length === 0) {
+    return [{ pid: rootPid, ppid: 0 }];
+  }
+  for (let i = 0; i < tree.length; i++) {
+    tree.push(...processes.filter((proc) => proc.ppid === tree[i].pid));
+  }
+  return tree;
+}
+
+function listProcesses(): ProcessInfo[] {
+  try {
+    if (process.platform === "linux") {
+      return readdirSync("/proc").flatMap((name) => {
+        const proc = /^\d+$/.test(name) ? readProcStat(Number(name)) : undefined;
+        return proc ? [proc] : [];
+      });
+    }
+    return execFileSync("ps", ["-A", "-o", "pid=,ppid="], { encoding: "utf8" })
+      .split("\n")
+      .map((line) => line.trim().split(/\s+/).map(Number))
+      .filter(([pid, ppid]) => Number.isInteger(pid) && Number.isInteger(ppid))
+      .map(([pid, ppid]) => ({ pid, ppid }));
+  } catch {
+    // Without `/proc` or `ps`, only the direct child can be signalled
+    return [];
+  }
+}
+
+function readProcStat(pid: number): (ProcessInfo & { state: string }) | undefined {
+  try {
+    const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+    // Fields after the command name, which is in parentheses and may contain spaces
+    const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+    return { pid, ppid: Number(fields[1]), start: fields[19], state: fields[0] };
+  } catch {
+    return undefined; // The process has exited
+  }
+}
+
+function isRunning(proc: ProcessInfo): boolean {
+  if (process.platform === "linux") {
+    const current = readProcStat(proc.pid);
+    // A zombie has already exited; a new start time means the pid was reused
+    return (
+      current !== undefined &&
+      current.state !== "Z" &&
+      (proc.start === undefined || current.start === proc.start)
+    );
+  }
+  try {
+    process.kill(proc.pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function signalProcesses(processes: ProcessInfo[], signal: NodeJS.Signals) {
+  for (const proc of processes) {
+    if (!isRunning(proc)) {
+      continue;
+    }
+    try {
+      process.kill(proc.pid, signal);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
+        throw error;
+      }
+    }
+  }
 }
 
 /** Warn when the Nitro config changed after the build (e.g. switched to `builder: false`). */
