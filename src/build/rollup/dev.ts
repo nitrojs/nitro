@@ -65,7 +65,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
     `Starting dev watcher (builder: \`rollup\`, preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
   );
 
-  await load();
+  await reload();
 
   function startRollupWatcher(nitro: Nitro, rollupConfig: RollupConfig) {
     const watcher = rollup.watch(
