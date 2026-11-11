@@ -8,6 +8,10 @@ export interface ScanDirCase {
   files: Record<string, string>;
   file: string;
   contents: string;
+  /** Path removed instead of `file` (e.g. the whole dir). */
+  remove?: string;
+  /** Whether `file` exists from the start (removed, then re-added). */
+  existing?: boolean;
   observe: (fetch: Fetch) => Promise<unknown>;
   added: unknown;
   removed: unknown;
@@ -77,6 +81,27 @@ export const scanDirCases: ScanDirCase[] = [
       { result: "added" },
     ],
     removed: [{ base: { description: "base" } }, 404],
+  },
+  {
+    dir: "public",
+    files: index,
+    file: "public/index.html",
+    contents: "added",
+    remove: "public",
+    observe: async (fetch) => [await text(await fetch("/"))],
+    added: ["added"],
+    removed: ["index"],
+  },
+  {
+    dir: "layer/public",
+    files: { ...index, "routes/existing.ts": `export default () => "existing";` },
+    file: "layer/public/existing/index.html",
+    contents: "added",
+    remove: "layer/public",
+    existing: true,
+    observe: async (fetch) => [await text(await fetch("/")), await text(await fetch("/existing"))],
+    added: ["index", "added"],
+    removed: ["index", "existing"],
   },
 ];
 

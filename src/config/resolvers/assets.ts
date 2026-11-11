@@ -11,10 +11,10 @@ export async function resolveAssetsOptions(options: NitroOptions) {
     publicAsset.dir = resolve(options.rootDir, publicAsset.dir);
     publicAsset.baseURL = withLeadingSlash(withoutTrailingSlash(publicAsset.baseURL || "/"));
   }
-  // 2. Add public/ directories from each layer
+  // 2. Add public/ directories from each layer (in dev, also missing ones: they can be created later)
   for (const dir of [options.rootDir, ...options.scanDirs]) {
     const publicDir = resolve(dir, "public");
-    if (!existsSync(publicDir)) {
+    if (!options.dev && !existsSync(publicDir)) {
       continue;
     }
     if (options.publicAssets.some((asset) => asset.dir === publicDir)) {

@@ -23,13 +23,16 @@ describe("vite: scan dirs reload", { concurrent: false }, () => {
     rootDir = mkdtempSync(join(tmpDir, "scan-reload-"));
     writeFiles(rootDir, {
       "package.json": JSON.stringify({ type: "module" }),
-      ...Object.assign({}, ...scanDirCases.map((c) => c.files)),
+      ...Object.assign(
+        {},
+        ...scanDirCases.map((c) => ({ ...c.files, ...(c.existing && { [c.file]: c.contents }) }))
+      ),
     });
     server = await createServer({
       root: rootDir,
       configFile: false,
       logLevel: "warn",
-      plugins: [nitro({ serverDir: "./", experimental: { tasks: true } })],
+      plugins: [nitro({ serverDir: "./", scanDirs: ["layer"], experimental: { tasks: true } })],
     });
     await server.listen("0" as unknown as number);
     const addr = server.httpServer?.address() as { port: number; address: string; family: string };
@@ -53,18 +56,22 @@ describe("vite: scan dirs reload", { concurrent: false }, () => {
       expect(state).toEqual(expected);
     };
 
+    if (c.existing) {
+      await expectState(c.added);
+      rmSync(join(rootDir, c.remove ?? c.file), { recursive: true });
+    }
     await expectState(c.removed);
 
     writeFiles(rootDir, { [c.file]: c.contents });
     await expectState(c.added);
 
-    rmSync(join(rootDir, c.file));
+    rmSync(join(rootDir, c.remove ?? c.file), { recursive: true });
     await expectState(c.removed);
 
     writeFiles(rootDir, { [c.file]: c.contents });
     await expectState(c.added);
 
-    rmSync(join(rootDir, c.file));
+    rmSync(join(rootDir, c.remove ?? c.file), { recursive: true });
     await expectState(c.removed);
   });
 });

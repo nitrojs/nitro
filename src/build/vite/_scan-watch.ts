@@ -9,7 +9,7 @@ const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
 
 /**
  * Calls `onChange` when files are added to or removed from the scan dirs (or a root `server.*`
- * entry), and on the `build:reload` hook.
+ * entry), when a `public/` dir is removed, and on the `build:reload` hook.
  */
 export function watchScanDirs(nitro: Nitro, server: ViteDevServer, onChange: () => void): void {
   const scanDirs = nitro.options.scanDirs.flatMap((dir) => [
@@ -20,6 +20,9 @@ export function watchScanDirs(nitro: Nitro, server: ViteDevServer, onChange: () 
     join(dir, "modules"),
     join(dir, "tasks"),
   ]);
+  const publicDirs = [nitro.options.rootDir, ...nitro.options.scanDirs].map((dir) =>
+    join(dir, "public")
+  );
 
   const shouldReload = (path: string) => {
     path = normalize(path);
@@ -31,9 +34,14 @@ export function watchScanDirs(nitro: Nitro, server: ViteDevServer, onChange: () 
 
   // Reuse vite's watcher (root is already watched) to avoid extra system watchers
   server.watcher.on("error", (error) => onWatchError(nitro, error));
-  server.watcher.add(scanDirs.filter((dir) => !dir.startsWith(server.config.root + "/")));
+  server.watcher.add(
+    [...scanDirs, ...publicDirs].filter((dir) => !dir.startsWith(server.config.root + "/"))
+  );
   server.watcher.on("all", (event, path) => {
-    if (watchReloadEvents.has(event) && shouldReload(path)) {
+    if (
+      (watchReloadEvents.has(event) && shouldReload(path)) ||
+      (event === "unlinkDir" && publicDirs.includes(normalize(path)))
+    ) {
       onChange();
     }
   });
