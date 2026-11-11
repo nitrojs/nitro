@@ -47,6 +47,7 @@ export interface VercelBuildConfigV3 {
   cache?: string[];
   bypassToken?: string;
   framework?: {
+    slug?: string;
     version: string;
   };
   crons?: {
@@ -75,6 +76,12 @@ export type VercelSchedule = {
  * https://vercel.com/docs/build-output-api/primitives#node.js-config
  */
 export interface VercelServerlessFunctionConfig {
+  /** Framework that created the function. */
+  framework?: {
+    slug: string;
+    version?: string;
+  };
+
   /**
    * Amount of memory (RAM in MB) that will be allocated to the Serverless Function.
    */

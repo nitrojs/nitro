@@ -337,6 +337,10 @@ If your hook throws, the message is retried locally. Retries honor `retryAfterSe
 
 You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using the `vercel.config` key inside `nitro.config`. It will be merged with the built-in auto-generated config.
 
+Vercel's Build Output API identifies frameworks using `framework.slug`. The top-level framework object is ignored, including `version`, when it only provides `name` instead of `slug`.
+
+For Nuxt applications, Nitro writes `framework: { slug: "nuxt", version }`, using the Nuxt version, to both `.vercel/output/config.json` and each function's `.vc-config.json`. Automatic slug reporting is limited to Nuxt for backward compatibility. Other frameworks retain their existing output format; support can be extended as their upstream integrations are ready.
+
 ## Public asset caching
 
 Public asset directories that do not fall through (the default for any non-root `baseURL`) are served by Vercel's CDN straight from the filesystem, with a `Cache-Control` header built from the directory's `maxAge`. Directories without an explicit `maxAge` are cached for one year, which is a Vercel-specific default kept for backwards compatibility.
