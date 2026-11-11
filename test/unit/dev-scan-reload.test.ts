@@ -5,7 +5,7 @@ import { join } from "pathe";
 import { isWindows } from "std-env";
 import { afterAll, describe, expect, it } from "vitest";
 import { build, createDevServer, createNitro, prepare } from "../../src/builder.ts";
-import { scanDirCases, writeFiles } from "./_scan-dirs.ts";
+import { publicAssetCase, scanDirCases, writeFiles } from "./_scan-dirs.ts";
 import type { Fetch, ScanDirCase } from "./_scan-dirs.ts";
 
 const tmpDirs: string[] = [];
@@ -31,6 +31,44 @@ describe(`dev scan reload (${builder})`, () => {
   it.skipIf(skip).each(scanDirCases.filter((c) => c.remove))(
     "picks up a removed `$dir/` with `watchOptions.cwd`",
     (c) => runCase(c, { watchCwd: true }),
+    60_000
+  );
+});
+
+describe(`dev deleted public asset (${builder})`, () => {
+  it.skipIf(builder === "rspack" && isWindows)(
+    "is no longer served",
+    async () => {
+      const rootDir = mkdtempSync(join(tmpdir(), "nitro-dev-public-asset-"));
+      tmpDirs.push(rootDir);
+      writeFiles(rootDir, {
+        "package.json": JSON.stringify({ type: "module" }),
+        ...publicAssetCase.files,
+      });
+
+      const nitro = await createNitro({
+        rootDir,
+        serverDir: ".",
+        builder,
+        dev: true,
+        compatibilityDate: "latest",
+        logLevel: 0,
+      });
+      const server = await createDevServer(nitro).listen({ port: 0 });
+      const fetchPath: Fetch = (path) => fetch(new URL(path, server.url));
+      const ready = new Promise<void>((resolve) => nitro.hooks.hook("dev:reload", () => resolve()));
+      try {
+        await prepare(nitro);
+        await build(nitro);
+        await ready;
+        expect(await publicAssetCase.observe(fetchPath)).toEqual(publicAssetCase.existing);
+        rmSync(join(rootDir, publicAssetCase.file));
+        expect(await publicAssetCase.observe(fetchPath)).toEqual(publicAssetCase.removed);
+      } finally {
+        await server.close();
+        await nitro.close();
+      }
+    },
     60_000
   );
 });

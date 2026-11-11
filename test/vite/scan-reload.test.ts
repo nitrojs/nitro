@@ -5,7 +5,7 @@ import { join } from "pathe";
 import type { ViteDevServer } from "vite";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { nitro } from "../../src/vite.ts";
-import { scanDirCases, writeFiles } from "../unit/_scan-dirs.ts";
+import { publicAssetCase, scanDirCases, writeFiles } from "../unit/_scan-dirs.ts";
 import type { Fetch } from "../unit/_scan-dirs.ts";
 
 const { createServer } = (await import(
@@ -73,5 +73,42 @@ describe("vite: scan dirs reload", { concurrent: false }, () => {
 
     rmSync(join(rootDir, c.remove ?? c.file), { recursive: true });
     await expectState(c.removed);
+  });
+});
+
+describe("vite: deleted public asset", () => {
+  let server: ViteDevServer;
+  let fetchPath: Fetch;
+  const tmpDir = fileURLToPath(new URL(".tmp", import.meta.url));
+  let rootDir: string;
+
+  beforeAll(async () => {
+    mkdirSync(tmpDir, { recursive: true });
+    rootDir = mkdtempSync(join(tmpDir, "public-asset-"));
+    writeFiles(rootDir, {
+      "package.json": JSON.stringify({ type: "module" }),
+      ...publicAssetCase.files,
+    });
+    server = await createServer({
+      root: rootDir,
+      configFile: false,
+      logLevel: "warn",
+      plugins: [nitro({ serverDir: "./" })],
+    });
+    await server.listen("0" as unknown as number);
+    const addr = server.httpServer?.address() as { port: number; address: string; family: string };
+    const serverURL = `http://${addr.family === "IPv6" ? `[${addr.address}]` : addr.address}:${addr.port}`;
+    fetchPath = (path) => fetch(serverURL + path);
+  }, 30_000);
+
+  afterAll(async () => {
+    await server?.close();
+    rmSync(rootDir, { recursive: true, force: true });
+  });
+
+  test("is no longer served", async () => {
+    expect(await publicAssetCase.observe(fetchPath)).toEqual(publicAssetCase.existing);
+    rmSync(join(rootDir, publicAssetCase.file));
+    expect(await publicAssetCase.observe(fetchPath)).toEqual(publicAssetCase.removed);
   });
 });
