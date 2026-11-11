@@ -25,6 +25,47 @@ describe("prerender failOnError", () => {
     expect(failedRoutes.map((r) => [r.route, r.error?.status])).toEqual([["/status/404", 404]]);
   }, 120_000);
 
+  it("fails the build when generating a route throws", async () => {
+    const { error, nitro, failedRoutes } = await prerenderRoutes(
+      ["/", "/about"],
+      {
+        failOnError: true,
+      },
+      {
+        "prerender:generate"(route) {
+          if (route.route === "/about") {
+            throw new Error("boom (thrown)");
+          }
+        },
+      }
+    );
+    expect(error).toMatchObject({ message: "Exiting due to prerender errors." });
+    expect(nitro._prerenderedRoutes!.map((r) => r.route)).toEqual(["/"]);
+    // the route whose generation threw is reported as failed
+    expect(failedRoutes.map((r) => [r.route, r.error?.message])).toEqual([
+      ["/about", "boom (thrown)"],
+    ]);
+  }, 120_000);
+
+  it("reports a route whose generation throws as failed without failing the build by default", async () => {
+    const { error, nitro, failedRoutes } = await prerenderRoutes(
+      ["/", "/about"],
+      {},
+      {
+        "prerender:generate"(route) {
+          if (route.route === "/about") {
+            throw new Error("boom (thrown)");
+          }
+        },
+      }
+    );
+    expect(error).toBeUndefined();
+    expect(nitro._prerenderedRoutes!.map((r) => r.route)).toEqual(["/"]);
+    expect(failedRoutes.map((r) => [r.route, r.error?.message])).toEqual([
+      ["/about", "boom (thrown)"],
+    ]);
+  }, 120_000);
+
   it("still fails the build for errors with other status codes", async () => {
     const { error, logs } = await prerenderRoutes(["/", "/status/404", "/status/500"], {
       failOnError: true,
@@ -40,7 +81,11 @@ describe("prerender failOnError", () => {
   }, 120_000);
 });
 
-async function prerenderRoutes(routes: string[], options: NitroConfig["prerender"]) {
+async function prerenderRoutes(
+  routes: string[],
+  options: NitroConfig["prerender"],
+  hooks?: NitroConfig["hooks"]
+) {
   const outDir = await mkdtemp(join(tmpdir(), "nitro-prerender-errors-"));
 
   const nitro = await createNitro({
@@ -48,6 +93,7 @@ async function prerenderRoutes(routes: string[], options: NitroConfig["prerender
     preset: "static",
     output: { dir: outDir },
     prerender: { crawlLinks: false, routes, ...options },
+    hooks,
   });
 
   const logs: string[] = [];
