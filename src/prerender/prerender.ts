@@ -376,10 +376,27 @@ export async function prerender(nitro: Nitro) {
       : `Prerendering ${routes.size} routes`
   );
 
-  await runParallel(routes, generateRoute, {
-    concurrency: nitro.options.prerender.concurrency || 1,
-    interval: nitro.options.prerender.interval,
-  });
+  await runParallel(
+    routes,
+    async (route) => {
+      try {
+        await generateRoute(route);
+      } catch (error) {
+        // A route whose generation throws (a failing renderer, hook or
+        // file write) is recorded as failed, like a route with an error
+        // status, so it is reported and can fail the build via failOnError.
+        console.error(error);
+        failedRoutes.add({
+          route,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
+    },
+    {
+      concurrency: nitro.options.prerender.concurrency || 1,
+      interval: nitro.options.prerender.interval,
+    }
+  );
 
   await prerenderer.close();
 
