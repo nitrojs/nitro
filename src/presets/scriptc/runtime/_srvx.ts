@@ -114,9 +114,10 @@ class ScriptcServer implements Server {
   async close(closeActiveConnections?: boolean): Promise<void> {
     const server = this.#server;
     if (closeActiveConnections) server.closeAllConnections();
+    // An explicit argument: scriptc 0.4.12 rejects `resolve()` once bundling drops `<void>`
     const closed = new Promise<void>((resolve) => {
-      if (!server.listening) return resolve();
-      server.close(() => resolve());
+      if (!server.listening) return resolve(undefined);
+      server.close(() => resolve(undefined));
     });
     const pending = this.#pending;
     while (pending.size > 0) await Promise.all(Array.from(pending));
