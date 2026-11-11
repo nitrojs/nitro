@@ -77,8 +77,8 @@ describe(`dev scan reload (${builder})`, () => {
         expect(state).toEqual(expected);
         expect(lingeringErrors).toEqual([]);
         // TODO: the rolldown and rollup watchers build stale virtual modules before the scan dirs
-        // watcher reloads, and so does rspack for removed plugins and tasks
-        if (builder === "rspack" && !["plugins", "tasks"].includes(c.dir)) {
+        // watcher reloads
+        if (builder === "rspack") {
           expect(errors).toEqual([]);
         }
         errors = [];

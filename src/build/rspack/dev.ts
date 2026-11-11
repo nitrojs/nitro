@@ -49,7 +49,7 @@ export async function watchDev(
 }
 
 export interface DevWatch {
-  /** Scans handlers, returning whether they changed. */
+  /** Scans handlers (and plugins and tasks), returning whether they changed. */
   scan: () => Promise<boolean>;
   /** Watch `ignored` option (output and virtual module placeholders). */
   ignored: RegExp;
@@ -90,7 +90,11 @@ export function createDevWatch(
     const result = scanning.then(async () => {
       await scanHandlers(nitro);
       nitro.routing.sync();
-      const scanned = JSON.stringify(nitro.scannedHandlers);
+      const scanned = JSON.stringify([
+        nitro.scannedHandlers,
+        nitro.options.plugins,
+        nitro.options.tasks,
+      ]);
       const changed = scanned !== handlers;
       handlers = scanned;
       return changed;
