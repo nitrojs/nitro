@@ -223,7 +223,7 @@ importers:
         specifier: link:shims/oxc-parser
         version: link:shims/oxc-parser
       oxfmt:
-        specifier: '>=0.75.0'
+        specifier: '>=0.77.0'
         version: 0.77.0
       oxlint:
         specifier: ^1.92.0

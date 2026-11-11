@@ -11,15 +11,20 @@ export default function app(nitro: Nitro) {
       const hasPlugins = nitro.options.plugins.length > 0;
       const hasHooks = nitro.options.features?.runtimeHooks ?? hasPlugins;
       const hasAsyncContext = !!nitro.options.experimental.asyncContext;
-      const routeMethods = [
-        ...new Set(
-          nitro.routing.routes.routes.filter((r) => r.method).map((r) => r.method.toUpperCase())
-        ),
-      ].sort();
-      const hasMethodRoutes = routeMethods.length > 0;
+      const routeMethods = new Set(
+        nitro.routing.routes.routes.filter((r) => r.method).map((r) => r.method.toUpperCase())
+      );
+      // `GET` routes also match `HEAD` (unless opted out), so `405` responses list it too
+      if (routeMethods.has("GET")) {
+        routeMethods.add("HEAD");
+      }
+      const allowMethods = [...routeMethods].sort();
+      const hasMethodRoutes = allowMethods.length > 0;
+      const hasWebSocketRoutes = nitro.routing.webSocketRoutes.hasRoutes();
 
       const routingImports = [
         hasRoutes && "findRoute",
+        hasWebSocketRoutes && "findWebSocketRoute",
         hasRoutedMiddleware && "findRoutedMiddleware",
         hasGlobalMiddleware && "globalMiddleware",
       ].filter(Boolean);
@@ -157,20 +162,18 @@ export default function app(nitro: Nitro) {
       // `~findRoute` runs before dispatch on the original pathname, so route
       // rules are resolved there and `event.context.routeRules` is populated for
       // every middleware, including ones plugins unshift onto `~middleware`.
-      if (hasRoutes || hasRouteRules) {
+      if (hasRoutes || hasRouteRules || hasWebSocketRoutes) {
         code.push(`  h3App["~findRoute"] = (event) => {`);
         if (hasRouteRules) {
           code.push(
             `    event.context.routeRules = getRouteRules(event.req.method, event.url.pathname).routeRules;`
           );
         }
-        if (hasRoutes) {
-          // `HEAD` is served by the `GET` route unless a `HEAD` route matches
-          // (a method-agnostic match, such as a catch-all, would hide the `GET` one).
+        if (hasWebSocketRoutes) {
           code.push(
-            `    if (event.req.method === "HEAD") {`,
-            `      const route = findRoute("HEAD", event.url.pathname);`,
-            `      return route?.data.method ? route : findRoute("GET", event.url.pathname);`,
+            `    if (event.req.headers.get("upgrade")?.toLowerCase() === "websocket") {`,
+            `      const route = findWebSocketRoute("", event.url.pathname);`,
+            `      if (route) return route;`,
             `    }`
           );
         }
@@ -198,7 +201,7 @@ export default function app(nitro: Nitro) {
       }
       if (hasMethodRoutes) {
         code.push(
-          `  const findMethodNotAllowed = createMethodNotAllowedMatcher(findRoute, ${JSON.stringify(routeMethods)});`
+          `  const findMethodNotAllowed = createMethodNotAllowedMatcher(findRoute, ${JSON.stringify(allowMethods)});`
         );
       }
       if (hasRouteRules) {

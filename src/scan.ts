@@ -21,31 +21,15 @@ const GLOB_MODULES_SCAN_PATTERN = [
 ];
 type FileInfo = { path: string; fullPath: string };
 
-export async function scanAndSyncOptions(nitro: Nitro) {
-  // Scan plugins
-  const scannedPlugins = await scanPlugins(nitro);
-  for (const plugin of scannedPlugins) {
-    if (!nitro.options.plugins.includes(plugin)) {
-      nitro.options.plugins.push(plugin);
-    }
-  }
+const pluginScans = new WeakMap<Nitro, { scanned: Set<string>; added: Set<string> }>();
+const taskScans = new WeakMap<
+  Nitro,
+  { scanned: Set<string>; added: Map<string, { handler: string; entry: boolean }> }
+>();
 
-  // Scan tasks
-  if (nitro.options.experimental.tasks) {
-    const scannedTasks = await scanTasks(nitro);
-    for (const scannedTask of scannedTasks) {
-      if (scannedTask.name in nitro.options.tasks) {
-        if (!nitro.options.tasks[scannedTask.name].handler) {
-          nitro.options.tasks[scannedTask.name].handler = scannedTask.handler;
-        }
-      } else {
-        nitro.options.tasks[scannedTask.name] = {
-          handler: scannedTask.handler,
-          description: "",
-        };
-      }
-    }
-  }
+export async function scanAndSyncOptions(nitro: Nitro) {
+  await syncScannedPlugins(nitro);
+  await syncScannedTasks(nitro);
 
   // Scan modules
   const scannedModules = await scanModules(nitro);
@@ -57,7 +41,94 @@ export async function scanAndSyncOptions(nitro: Nitro) {
   }
 }
 
+async function syncScannedPlugins(nitro: Nitro) {
+  const scanned = new Set(await scanPlugins(nitro));
+  let state = pluginScans.get(nitro);
+  if (!state) {
+    state = { scanned: new Set(), added: new Set() };
+    pluginScans.set(nitro, state);
+  }
+  for (const plugin of state.added) {
+    if (!scanned.has(plugin)) {
+      state.added.delete(plugin);
+      const index = nitro.options.plugins.lastIndexOf(plugin);
+      if (index !== -1) {
+        nitro.options.plugins.splice(index, 1);
+      }
+    }
+  }
+  const ordered = [...scanned];
+  for (const [i, plugin] of ordered.entries()) {
+    if (state.scanned.has(plugin) || nitro.options.plugins.includes(plugin)) {
+      continue;
+    }
+    const isAdded = (p: string) => state.added.has(p) && nitro.options.plugins.includes(p);
+    const next = ordered.slice(i + 1).find(isAdded);
+    const prev = ordered.slice(0, i).reverse().find(isAdded);
+    const index = next
+      ? nitro.options.plugins.indexOf(next)
+      : prev
+        ? nitro.options.plugins.lastIndexOf(prev) + 1
+        : nitro.options.plugins.length;
+    nitro.options.plugins.splice(index, 0, plugin);
+    state.added.add(plugin);
+  }
+  state.scanned = scanned;
+}
+
+async function syncScannedTasks(nitro: Nitro) {
+  if (!nitro.options.experimental.tasks) {
+    return;
+  }
+  const scannedTasks = await scanTasks(nitro);
+  const scanned = new Set(scannedTasks.map((task) => task.handler));
+  let state = taskScans.get(nitro);
+  if (!state) {
+    state = { scanned: new Set(), added: new Map() };
+    taskScans.set(nitro, state);
+  }
+  const tasks = nitro.options.tasks;
+  const removed = new Set<string>();
+  for (const [name, added] of state.added) {
+    if (scanned.has(added.handler)) {
+      continue;
+    }
+    state.added.delete(name);
+    removed.add(name);
+    const task = Object.hasOwn(tasks, name) ? tasks[name] : undefined;
+    if (task?.handler === added.handler) {
+      const unchanged =
+        !task.description &&
+        Object.keys(task).every((key) => key === "handler" || key === "description");
+      if (added.entry && unchanged) {
+        delete tasks[name];
+      } else {
+        delete task.handler;
+      }
+    }
+  }
+  for (const { name, handler } of scannedTasks) {
+    if (state.scanned.has(handler) && !removed.has(name)) {
+      continue;
+    }
+    const task = Object.hasOwn(tasks, name) ? tasks[name] : undefined;
+    if (task?.handler) {
+      continue;
+    }
+    if (task) {
+      task.handler = handler;
+    } else {
+      tasks[name] = { handler, description: "" };
+    }
+    state.added.set(name, { handler, entry: !task });
+  }
+  state.scanned = scanned;
+}
+
 export async function scanHandlers(nitro: Nitro) {
+  await syncScannedPlugins(nitro);
+  await syncScannedTasks(nitro);
+
   const middleware = await scanMiddleware(nitro);
 
   const handlers = await Promise.all([
@@ -69,7 +140,7 @@ export async function scanHandlers(nitro: Nitro) {
   nitro.scannedHandlers = [
     ...middleware,
     ...handlers.filter((h) => {
-      const key = `${h.route}\0${h.method}\0${h.env}`;
+      const key = `${h.route}\0${h.method}\0${h.ws}\0${h.env}`;
       return seenHandlers.has(key) ? false : (seenHandlers.add(key), true);
     }),
   ];
@@ -104,6 +175,7 @@ export async function scanServerRoutes(nitro: Nitro, dir: string, prefix = "/") 
     };
     let route = file.name
       .replace(/\(([^(/\\]+)\)[/\\]/g, "")
+      .replace(/\[[^/\]]*]|[:*?+(){}]/g, (m) => (m[0] === "[" ? m : `\\${m}`))
       .replace(/\[\.{3}]/g, "**")
       .replace(/\[\.{3}([^\]]+)]/g, (_, p) => ":" + paramName(p) + "(.*)")
       .replace(/\[([^/\]]+)]/g, (_, p) => ":" + paramName(p));
@@ -116,6 +188,7 @@ export async function scanServerRoutes(nitro: Nitro, dir: string, prefix = "/") 
       middleware: false,
       route,
       method: file.method,
+      ws: file.ws,
       env: file.env,
     };
   });

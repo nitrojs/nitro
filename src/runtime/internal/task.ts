@@ -1,6 +1,13 @@
 import { Cron } from "croner";
 import { HTTPError } from "h3";
-import type { Task, TaskContext, TaskEvent, TaskPayload, TaskResult } from "nitro/types";
+import type {
+  NitroShutdownContext,
+  Task,
+  TaskContext,
+  TaskEvent,
+  TaskPayload,
+  TaskResult,
+} from "nitro/types";
 import { useNitroApp, useNitroHooks } from "./app.ts";
 import { scheduledTasks, scheduleRunner, tasks } from "#nitro/virtual/tasks";
 
@@ -14,7 +21,8 @@ export function defineTask<RT = unknown>(def: Task<RT>): Task<RT> {
   return def;
 }
 
-const __runningTasks__: { [name: string]: ReturnType<Task<any>["run"]> } = {};
+const __runningTasks__: { [name: string]: Promise<TaskResult<any>> | undefined } = {};
+let __shutdownWaitUntil__: NitroShutdownContext["waitUntil"] | undefined;
 
 /** @experimental */
 export async function runTask<RT = unknown>(
@@ -39,13 +47,13 @@ export async function runTask<RT = unknown>(
     });
   }
 
-  const handler = (await tasks[name].resolve!()) as Task<RT>;
   const taskEvent: TaskEvent = { name, payload, context };
-  __runningTasks__[name] = handler.run(taskEvent);
+  const running = tasks[name].resolve().then((handler) => (handler as Task<RT>).run(taskEvent));
+  __runningTasks__[name] = running;
+  __shutdownWaitUntil__?.(running.catch(() => {}));
 
   try {
-    const res = await __runningTasks__[name];
-    return res;
+    return await running;
   } finally {
     delete __runningTasks__[name];
   }
@@ -57,20 +65,19 @@ export function startScheduleRunner({
 }: {
   waitUntil?: ((promise: Promise<unknown>) => void) | undefined;
 } = {}): void {
+  const cronJobs: Cron[] = [];
+  useNitroHooks().hook("shutdown", ({ waitUntil, signal }) => {
+    stopCronJobs(cronJobs);
+    __shutdownWaitUntil__ = waitUntil;
+    waitUntil(Promise.allSettled(Object.values(__runningTasks__)));
+    signal.addEventListener("abort", warnRunningTasks, { once: true });
+  });
+
   if (!scheduleRunner || !scheduledTasks || scheduledTasks.length === 0 || process.env.TEST) {
     return;
   }
 
-  const cronJobs: Cron[] = [];
-  useNitroHooks().hook("close", () => {
-    for (const job of cronJobs) {
-      try {
-        job.stop();
-      } catch (error) {
-        console.error("Error while stopping scheduled task", error);
-      }
-    }
-  });
+  useNitroHooks().hook("close", () => stopCronJobs(cronJobs));
 
   for (const schedule of scheduledTasks) {
     cronJobs.push(
@@ -111,4 +118,21 @@ export async function runCronTasks(
 ): Promise<TaskResult[]> {
   await useNitroApp().ready;
   return Promise.all(getCronTasks(cron).map((name) => runTask(name, ctx)));
+}
+
+function stopCronJobs(cronJobs: Cron[]): void {
+  for (const job of cronJobs.splice(0)) {
+    try {
+      job.stop();
+    } catch (error) {
+      console.error("Error while stopping scheduled task", error);
+    }
+  }
+}
+
+function warnRunningTasks(): void {
+  const names = Object.keys(__runningTasks__).map((name) => `\`${name}\``);
+  if (names.length > 0) {
+    console.warn(`[nitro] Tasks still running after the shutdown timeout: ${names.join(", ")}`);
+  }
 }

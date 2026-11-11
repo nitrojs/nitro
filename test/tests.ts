@@ -309,6 +309,11 @@ export function testNitro(
     expect(headers["x-test"]).toBe("test");
   });
 
+  it("routed middleware receive the matched route params", async () => {
+    const { data } = await callHandler({ url: "/api/middleware-params/123" });
+    expect(data).toEqual({ middlewareParams: { id: "123" } });
+  });
+
   it("global middleware runs before cached (`swr`) route handlers", async () => {
     const url = "/rules/swr/middleware-order";
     // miss, then hits: the middleware must run each time, and the header it
@@ -390,6 +395,19 @@ export function testNitro(
       url: "/route-group",
     });
     expect(apiStatus).toBe(200);
+  });
+
+  it("matches router syntax in file names literally", async () => {
+    const { status, data } = await callHandler({ url: "/literal(v1)+" });
+    expect(status).toBe(200);
+    expect(data).toBe("literal");
+    expect((await callHandler({ url: "/literalv1" })).status).toBe(404);
+  });
+
+  it("serves HTTP requests to a path shared with a `.ws` route", async () => {
+    const { status, data } = await callHandler({ url: "/ws-shared" });
+    expect(status).toBe(200);
+    expect(data).toBe("http");
   });
 
   it("Handle 404 not found", async () => {
@@ -1124,6 +1142,15 @@ export function testNitro(
       expect(get.headers["x-handler"]).toBe("get");
       const head = await callHandler({ url: "/api/methods/head", method: "HEAD" });
       expect(head.headers["x-handler"]).toBe("head");
+    });
+
+    it("Does not answer HEAD requests with `head: false` GET routes (config)", async () => {
+      const get = await callHandler({ url: "/api/methods/no-head" });
+      expect(get.status).toBe(200);
+      expect(get.headers["x-handler"]).toBe("get");
+      const head = await callHandler({ url: "/api/methods/no-head", method: "HEAD" });
+      expect(head.status).not.toBe(200);
+      expect(head.headers["x-handler"]).toBeUndefined();
     });
 
     it("Runs GET-scoped middleware for HEAD requests", async () => {

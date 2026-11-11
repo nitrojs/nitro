@@ -49,7 +49,7 @@ export async function watchDev(
 }
 
 export interface DevWatch {
-  /** Scans handlers, returning whether they changed. */
+  /** Scans handlers (and plugins and tasks), returning whether they changed. */
   scan: () => Promise<boolean>;
   /** Watch `ignored` option (output and virtual module placeholders). */
   ignored: RegExp;
@@ -82,14 +82,25 @@ export function createDevWatch(
   let stale = false;
   let force = false;
   let handlers: string | undefined;
+  // Builds rescan on removed files besides the watcher: scans run one at a time so that an older
+  // scan never applies its results after a newer one
+  let scanning: Promise<unknown> = Promise.resolve();
 
-  async function scan() {
-    await scanHandlers(nitro);
-    nitro.routing.sync();
-    const scanned = JSON.stringify(nitro.scannedHandlers);
-    const changed = scanned !== handlers;
-    handlers = scanned;
-    return changed;
+  function scan() {
+    const result = scanning.then(async () => {
+      await scanHandlers(nitro);
+      nitro.routing.sync();
+      const scanned = JSON.stringify([
+        nitro.scannedHandlers,
+        nitro.options.plugins,
+        nitro.options.tasks,
+      ]);
+      const changed = scanned !== handlers;
+      handlers = scanned;
+      return changed;
+    });
+    scanning = result.catch(() => {});
+    return result;
   }
 
   const reload = debounce(async () => {
@@ -109,6 +120,7 @@ export function createDevWatch(
   const otherDirs = nitro.options.scanDirs.flatMap((dir) => [
     join(dir, "plugins"),
     join(dir, "modules"),
+    join(dir, "tasks"),
   ]);
 
   const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);

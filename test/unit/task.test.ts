@@ -8,7 +8,10 @@ const { closeHookMock, cronMock, cronStopMock, virtualTasks, runTaskMock } = vi.
       scheduleRunner: true,
       tasks: {
         test: {
-          resolve: () => ({ run: runTaskMock }),
+          resolve: async () => ({ run: runTaskMock }),
+        },
+        other: {
+          resolve: async () => ({ run: runTaskMock }),
         },
       } as Record<string, any>,
     },
@@ -67,7 +70,7 @@ describe("startScheduleRunner", () => {
     startScheduleRunner();
 
     expect(cronMock).not.toHaveBeenCalled();
-    expect(closeHookMock).not.toHaveBeenCalled();
+    expect(getHook("close")).toBeUndefined();
   });
 
   it("stops the schedule runner when the Nitro app closes", () => {
@@ -75,7 +78,7 @@ describe("startScheduleRunner", () => {
 
     expect(closeHookMock).toHaveBeenCalledWith("close", expect.any(Function));
 
-    const closeScheduleRunner = closeHookMock.mock.calls[0]![1];
+    const closeScheduleRunner = getHook("close")!;
     closeScheduleRunner();
 
     expect(cronStopMock).toHaveBeenCalledTimes(2);
@@ -97,7 +100,7 @@ describe("startScheduleRunner", () => {
       });
 
     startScheduleRunner();
-    const closeScheduleRunner = closeHookMock.mock.calls[0]![1];
+    const closeScheduleRunner = getHook("close")!;
 
     expect(() => closeScheduleRunner()).not.toThrow();
     expect(firstStopMock).toHaveBeenCalledOnce();
@@ -134,6 +137,131 @@ describe("startScheduleRunner", () => {
   });
 });
 
+describe("shutdown hook", () => {
+  beforeEach(() => {
+    vi.stubEnv("TEST", "");
+    vi.clearAllMocks();
+    vi.resetModules();
+    virtualTasks.scheduleRunner = true;
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  async function setup() {
+    const { runTask, startScheduleRunner } = await import("../../src/runtime/internal/task.ts");
+    startScheduleRunner();
+    const controller = new AbortController();
+    const shutdown = async () => {
+      const pending = new Set<Promise<unknown>>();
+      getHook("shutdown")!({
+        waitUntil: (promise: Promise<unknown>) => pending.add(promise),
+        signal: controller.signal,
+      });
+      let size: number;
+      do {
+        size = pending.size;
+        await Promise.all(pending);
+      } while (pending.size !== size);
+    };
+    return { runTask, shutdown, abort: () => controller.abort() };
+  }
+
+  it("stops the schedules, then waits for running tasks", async () => {
+    const events: string[] = [];
+    const task = deferred();
+    runTaskMock.mockImplementationOnce(() => task.promise.then(() => events.push("task")));
+    cronStopMock.mockImplementation(() => events.push("stop"));
+    const { runTask, shutdown } = await setup();
+
+    const result = runTask("test");
+    await vi.waitFor(() => expect(runTaskMock).toHaveBeenCalled());
+    const done = shutdown().then(() => events.push("done"));
+    await sleep();
+    expect(events).toEqual(["stop", "stop"]);
+
+    task.resolve();
+    await Promise.all([done, result]);
+    expect(events).toEqual(["stop", "stop", "task", "done"]);
+  });
+
+  it("waits for running tasks when the schedule runner is disabled", async () => {
+    virtualTasks.scheduleRunner = false;
+    const task = deferred();
+    runTaskMock.mockImplementationOnce(() => task.promise);
+    const { runTask, shutdown } = await setup();
+
+    const result = runTask("test");
+    let isDone = false;
+    const done = shutdown().then(() => (isDone = true));
+    await sleep();
+    expect(isDone).toBe(false);
+
+    task.resolve();
+    await Promise.all([done, result]);
+  });
+
+  it("waits for tasks started while waiting", async () => {
+    const [first, second] = [deferred(), deferred()];
+    runTaskMock
+      .mockImplementationOnce(() => first.promise)
+      .mockImplementationOnce(() => second.promise);
+    const { runTask, shutdown } = await setup();
+
+    runTask("test");
+    await vi.waitFor(() => expect(runTaskMock).toHaveBeenCalledTimes(1));
+    let isDone = false;
+    const done = shutdown().then(() => (isDone = true));
+
+    runTask("other");
+    await vi.waitFor(() => expect(runTaskMock).toHaveBeenCalledTimes(2));
+    first.resolve();
+    await sleep();
+    expect(isDone).toBe(false);
+
+    second.resolve();
+    await done;
+  });
+
+  it("waits for tasks that are still loading", async () => {
+    const loaded = deferred();
+    const resolve = virtualTasks.tasks.test.resolve;
+    virtualTasks.tasks.test.resolve = () => loaded.promise.then(resolve);
+    const { runTask, shutdown } = await setup();
+
+    try {
+      const result = runTask("test");
+      let isDone = false;
+      const done = shutdown().then(() => (isDone = true));
+      await sleep();
+      expect(isDone).toBe(false);
+
+      loaded.resolve();
+      await Promise.all([done, result]);
+      expect(runTaskMock).toHaveBeenCalledOnce();
+    } finally {
+      virtualTasks.tasks.test.resolve = resolve;
+    }
+  });
+
+  it("stops waiting and reports running tasks when aborted", async () => {
+    runTaskMock.mockImplementationOnce(() => new Promise(() => {}));
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { runTask, shutdown, abort } = await setup();
+
+    runTask("test");
+    await vi.waitFor(() => expect(runTaskMock).toHaveBeenCalled());
+    shutdown();
+    await sleep();
+    expect(consoleWarn).not.toHaveBeenCalled();
+
+    abort();
+    expect(consoleWarn).toHaveBeenCalledWith(expect.stringContaining("`test`"));
+  });
+});
+
 describe("#nitro/virtual/tasks", () => {
   const render = (options: Record<string, unknown>) =>
     tasksTemplate({
@@ -154,3 +282,17 @@ describe("#nitro/virtual/tasks", () => {
     );
   });
 });
+
+function getHook(name: string): ((...args: any[]) => any) | undefined {
+  return closeHookMock.mock.calls.find((call) => call[0] === name)?.[1];
+}
+
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((r) => (resolve = r));
+  return { promise, resolve };
+}
+
+function sleep(ms = 10) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

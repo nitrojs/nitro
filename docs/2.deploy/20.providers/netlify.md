@@ -17,6 +17,8 @@ For new sites, Netlify detects that you are using Nitro and sets the publish dir
 
 To add custom redirects, use [`routeRules`](/config/routing#routerules) or add a [`_redirects`](https://docs.netlify.com/routing/redirects/#syntax-for-the-redirects-file) file to your `public` directory.
 
+Route rule redirects are written to `_redirects` as [forced rules](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/#shadowing) (`!`), so they also apply to paths where a file exists, such as prerendered pages. A redirect that a more specific route rule opts out of with `redirect: false` is not forced, as Netlify cannot exclude a path from it: files under it are served instead of redirected. Rules from your own `_redirects` file come first and take precedence.
+
 To deploy, just push to your git repository [as you would normally do for Netlify](https://docs.netlify.com/configure-builds/get-started/).
 
 Nitro writes its output using the [Netlify Frameworks API](https://docs.netlify.com/build/frameworks/frameworks-api/): the server function to `.netlify/v1/functions`, edge functions to `.netlify/v1/edge-functions`, and deploy configuration to `.netlify/v1/config.json`. Static assets are written to `dist`.

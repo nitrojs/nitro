@@ -37,6 +37,7 @@ export interface Nitro {
     sync: () => void;
     routeRules: Router<NormalizedRouteRules & { _route: string }>;
     routes: Router<MaybeArray<NitroEventHandler & { _importHash: string }>>;
+    webSocketRoutes: Router<NitroEventHandler & { _importHash: string }>;
     globalMiddleware: (NitroEventHandler & { _importHash: string })[];
     routedMiddleware: Router<NitroEventHandler & { _importHash: string }>;
   }>;

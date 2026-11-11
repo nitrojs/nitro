@@ -48,6 +48,16 @@ describe("scan suffixes", () => {
     ]);
   });
 
+  it("parses the `.ws` suffix", async () => {
+    write("routes/chat.ws.ts", "routes/chat.get.ts", "routes/live.ws.dev.ts");
+    const scanned = await scanServerRoutes(nitro(), "routes");
+    expect(scanned.map((r) => [r.route, r.method, r.ws, r.env])).toEqual([
+      ["/chat", "get", undefined, undefined],
+      ["/chat", undefined, true, undefined],
+      ["/live", undefined, true, "dev"],
+    ]);
+  });
+
   it("keeps known file extensions and custom suffixes", async () => {
     write(
       "routes/sitemap.xml.ts",
@@ -114,6 +124,17 @@ describe("scan suffixes", () => {
   it.each(["1.dev", "1.get"])("reserves method and env words in middleware/%s.ts", async (name) => {
     write(`middleware/${name}.ts`);
     await expect(scanMiddleware(nitro())).rejects.toThrow("not supported in `middleware/`");
+  });
+
+  it("escapes router syntax in literal file names", async () => {
+    write("routes/(group)/a(1)+b.ts", "routes/[id]/{c}.get.ts");
+    expect(await routes()).toEqual([[String.raw`/a\(1\)\+b`], [String.raw`/:id/\{c\}`, "get"]]);
+  });
+
+  // Windows does not allow `:`, `*` or `?` in file names
+  it.skipIf(process.platform === "win32")("escapes a literal colon and star", async () => {
+    write("routes/example:action.ts", "routes/[...slug]/a*b.ts");
+    expect(await routes()).toEqual([[String.raw`/:slug(.*)/a\*b`], [String.raw`/example\:action`]]);
   });
 
   it("logs and skips invalid files in dev", async () => {

@@ -1,11 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
-import { HTTPError, mockEvent } from "h3";
+import { HTTPError, composeMiddleware, mockEvent } from "h3";
 import type { Middleware } from "h3";
+import { addRoute, createRouter } from "rou3";
+import { compileRouter } from "rou3/compiler";
 
 const { findRouteRules } = vi.hoisted(() => ({
   findRouteRules: vi.fn(() => []),
 }));
 
+vi.mock("h3", async (importOriginal) => {
+  const h3 = await importOriginal<typeof import("h3")>();
+  return { ...h3, composeMiddleware: vi.fn(h3.composeMiddleware) };
+});
 vi.mock("#nitro/virtual/routing", () => ({ findRouteRules }));
 vi.mock("#nitro/virtual/app", () => ({
   createNitroApp: () => ({}),
@@ -57,6 +63,63 @@ describe("runtime middleware wrappers", () => {
     expect(await middleware(mockEvent("/x"), next)).toBe("handler");
     expect(calls).toHaveLength(5);
     expect(next).toHaveBeenCalledTimes(4);
+  });
+
+  it("routed: reuses the composed chain across requests with a compiled router", async () => {
+    const router = createRouter<Middleware>();
+    addRoute(router, "", "/admin/**", (event, next) => next());
+    addRoute(router, "", "/admin/users", (event, next) => next());
+    const middleware = createRoutedMiddleware(compileRouter(router, { matchAll: true }));
+
+    vi.mocked(composeMiddleware).mockClear();
+    const next = vi.fn(() => "handler");
+    for (let i = 0; i < 10; i++) {
+      await middleware(mockEvent(`/admin/${i}`), next);
+      await middleware(mockEvent("/admin/users"), next);
+    }
+    expect(next).toHaveBeenCalledTimes(20);
+    expect(composeMiddleware).toHaveBeenCalledTimes(2);
+  });
+
+  it("routed: sets each middleware's own route params as it runs", async () => {
+    const router = createRouter<Middleware>();
+    const seen: Record<string, unknown> = {};
+    const record =
+      (name: string): Middleware =>
+      (event, next) => {
+        seen[name] = { ...event.context.middlewareParams };
+        return next();
+      };
+    addRoute(router, "", "/:a/users", record("outer"));
+    addRoute(router, "", "/api/:a", record("inner"));
+    addRoute(router, "", "/api/users", record("static"));
+    const middleware = createRoutedMiddleware(compileRouter(router, { matchAll: true }));
+
+    await middleware(mockEvent("/api/users"), () => "handler");
+    expect(seen).toEqual({
+      outer: { a: "api" },
+      inner: { a: "users" },
+      static: { a: "users" },
+    });
+
+    // Cached chain: params come from the current request, not the first one.
+    await middleware(mockEvent("/v1/users"), () => "handler");
+    await middleware(mockEvent("/v2/users"), () => "handler");
+    expect(seen.outer).toEqual({ a: "v2" });
+  });
+
+  it("routed: leaves `middlewareParams` unset when the match has no params", async () => {
+    const router = createRouter<Middleware>();
+    let params: unknown = "unset";
+    addRoute(router, "", "/api/**", (event, next) => {
+      params = event.context.middlewareParams;
+      return next();
+    });
+    const middleware = createRoutedMiddleware(compileRouter(router, { matchAll: true }));
+    await middleware(mockEvent("/api"), () => "handler");
+    expect(params).toBeUndefined();
+    await middleware(mockEvent("/api/a/b"), () => "handler");
+    expect(params).toEqual({ 0: "a/b", _: "a/b" });
   });
 
   it("routed: a short-circuiting routed middleware stops the chain", async () => {

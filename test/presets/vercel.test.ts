@@ -355,6 +355,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/_ws\\/?$",
               },
               {
+                "dest": "/ws-shared",
+                "src": "^\\/ws-shared\\/?$",
+              },
+              {
                 "dest": "/wasm/static-import",
                 "src": "^\\/wasm\\/static-import\\/?$",
               },
@@ -405,6 +409,10 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/modules",
                 "src": "^\\/modules\\/?$",
+              },
+              {
+                "dest": "/literal--v1----",
+                "src": "^\\/literal\\(v1\\)\\+\\/?$",
               },
               {
                 "dest": "/jsx",
@@ -521,6 +529,10 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/api/middleware-order",
                 "src": "^\\/api\\/middleware-order\\/?$",
+              },
+              {
+                "dest": "/api/methods/no-head",
+                "src": "^\\/api\\/methods\\/no-head\\/?$",
               },
               {
                 "dest": "/api/methods/search",
@@ -819,6 +831,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/methods/get.func (symlink)",
             "functions/api/methods/guarded.func (symlink)",
             "functions/api/methods/head.func (symlink)",
+            "functions/api/methods/no-head.func (symlink)",
             "functions/api/methods/search.func (symlink)",
             "functions/api/middleware-order.func (symlink)",
             "functions/api/param/[test_id].func (symlink)",
@@ -849,6 +862,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/import-attributes.func (symlink)",
             "functions/imports.func (symlink)",
             "functions/jsx.func (symlink)",
+            "functions/literal--v1----.func (symlink)",
             "functions/modules.func (symlink)",
             "functions/node-compat.func (symlink)",
             "functions/raw.func (symlink)",
@@ -879,6 +893,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/wait-until.func (symlink)",
             "functions/wasm/dynamic-import.func (symlink)",
             "functions/wasm/static-import.func (symlink)",
+            "functions/ws-shared.func (symlink)",
           ]
         `);
       });
