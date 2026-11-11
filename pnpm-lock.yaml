@@ -81,9 +81,12 @@ importers:
       '@rspack/core':
         specifier: ^2.3.1
         version: 2.3.1(@swc/helpers@0.5.23)
+      '@rstest/core':
+        specifier: ^0.12.6
+        version: 0.12.6
       '@scalar/api-reference':
         specifier: ^1.77.0
-        version: 1.77.0(@oxc-project/types@0.157.0)(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(axios@1.21.0)(esbuild@0.28.2)(jwt-decode@4.0.0)(lightningcss@1.33.0)(rolldown@1.3.1)(rollup@4.68.1)(supports-color@10.2.2)(tailwindcss@4.3.5)(typescript@7.0.2)(vite@8.3.7)(zod@4.6.7)
+        version: 1.77.0(@oxc-project/types@0.157.0)(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(axios@1.21.0)(esbuild@0.28.2)(jwt-decode@4.0.0)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.3.1)(rollup@4.68.1)(supports-color@10.2.2)(tailwindcss@4.3.5)(typescript@7.0.2)(vite@8.3.7)(zod@4.6.7)
       '@scalar/openapi-types':
         specifier: ^0.9.8
         version: 0.9.8
@@ -278,7 +281,7 @@ importers:
         version: 1.7.0
       unctx:
         specifier: ^3.0.1
-        version: 3.0.1(magic-string@1.4.5)(rolldown@1.3.1)(unplugin@3.7.0)
+        version: 3.0.1(magic-string@1.4.5)(oxc-parser@shims+oxc-parser)(rolldown@1.3.1)(unplugin@3.7.0)
       unenv:
         specifier: ^2.0.0-rc.24
         version: 2.0.0-rc.24
@@ -533,6 +536,19 @@ importers:
       '@types/react-dom':
         specifier: ^19.3.0
         version: 19.3.0(@types/react@19.3.0)
+
+  examples/rstest:
+    dependencies:
+      unstorage:
+        specifier: ^2.0.0-beta.0
+        version: 2.0.0-beta.0
+    devDependencies:
+      '@rstest/core':
+        specifier: latest
+        version: 0.12.6
+      nitro:
+        specifier: workspace:*
+        version: link:../..
 
   examples/runtime-config:
     devDependencies:
@@ -2967,6 +2983,19 @@ packages:
       '@rspack/core':
         optional: true
 
+  '@rstest/core@0.12.6':
+    resolution: {integrity: sha512-pOOij4Gj7h9fOJiRhcQ7zmVK+l3wSINpocwlsgq34ri60UOl9FACf5qyu7LMS2A3P4feqPdKmwS7QAT3vPk5ww==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+    peerDependencies:
+      happy-dom: ^20.8.3
+      jsdom: '>=15.0.0'
+    peerDependenciesMeta:
+      happy-dom:
+        optional: true
+      jsdom:
+        optional: true
+
   '@sagold/json-pointer@5.1.2':
     resolution: {integrity: sha512-+wAhJZBXa6MNxRScg6tkqEbChEHMgVZAhTHVJ60Y7sbtXtu9XA49KfUkdWlS2x78D6H9nryiKePiYozumauPfA==}
 
@@ -4489,6 +4518,9 @@ packages:
 
   citty@0.2.2:
     resolution: {integrity: sha512-+6vJA3L98yv+IdfKGZHBNiGW5KHn22e/JwID0Strsz8h4S/csAu/OuICwxrg44k5MRiZHWIo8XXuJgQTriRP4w==}
+
+  cjs-module-lexer@2.3.0:
+    resolution: {integrity: sha512-lmNyBzi6iYiqyrExTctfmjd8tInx+dHu9PBomTfH5RXS53c27JMFJgzNv5TyAnm3PgGf+MLy0+Ws41/HlVxdKQ==}
 
   cli-boxes@3.0.0:
     resolution: {integrity: sha512-/lzGpEWL/8PfI0BmBOPRwp0c/wFNX1RdUML3jK/RcSBA9T8mZDdQpqYBKtCFTOfQbwPqWEOpjqW+Fnayc0969g==}
@@ -9392,6 +9424,15 @@ snapshots:
     optionalDependencies:
       '@rspack/core': 2.3.1(@swc/helpers@0.5.23)
 
+  '@rstest/core@0.12.6':
+    dependencies:
+      '@rsbuild/core': 2.3.1
+      '@types/chai': 5.2.3
+      cjs-module-lexer: 2.3.0
+    transitivePeerDependencies:
+      - '@module-federation/runtime-tools'
+      - core-js
+
   '@sagold/json-pointer@5.1.2': {}
 
   '@sagold/json-query@6.2.0':
@@ -9493,7 +9534,7 @@ snapshots:
       - typescript
       - universal-cookie
 
-  '@scalar/api-reference@1.77.0(@oxc-project/types@0.157.0)(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(axios@1.21.0)(esbuild@0.28.2)(jwt-decode@4.0.0)(lightningcss@1.33.0)(rolldown@1.3.1)(rollup@4.68.1)(supports-color@10.2.2)(tailwindcss@4.3.5)(typescript@7.0.2)(vite@8.3.7)(zod@4.6.7)':
+  '@scalar/api-reference@1.77.0(@oxc-project/types@0.157.0)(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(axios@1.21.0)(esbuild@0.28.2)(jwt-decode@4.0.0)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.3.1)(rollup@4.68.1)(supports-color@10.2.2)(tailwindcss@4.3.5)(typescript@7.0.2)(vite@8.3.7)(zod@4.6.7)':
     dependencies:
       '@headlessui/vue': 1.7.23(vue@3.5.45)
       '@scalar/agent-chat': 0.12.50(axios@1.21.0)(jwt-decode@4.0.0)(supports-color@10.2.2)(tailwindcss@4.3.5)(typescript@7.0.2)(zod@4.6.7)
@@ -9516,7 +9557,7 @@ snapshots:
       '@scalar/use-toasts': 0.10.6(typescript@7.0.2)
       '@scalar/validation': 0.6.7
       '@scalar/workspace-store': 0.70.0(typescript@7.0.2)
-      '@unhead/vue': 3.4.3(@oxc-project/types@0.157.0)(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(esbuild@0.28.2)(lightningcss@1.33.0)(rolldown@1.3.1)(rollup@4.68.1)(vite@8.3.7)(vue@3.5.45)
+      '@unhead/vue': 3.4.3(@oxc-project/types@0.157.0)(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(esbuild@0.28.2)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.3.1)(rollup@4.68.1)(vite@8.3.7)(vue@3.5.45)
       '@vueuse/core': 15.0.0(vue@3.5.45)
       fuse.js: 7.5.0
       microdiff: 1.5.0
@@ -9545,6 +9586,7 @@ snapshots:
       - lightningcss
       - nprogress
       - nuxt
+      - oxc-parser
       - qrcode
       - rolldown
       - rollup
@@ -10554,16 +10596,16 @@ snapshots:
 
   '@ungap/structured-clone@1.4.0': {}
 
-  '@unhead/bundler@3.4.3(@oxc-project/types@0.157.0)(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(esbuild@0.28.2)(lightningcss@1.33.0)(rolldown@1.3.1)(rollup@4.68.1)(unhead@3.4.3)(vite@8.3.7)':
+  '@unhead/bundler@3.4.3(@oxc-project/types@0.157.0)(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(esbuild@0.28.2)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.3.1)(rollup@4.68.1)(unhead@3.4.3)(vite@8.3.7)':
     dependencies:
       magic-string: 1.4.5
-      oxc-parser: link:shims/oxc-parser
-      oxc-walker: 1.1.1(@oxc-project/types@0.157.0)(rolldown@1.3.1)
+      oxc-walker: 1.1.1(@oxc-project/types@0.157.0)(oxc-parser@shims+oxc-parser)(rolldown@1.3.1)
       unhead: 3.4.3(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(esbuild@0.28.2)(rolldown@1.3.1)(rollup@4.68.1)(vite@8.3.7)
       unplugin: 3.7.0(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(esbuild@0.28.2)(rolldown@1.3.1)(rollup@4.68.1)(vite@8.3.7)
     optionalDependencies:
       esbuild: 0.28.2
       lightningcss: 1.33.0
+      oxc-parser: link:shims/oxc-parser
       rolldown: 1.3.1
       vite: 8.3.7(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
     transitivePeerDependencies:
@@ -10575,9 +10617,9 @@ snapshots:
       - rollup
       - unloader
 
-  '@unhead/vue@3.4.3(@oxc-project/types@0.157.0)(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(esbuild@0.28.2)(lightningcss@1.33.0)(rolldown@1.3.1)(rollup@4.68.1)(vite@8.3.7)(vue@3.5.45)':
+  '@unhead/vue@3.4.3(@oxc-project/types@0.157.0)(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(esbuild@0.28.2)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.3.1)(rollup@4.68.1)(vite@8.3.7)(vue@3.5.45)':
     dependencies:
-      '@unhead/bundler': 3.4.3(@oxc-project/types@0.157.0)(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(esbuild@0.28.2)(lightningcss@1.33.0)(rolldown@1.3.1)(rollup@4.68.1)(unhead@3.4.3)(vite@8.3.7)
+      '@unhead/bundler': 3.4.3(@oxc-project/types@0.157.0)(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(esbuild@0.28.2)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.3.1)(rollup@4.68.1)(unhead@3.4.3)(vite@8.3.7)
       hookable: 6.1.2
       unhead: 3.4.3(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(esbuild@0.28.2)(rolldown@1.3.1)(rollup@4.68.1)(vite@8.3.7)
       unplugin: 3.7.0(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(esbuild@0.28.2)(rolldown@1.3.1)(rollup@4.68.1)(vite@8.3.7)
@@ -10594,6 +10636,7 @@ snapshots:
       - bun-types-no-globals
       - esbuild
       - lightningcss
+      - oxc-parser
       - rolldown
       - rollup
       - unloader
@@ -11260,6 +11303,8 @@ snapshots:
       consola: 3.4.2
 
   citty@0.2.2: {}
+
+  cjs-module-lexer@2.3.0: {}
 
   cli-boxes@3.0.0: {}
 
@@ -13179,11 +13224,10 @@ snapshots:
 
   oxbox@0.1.0: {}
 
-  oxc-walker@1.1.1(@oxc-project/types@0.157.0)(rolldown@1.3.1):
-    dependencies:
-      oxc-parser: link:shims/oxc-parser
+  oxc-walker@1.1.1(@oxc-project/types@0.157.0)(oxc-parser@shims+oxc-parser)(rolldown@1.3.1):
     optionalDependencies:
       '@oxc-project/types': 0.157.0
+      oxc-parser: link:shims/oxc-parser
       rolldown: 1.3.1
 
   oxfmt@0.77.0:
@@ -14253,11 +14297,10 @@ snapshots:
 
   ultrahtml@1.7.0: {}
 
-  unctx@3.0.1(magic-string@1.4.5)(rolldown@1.3.1)(unplugin@3.7.0):
-    dependencies:
-      oxc-parser: link:shims/oxc-parser
+  unctx@3.0.1(magic-string@1.4.5)(oxc-parser@shims+oxc-parser)(rolldown@1.3.1)(unplugin@3.7.0):
     optionalDependencies:
       magic-string: 1.4.5
+      oxc-parser: link:shims/oxc-parser
       rolldown: 1.3.1
       unplugin: 3.7.0(@rsbuild/core@2.3.1)(@rspack/core@2.3.1)(esbuild@0.28.2)(rolldown@1.3.1)(rollup@4.68.1)(vite@8.3.7)
 
