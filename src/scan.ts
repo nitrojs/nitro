@@ -74,10 +74,14 @@ async function syncScannedPlugins(nitro: Nitro) {
     if (state.scanned.has(plugin) || nitro.options.plugins.includes(plugin)) {
       continue;
     }
-    const next = ordered
-      .slice(i + 1)
-      .find((p) => state.added.has(p) && nitro.options.plugins.includes(p));
-    const index = next ? nitro.options.plugins.indexOf(next) : nitro.options.plugins.length;
+    const isAdded = (p: string) => state.added.has(p) && nitro.options.plugins.includes(p);
+    const next = ordered.slice(i + 1).find(isAdded);
+    const prev = ordered.slice(0, i).reverse().find(isAdded);
+    const index = next
+      ? nitro.options.plugins.indexOf(next)
+      : prev
+        ? nitro.options.plugins.lastIndexOf(prev) + 1
+        : nitro.options.plugins.length;
     nitro.options.plugins.splice(index, 0, plugin);
     state.added.add(plugin);
   }
