@@ -6,14 +6,15 @@ import mime from "mime";
 import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 
-const EncodingMap = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
+/** Extensions of the compressed copies of public assets, by encoding (also read by the manifest) */
+export const ENCODING_EXTS = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
 
 export async function compressPublicAssets(nitro: Nitro) {
   const publicFiles = await glob("**", {
     cwd: nitro.options.output.publicDir,
     absolute: false,
     dot: true,
-    ignore: ["**/*.gz", "**/*.br", "**/*.zst"],
+    ignore: Object.values(ENCODING_EXTS).map((ext) => `**/*${ext}`),
   });
 
   await Promise.all(
@@ -39,9 +40,9 @@ export async function compressPublicAssets(nitro: Nitro) {
       const mimeType = mime.getType(fileName) || "text/plain";
 
       if (
-        (gzip && existsSync(filePath + EncodingMap.gzip)) ||
-        (brotli && existsSync(filePath + EncodingMap.br)) ||
-        (zstd && zstdSupported && existsSync(filePath + EncodingMap.zstd))
+        (gzip && existsSync(filePath + ENCODING_EXTS.gzip)) ||
+        (brotli && existsSync(filePath + ENCODING_EXTS.br)) ||
+        (zstd && zstdSupported && existsSync(filePath + ENCODING_EXTS.zstd))
       ) {
         return;
       }
@@ -57,11 +58,11 @@ export async function compressPublicAssets(nitro: Nitro) {
         gzip && ("gzip" as const),
         brotli && ("br" as const),
         zstd && zstdSupported && ("zstd" as const),
-      ].filter((v): v is keyof typeof EncodingMap => v !== false);
+      ].filter((v): v is keyof typeof ENCODING_EXTS => v !== false);
 
       await Promise.all(
         encodings.map(async (encoding) => {
-          const suffix = EncodingMap[encoding];
+          const suffix = ENCODING_EXTS[encoding];
           const compressedPath = filePath + suffix;
           if (existsSync(compressedPath)) {
             return;

@@ -22,6 +22,7 @@ import {
   type RouterContext,
 } from "rou3";
 import { escapeRegExp } from "../../utils/regex.ts";
+import { isPrefixedPublicAssetDir } from "../../config/resolvers/assets.ts";
 import { getPublicAssetCorsHeaders } from "../_utils/cors.ts";
 import { catchAllRef, hasHeaders, parseRouteKey, sortRoutes } from "../_utils/routes.ts";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
@@ -489,7 +490,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
  * filesystem instead of falling through to the server function.
  *
  * The root base is excluded to mirror the runtime, which never treats `/` as a
- * public asset base (see `publicAssetBases`): a `/(.*)` source would otherwise
+ * public asset base (see `isPublicAssetBaseURL`): a `/(.*)` source would otherwise
  * cache-control every response and, worse, 404 every dynamic route.
  *
  * Sources are joined with a slash (`/build/(.*)`, not `/build(.*)`) so a
@@ -511,10 +512,10 @@ export function getPublicAssetRoutes(
 ): { src: string; cacheControl?: string }[] {
   const routes: { src: string; cacheControl?: string }[] = [];
   for (const asset of publicAssets) {
-    const assetBase = asset.baseURL || "/";
-    if (asset.fallthrough || assetBase === "/") {
+    if (!isPrefixedPublicAssetDir(asset)) {
       continue;
     }
+    const assetBase = asset.baseURL;
     const maxAge = asset.maxAge ?? DEFAULT_PUBLIC_ASSET_MAX_AGE;
     routes.push({
       src: joinURL(escapeRegExp(joinURL(opts.baseURL, assetBase)), "(.*)"),
