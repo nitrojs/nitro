@@ -69,6 +69,8 @@ export async function loadOptions(
   return options;
 }
 
+const defineNitroConfig = <T>(config: T): T => config;
+
 async function _loadUserConfig(
   configOverrides: NitroConfig = {},
   opts: LoadConfigOptions = {}
@@ -77,7 +79,7 @@ async function _loadUserConfig(
   configOverrides = klona(configOverrides);
 
   // @ts-ignore
-  globalThis.defineNitroConfig = globalThis.defineNitroConfig || ((c) => c);
+  globalThis.defineNitroConfig ||= defineNitroConfig;
 
   // Compatibility date
   let compatibilityDate: CompatibilityDateSpec | undefined =
