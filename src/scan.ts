@@ -21,14 +21,10 @@ const GLOB_MODULES_SCAN_PATTERN = [
 ];
 type FileInfo = { path: string; fullPath: string };
 
+const pluginScans = new WeakMap<Nitro, { scanned: Set<string>; added: Set<string> }>();
+
 export async function scanAndSyncOptions(nitro: Nitro) {
-  // Scan plugins
-  const scannedPlugins = await scanPlugins(nitro);
-  for (const plugin of scannedPlugins) {
-    if (!nitro.options.plugins.includes(plugin)) {
-      nitro.options.plugins.push(plugin);
-    }
-  }
+  await syncScannedPlugins(nitro);
 
   // Scan tasks
   if (nitro.options.experimental.tasks) {
@@ -57,7 +53,40 @@ export async function scanAndSyncOptions(nitro: Nitro) {
   }
 }
 
+async function syncScannedPlugins(nitro: Nitro) {
+  const scanned = new Set(await scanPlugins(nitro));
+  let state = pluginScans.get(nitro);
+  if (!state) {
+    state = { scanned: new Set(), added: new Set() };
+    pluginScans.set(nitro, state);
+  }
+  for (const plugin of state.added) {
+    if (!scanned.has(plugin)) {
+      state.added.delete(plugin);
+      const index = nitro.options.plugins.lastIndexOf(plugin);
+      if (index !== -1) {
+        nitro.options.plugins.splice(index, 1);
+      }
+    }
+  }
+  const ordered = [...scanned];
+  for (const [i, plugin] of ordered.entries()) {
+    if (state.scanned.has(plugin) || nitro.options.plugins.includes(plugin)) {
+      continue;
+    }
+    const next = ordered
+      .slice(i + 1)
+      .find((p) => state.added.has(p) && nitro.options.plugins.includes(p));
+    const index = next ? nitro.options.plugins.indexOf(next) : nitro.options.plugins.length;
+    nitro.options.plugins.splice(index, 0, plugin);
+    state.added.add(plugin);
+  }
+  state.scanned = scanned;
+}
+
 export async function scanHandlers(nitro: Nitro) {
+  await syncScannedPlugins(nitro);
+
   const middleware = await scanMiddleware(nitro);
 
   const handlers = await Promise.all([
