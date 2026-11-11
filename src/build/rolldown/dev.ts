@@ -30,6 +30,7 @@ export async function watchDev(
     join(dir, "middleware"),
     join(dir, "plugins"),
     join(dir, "modules"),
+    join(dir, "tasks"),
   ]);
 
   const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);

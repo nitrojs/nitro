@@ -18,6 +18,7 @@ export function watchScanDirs(nitro: Nitro, server: ViteDevServer, onChange: () 
     join(dir, "middleware"),
     join(dir, "plugins"),
     join(dir, "modules"),
+    join(dir, "tasks"),
   ]);
 
   const shouldReload = (path: string) => {

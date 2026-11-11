@@ -109,6 +109,7 @@ export function createDevWatch(
   const otherDirs = nitro.options.scanDirs.flatMap((dir) => [
     join(dir, "plugins"),
     join(dir, "modules"),
+    join(dir, "tasks"),
   ]);
 
   const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
