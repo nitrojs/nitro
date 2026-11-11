@@ -24,11 +24,16 @@ describe(`dev scan reload (${builder})`, () => {
     async (c) => {
       const rootDir = mkdtempSync(join(tmpdir(), "nitro-dev-scan-reload-"));
       tmpDirs.push(rootDir);
-      writeFiles(rootDir, { "package.json": JSON.stringify({ type: "module" }), ...c.files });
+      writeFiles(rootDir, {
+        "package.json": JSON.stringify({ type: "module" }),
+        ...c.files,
+        ...(c.existing && { [c.file]: c.contents }),
+      });
 
       const nitro = await createNitro({
         rootDir,
         serverDir: ".",
+        scanDirs: ["layer"],
         builder,
         dev: true,
         compatibilityDate: "latest",
@@ -87,12 +92,16 @@ describe(`dev scan reload (${builder})`, () => {
       try {
         await prepare(nitro);
         await build(nitro);
+        if (c.existing) {
+          await expectState(c.added);
+          rmSync(join(rootDir, c.remove ?? c.file), { recursive: true });
+        }
         await expectState(c.removed);
 
         writeFiles(rootDir, { [c.file]: c.contents });
         await expectState(c.added);
 
-        rmSync(join(rootDir, c.file));
+        rmSync(join(rootDir, c.remove ?? c.file), { recursive: true });
         await expectState(c.removed);
 
         writeFiles(rootDir, { [c.file]: c.contents });

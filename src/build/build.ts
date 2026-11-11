@@ -1,5 +1,6 @@
 import type { Nitro } from "nitro/types";
 import { existsSync } from "node:fs";
+import { normalize, resolve } from "pathe";
 import { compressPublicAssets } from "../utils/compress.ts";
 import { createWatcher } from "../utils/watch.ts";
 
@@ -13,6 +14,9 @@ export async function build(nitro: Nitro) {
   }
   if (nitro.options.dev && nitro.options.builder === false) {
     watchRendererTemplate(nitro);
+  }
+  if (nitro.options.dev) {
+    watchPublicDirs(nitro);
   }
   warnUnbuiltServices(nitro);
   switch (nitro.options.builder) {
@@ -57,6 +61,25 @@ function watchRendererTemplate(nitro: Nitro) {
     ...nitro.options.watchOptions,
     ignoreInitial: true,
   }).on("all", () => nitro.hooks.callHook("build:reload"));
+  nitro.hooks.hook("close", () => watcher.close());
+}
+
+// Public dirs are served from disk in development, but the public assets manifest of the dev worker
+// is rendered at build time: rebuild when a public dir is removed, so its files are no longer served
+function watchPublicDirs(nitro: Nitro) {
+  const dirs = [
+    ...new Set([nitro.options.rootDir, ...nitro.options.scanDirs].map((dir) => resolve(dir))),
+  ];
+  const publicDirs = new Set(dirs.map((dir) => resolve(dir, "public")));
+  const watcher = createWatcher(nitro, dirs, {
+    ...nitro.options.watchOptions,
+    ignoreInitial: true,
+    depth: 0,
+  }).on("unlinkDir", (path) => {
+    if (publicDirs.has(normalize(path))) {
+      nitro.hooks.callHook("build:reload");
+    }
+  });
   nitro.hooks.hook("close", () => watcher.close());
 }
 
