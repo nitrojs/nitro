@@ -45,6 +45,9 @@ import {
 // https://github.com/vercel/vercel/blob/main/packages/build-utils/src/fs/node-version.ts
 const SUPPORTED_NODE_VERSIONS = [22, 24, 26];
 
+// Vercel’s Build Output API requires `slug` instead of `name`; gate this change for backward compatibility and extend as upstream support is ready.
+const FRAMEWORKS_WITH_SLUG = new Set(["nuxt"]);
+
 // h3 ProxyOptions that Vercel CDN rewrites cannot handle at the edge.
 // https://vercel.com/docs/rewrites
 const UNSUPPORTED_PROXY_OPTIONS = [
@@ -82,6 +85,7 @@ function getSystemNodeVersion() {
 }
 
 export async function generateFunctionFiles(nitro: Nitro) {
+  const { name, version } = nitro.options.framework;
   const o11Routes = getObservabilityRoutes(nitro);
 
   const buildConfigPath = resolve(nitro.options.output.dir, "config.json");
@@ -93,6 +97,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
     launcherType: "Nodejs",
     shouldAddHelpers: false,
     supportsResponseStreaming: true,
+    framework: name && FRAMEWORKS_WITH_SLUG.has(name) ? { slug: name, version } : undefined,
     ...(nitro.options.sourcemap ? { shouldAddSourcemapSupport: true } : {}),
     ...nitro.options.vercel?.functions,
   };
@@ -293,12 +298,11 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     routeRules: nitro.options.routeRules,
   });
 
+  const { name, version } = nitro.options.framework;
+
   const config = defu(nitro.options.vercel?.config, {
     version: 3,
-    framework: {
-      name: nitro.options.framework.name,
-      version: nitro.options.framework.version,
-    },
+    framework: name && FRAMEWORKS_WITH_SLUG.has(name) ? { slug: name, version } : { name, version },
     overrides: getPrerenderOverrides(nitro._prerenderedRoutes),
     routes: [
       // Header-only rules (least specific first, so more specific headers override on `continue`)

@@ -905,6 +905,26 @@ describe("nitro:preset:vercel:web", async () => {
         expect(stat.isSymbolicLink()).toBe(false);
       });
 
+      it("should preserve standalone Nitro build metadata without tagging functions", async () => {
+        const buildConfig = await fsp
+          .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(buildConfig.framework).toEqual({ name: "nitro", version: "3.x" });
+
+        for (const functionPath of [
+          "__server",
+          "api/hello",
+          "rules/isr/[...]-isr",
+          "rules/isr-true/[...]-isr",
+          "_vercel/queues/consumer",
+        ]) {
+          const config = await fsp
+            .readFile(resolve(ctx.outDir, `functions/${functionPath}.func/.vc-config.json`), "utf8")
+            .then((r) => JSON.parse(r));
+          expect(config.framework, functionPath).toBeUndefined();
+        }
+      });
+
       it("should write merged .vc-config.json with functionRules overrides", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "functions/api/hello.func/.vc-config.json"), "utf8")
@@ -1021,6 +1041,7 @@ describe("nitro:preset:vercel:node", async () => {
           handler: resolve(presetFixturesDir, "websocket.ts"),
         },
       ],
+      framework: { name: "nuxt", version: "5.0.0" },
       vercel: { entryFormat: "node", schedules: "private" },
     },
   });
@@ -1061,6 +1082,26 @@ describe("nitro:preset:vercel:node", async () => {
 
         expect(waitUntil).toHaveBeenCalled();
         expect(waitUntil.mock.calls[0][0]).toBeInstanceOf(Promise);
+      });
+
+      it("should include Nuxt framework metadata", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        const framework = { slug: "nuxt", version: "5.0.0" };
+        expect(config.framework).toEqual(framework);
+
+        for (const functionPath of [
+          "__server",
+          "api/hello",
+          "rules/isr/[...]-isr",
+          "_vercel/tasks",
+        ]) {
+          const functionConfig = await fsp
+            .readFile(resolve(ctx.outDir, `functions/${functionPath}.func/.vc-config.json`), "utf8")
+            .then((r) => JSON.parse(r));
+          expect(functionConfig.framework, functionPath).toEqual(framework);
+        }
       });
 
       it("should emit vercel schedules instead of cron jobs", async () => {
@@ -1154,6 +1195,7 @@ describe("nitro:preset:vercel:bun", async () => {
     outDirSuffix: "-bun",
     config: {
       preset: "vercel",
+      framework: { name: "custom-framework", version: "1.0.0" },
       vercel: {
         functions: {
           runtime: "bun1.x",
@@ -1163,6 +1205,11 @@ describe("nitro:preset:vercel:bun", async () => {
   });
 
   it("should generate function config with bun runtime", async () => {
+    const buildConfig = await fsp
+      .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+      .then((r) => JSON.parse(r));
+    expect(buildConfig.framework).toEqual({ name: "custom-framework", version: "1.0.0" });
+
     const config = await fsp
       .readFile(resolve(ctx.outDir, "functions/__server.func/.vc-config.json"), "utf8")
       .then((r) => JSON.parse(r));
