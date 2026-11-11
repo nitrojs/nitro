@@ -465,6 +465,53 @@ describe("cloudflare pages _redirects and _headers", () => {
     );
     expect(nitro.logger.warn).toHaveBeenCalledTimes(3);
   });
+
+  // `_redirects` also applies to static files, so the opted out ones are rewritten to themselves
+  const optOutRules = {
+    "/blog/**": { redirect: { to: "https://example.com/**", status: 302 } },
+    "/blog/feed.xml": { redirect: false },
+    "/blog/keep/**": { redirect: false },
+    "/other": { redirect: false },
+  } as Partial<NitroOptions>["routeRules"];
+
+  it("keeps `redirect: false` paths out of broader redirects", async () => {
+    const { dir, nitro } = await createNitro({ routeRules: optOutRules });
+    await writeCFPagesRedirects(nitro);
+    expect(await readFile(join(dir, "_redirects"), "utf8")).toBe(
+      "/blog/keep/*\t/blog/keep/:splat\t200\n/blog/feed.xml\t/blog/feed.xml\t200\n/blog/*\thttps://example.com/:splat\t302\n"
+    );
+  });
+
+  it("writes the same opt-out rewrites, with the baseURL, in static builds", async () => {
+    const { dir, nitro } = await createNitro({
+      static: true,
+      baseURL: "/base/",
+      routeRules: optOutRules,
+    });
+    await writeCFPagesRedirects(nitro);
+    expect(await readFile(join(dir, "_redirects"), "utf8")).toBe(
+      "/base/blog/keep/*\t/base/blog/keep/:splat\t200\n/base/blog/feed.xml\t/base/blog/feed.xml\t200\n/base/blog/*\thttps://example.com/:splat\t302\n"
+    );
+  });
+
+  it("skips opt-outs that `_redirects` cannot rewrite or that no written redirect covers", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "/blog/**": { redirect: { to: "/new/**", status: 302 } },
+        // A single-segment `*` would match any depth as a splat
+        "/blog/one/*": { redirect: false },
+        "/blog/:id(\\d+)": { redirect: false },
+        "GET /blog/get": { redirect: false },
+        // Method-scoped redirects are not written to `_redirects`
+        "GET /api/**": { redirect: { to: "/v2/**", status: 302 } },
+        "/api/keep": { redirect: false },
+      },
+    });
+    await writeCFPagesRedirects(nitro);
+    expect(await readFile(join(dir, "_redirects"), "utf8")).toBe("/blog/*\t/new/:splat\t302\n");
+    expect(nitro.logger.warn).toHaveBeenCalledTimes(1);
+    expect(nitro.logger.warn).toHaveBeenCalledWith(expect.stringMatching(/`GET \/api\/\*\*`/));
+  });
 });
 
 describe("cloudflare workers _headers and _redirects", () => {

@@ -18,7 +18,15 @@ import {
 } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
 import { getPublicAssetCorsHeaders } from "../_utils/cors.ts";
-import { hasHeaders, routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
+import {
+  findShadowedRoute,
+  hasHeaders,
+  isSplatExpressible,
+  parseRouteKey,
+  routeToSplat,
+  skipUnsupportedRoute,
+  sortRoutes,
+} from "../_utils/routes.ts";
 import { extendEnv } from "../../build/env.ts";
 
 // https://github.com/nitrojs/nitro/issues/4527
@@ -192,8 +200,23 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
   // Most specific first, as the first matching rule wins
   const routes = sortRoutes(Object.keys(nitro.options.routeRules));
   const redirects = routes.filter((key) => nitro.options.routeRules[key].redirect);
+  const writtenRedirects = redirects.filter((key) => isWritableRoute(key));
   for (const key of routes) {
     const redirect = nitro.options.routeRules[key].redirect;
+    if (redirect === false) {
+      // Cloudflare also applies `_redirects` to static files, and a splat rule cannot
+      // exclude a path: rewrite an opted out path to itself, so that it matches first.
+      // A single-segment `*` is left out, as a `_redirects` splat matches any depth.
+      if (
+        isWritableRoute(key) &&
+        !parseRouteKey(key).path.split("/").includes("*") &&
+        writtenRedirects.some((route) => findShadowedRoute(route, [key]))
+      ) {
+        const from = joinURL(nitro.options.baseURL, routeToSplat(key));
+        contents.push(`${from}\t${from.replace("*", ":splat")}\t200`);
+      }
+      continue;
+    }
     if (
       !redirect ||
       skipUnsupportedRoute(nitro, { route: key, file: "_redirects", routes: redirects })
@@ -455,4 +478,11 @@ function findAssetsConflict(
       return source;
     }
   }
+}
+
+// Whether a route rule can be written to `_redirects`: without a method, in a
+// path syntax that the file can express (see `skipUnsupportedRoute()`)
+function isWritableRoute(route: string): boolean {
+  const { path, methods } = parseRouteKey(route);
+  return !methods && isSplatExpressible(path, { file: "_redirects" });
 }
