@@ -64,7 +64,7 @@ export async function watchDev(
     `Starting dev watcher (builder: \`rolldown\`, preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
   );
 
-  await reload();
+  await load();
 
   function startWatcher(nitro: Nitro, config: RolldownOptions) {
     const watcher = rolldown.watch(config);
