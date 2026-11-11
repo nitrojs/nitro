@@ -247,6 +247,8 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
         })
       )
     );
+    // Do not write to the project after closing
+    await this.#devInfoWrite;
   }
 
   reload() {
@@ -320,6 +322,9 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
 
   /** Point CLI commands (`nitro task`, `nitro fetch`) to this dev server. */
   #writeDevInfo() {
+    if (this.#closing) {
+      return;
+    }
     // One write at a time, so that an earlier one does not finish last
     this.#devInfoWrite = this.#devInfoWrite
       .then(() => writeDevBuildInfo(this.nitro, this.#devInfo))

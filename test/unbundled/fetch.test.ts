@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { execa } from "execa";
 import { join } from "pathe";
 import { isWindows } from "std-env";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 const cli = fileURLToPath(new URL("../../dist/cli/index.mjs", import.meta.url));
 
@@ -233,6 +233,14 @@ describe("nitro fetch (running dev server)", () => {
     );
     await build(nitro);
     await ready;
+    // The dev info is written in the background (slowly on Windows): until then, the CLI reads the previous server's
+    await vi.waitFor(
+      async () => {
+        const info = await readFile(join(dir, "node_modules/.nitro/nitro.dev.json"), "utf8");
+        expect(JSON.parse(info).dev).toMatchObject({ url: devURL });
+      },
+      { timeout: 10_000, interval: 50 }
+    );
   }
 
   afterAll(async () => {
