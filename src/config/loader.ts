@@ -69,6 +69,8 @@ export async function loadOptions(
   return options;
 }
 
+const defineNitroConfig = <T>(config: T): T => config;
+
 async function _loadUserConfig(
   configOverrides: NitroConfig = {},
   opts: LoadConfigOptions = {}
@@ -247,5 +249,3 @@ function resolveLayers(c12: ResolvedConfig<NitroConfig>): NitroConfigLayer[] {
       })),
   ];
 }
-
-const defineNitroConfig = <T>(config: T): T => config;
