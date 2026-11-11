@@ -20,6 +20,11 @@ const h3Dist = (file: string) => new RegExp(String.raw`/h3/dist/${file}\.mjs$`);
 
 const ocacheDist = /\/ocache\/dist\/index\.mjs$/;
 
+// Checks once whether a `Request` can take extra properties (it can't under scriptc),
+// so that requests don't throw (slow) on every `req.context` assignment
+const canSetContextProbe = (name: string) =>
+  `const ${name} = /* @__PURE__ */ (() => {\n\ttry {\n\t\tnew Request("http://localhost/").context = {};\n\t\treturn true;\n\t} catch {\n\t\treturn false;\n\t}\n})();\n`;
+
 export const patches: SourcePatch[] = [
   // --- Nitro ---
 
@@ -57,7 +62,12 @@ export const patches: SourcePatch[] = [
   {
     id: /#nitro\/virtual\/app$/,
     from: "req.context ||= {};\n    req.context.nitro = req.context.nitro || { errors: [] };",
-    to: "try {\n      req.context ||= {};\n      req.context.nitro = req.context.nitro || { errors: [] };\n    } catch {}",
+    to: "if (_canSetContext) {\n      req.context ||= {};\n      req.context.nitro = req.context.nitro || { errors: [] };\n    }",
+  },
+  {
+    id: /#nitro\/virtual\/app$/,
+    from: /^/,
+    to: canSetContextProbe("_canSetContext"),
   },
   {
     id: nitroRuntime("(internal/app|nitro)"),
@@ -80,7 +90,12 @@ export const patches: SourcePatch[] = [
   {
     id: h3Dist("response"),
     from: "this.context = req.context = context || req.context || new EmptyObject();",
-    to: "this.context = context || req.context || new EmptyObject();\n\t\ttry { req.context = this.context; } catch {}",
+    to: "this.context = context || req.context || new EmptyObject();\n\t\tif (_canSetContext) req.context = this.context;",
+  },
+  {
+    id: h3Dist("response"),
+    from: "var H3Event = class {",
+    to: canSetContextProbe("_canSetContext") + "var H3Event = class {",
   },
   // `this[key] ||= value`
   {
@@ -101,6 +116,29 @@ export const patches: SourcePatch[] = [
     id: h3Dist("response"),
     from: /\/\* @__PURE__ \*\/ new FrozenHeaders\(/g,
     to: "new Headers(",
+  },
+  // In scriptc 0.4.10, each promise reaction on an untyped value runs on its own native stack,
+  // and this chain runs on every request (Nitro always sets `onResponse`). Call the hook
+  // synchronously and only chain when it returns a promise (h3js/h3#1647). Changes behavior:
+  // with a sync handler and hook, `fetch()` returns a `Response` instead of a `Promise`, and the
+  // hook runs before `fetch()` returns.
+  {
+    id: h3Dist("response"),
+    from: `\tif (onResponse) return Promise.resolve().then(() => onResponse(response, event)).catch((error) => {
+\t\tif (!config.silent) console.error(error);
+\t}).then(() => event[kEventDispose]?.observe(response, val) ?? response);`,
+    to: `\tif (onResponse) {
+\t\tconst logError = (error) => {
+\t\t\tif (!config.silent) console.error(error);
+\t\t};
+\t\tlet hookRes;
+\t\ttry {
+\t\t\thookRes = onResponse(response, event);
+\t\t} catch (error) {
+\t\t\tlogError(error);
+\t\t}
+\t\tif (typeof hookRes?.then === "function") return Promise.resolve(hookRes).catch(logError).then(() => event[kEventDispose]?.observe(response, val) ?? response);
+\t}`,
   },
   // Error subclasses can't be logged as is. Changes behavior: the stack and the `cause`
   // are logged instead of the inspected error (other properties are not printed).
