@@ -36,20 +36,30 @@ export function createPublicAssetsLookup(manifest: Record<string, Entry>): Publi
     for (const id in manifest) {
       entries.set(id, manifest[id]);
       if (id.endsWith("/index.html")) {
-        dirs.set(id.slice(0, -"/index.html".length) || "/", id);
+        const dir = id.slice(0, -"/index.html".length) || "/";
+        dirs.set(dir, id);
+        // A request that is not an asset then misses a single lookup
+        if (!(dir in manifest)) {
+          entries.set(dir, DIR);
+        }
       }
     }
     return entries;
   }
 
   // Compressed copy requested by its own name (`/foo.css.br`), served as is. It runs for every
-  // request that is not an asset, so the extensions of `ENCODING_EXTS` are inlined: a loop is slower.
+  // request that is not an asset, so the extensions of `ENCODING_EXTS` are inlined behind a check
+  // of the position of their dot: a loop, or `endsWith` for each of them, is slower.
   function resolveCopy(id: string): ServedAsset | undefined {
-    const encoding = id.endsWith(".br")
-      ? "br"
-      : id.endsWith(".gz")
-        ? "gzip"
-        : id.endsWith(".zst")
+    const n = id.length;
+    const encoding =
+      id.charCodeAt(n - 3) === 46 /* . */
+        ? id.endsWith("br")
+          ? "br"
+          : id.endsWith("gz")
+            ? "gzip"
+            : undefined
+        : id.charCodeAt(n - 4) === 46 && id.endsWith("zst")
           ? "zstd"
           : undefined;
     if (encoding) {
@@ -61,8 +71,7 @@ export function createPublicAssetsLookup(manifest: Record<string, Entry>): Publi
 
   return {
     hasAsset(id: string): boolean {
-      const map = entries || load();
-      return map.has(id) || dirs.has(id) || !!resolveCopy(id);
+      return (entries || load()).has(id) || !!resolveCopy(id);
     },
 
     isAssetFile(id: string): boolean {
@@ -76,7 +85,8 @@ export function createPublicAssetsLookup(manifest: Record<string, Entry>): Publi
 
     resolveAsset(id: string, encodings: readonly string[]): ServedAsset | undefined {
       const map = entries || load();
-      const entry = map.get(id);
+      const found = map.get(id);
+      const entry = found === DIR ? undefined : found;
       const indexId = dirs.get(id);
       const index = indexId && map.get(indexId);
       for (const encoding of encodings) {
@@ -91,6 +101,9 @@ export function createPublicAssetsLookup(manifest: Record<string, Entry>): Publi
     },
   };
 }
+
+// Entry of a directory id that is not a file: it has no file and no variants to serve
+const DIR = {} as Entry;
 
 const lookup = createPublicAssetsLookup(assets as Record<string, Entry>);
 
