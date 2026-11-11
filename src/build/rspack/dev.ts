@@ -82,14 +82,21 @@ export function createDevWatch(
   let stale = false;
   let force = false;
   let handlers: string | undefined;
+  // Builds rescan on removed files besides the watcher: scans run one at a time so that an older
+  // scan never applies its results after a newer one
+  let scanning: Promise<unknown> = Promise.resolve();
 
-  async function scan() {
-    await scanHandlers(nitro);
-    nitro.routing.sync();
-    const scanned = JSON.stringify(nitro.scannedHandlers);
-    const changed = scanned !== handlers;
-    handlers = scanned;
-    return changed;
+  function scan() {
+    const result = scanning.then(async () => {
+      await scanHandlers(nitro);
+      nitro.routing.sync();
+      const scanned = JSON.stringify(nitro.scannedHandlers);
+      const changed = scanned !== handlers;
+      handlers = scanned;
+      return changed;
+    });
+    scanning = result.catch(() => {});
+    return result;
   }
 
   const reload = debounce(async () => {

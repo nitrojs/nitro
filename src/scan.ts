@@ -95,9 +95,12 @@ async function syncScannedTasks(nitro: Nitro) {
     }
     state.added.delete(name);
     removed.add(name);
-    const task = tasks[name];
+    const task = Object.hasOwn(tasks, name) ? tasks[name] : undefined;
     if (task?.handler === added.handler) {
-      if (added.entry) {
+      const unchanged =
+        !task.description &&
+        Object.keys(task).every((key) => key === "handler" || key === "description");
+      if (added.entry && unchanged) {
         delete tasks[name];
       } else {
         delete task.handler;
@@ -108,7 +111,7 @@ async function syncScannedTasks(nitro: Nitro) {
     if (state.scanned.has(handler) && !removed.has(name)) {
       continue;
     }
-    const task = tasks[name];
+    const task = Object.hasOwn(tasks, name) ? tasks[name] : undefined;
     if (task?.handler) {
       continue;
     }
