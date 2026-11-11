@@ -21,6 +21,7 @@ import _koyeb from "./koyeb/preset.ts";
 import _netlify from "./netlify/preset.ts";
 import _node from "./node/preset.ts";
 import _renderCom from "./render.com/preset.ts";
+import _scriptc from "./scriptc/preset.ts";
 import _standard from "./standard/preset.ts";
 import _stormkit from "./stormkit/preset.ts";
 import _upsun from "./upsun/preset.ts";
@@ -51,6 +52,7 @@ export default [
   ..._netlify,
   ..._node,
   ..._renderCom,
+  ..._scriptc,
   ..._standard,
   ..._stormkit,
   ..._upsun,
