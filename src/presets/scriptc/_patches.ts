@@ -196,6 +196,14 @@ export const patches: SourcePatch[] = [
 
   // --- ocache ---
 
+  // scriptc 0.4.12 infers `entry.status` as a string (it is set later) and the checked read in
+  // this destructuring throws on `undefined`. Copy the other enumerable keys instead.
+  {
+    id: ocacheDist,
+    from: "const { status: _status, ...rest } = entry;",
+    to: 'const rest = {};\n\t\t\t\t\t\tfor (const k in entry) if (k !== "status") rest[k] = entry[k];',
+  },
+
   // `Function.prototype.toString` (used to name and hash anonymous functions).
   // Changes behavior: anonymous cached functions are named `anon_<n>` by the order they
   // are defined, instead of by a hash of their code (cache keys change).
