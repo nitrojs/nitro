@@ -1,6 +1,6 @@
 import type { Nitro } from "nitro/types";
 import { existsSync } from "node:fs";
-import { normalize, resolve } from "pathe";
+import { resolve } from "pathe";
 import { compressPublicAssets } from "../utils/compress.ts";
 import { createWatcher } from "../utils/watch.ts";
 
@@ -71,12 +71,14 @@ function watchPublicDirs(nitro: Nitro) {
     ...new Set([nitro.options.rootDir, ...nitro.options.scanDirs].map((dir) => resolve(dir))),
   ];
   const publicDirs = new Set(dirs.map((dir) => resolve(dir, "public")));
+  const { cwd = "" } = nitro.options.watchOptions || {};
   const watcher = createWatcher(nitro, dirs, {
     ...nitro.options.watchOptions,
     ignoreInitial: true,
     depth: 0,
   }).on("unlinkDir", (path) => {
-    if (publicDirs.has(normalize(path))) {
+    // Event paths are relative to `cwd` when it is set
+    if (publicDirs.has(resolve(cwd, path))) {
       nitro.hooks.callHook("build:reload");
     }
   });
