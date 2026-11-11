@@ -230,6 +230,10 @@ export function resolveAsset (id, encodings) {
     {
       id: "#nitro/virtual/public-assets-node",
       template: () => {
+        // Dev asset paths are absolute, and the Vite dev runner does not set `__nitro_main__`
+        const path = nitro.options.dev
+          ? "assets[id].path"
+          : "resolve(dirname(fileURLToPath(globalThis.__nitro_main__)), assets[id].path)";
         return /* js */ `
 import { promises as fsp } from 'node:fs'
 import { Readable } from 'node:stream'
@@ -237,8 +241,7 @@ import { fileURLToPath } from 'node:url'
 import { resolve, dirname } from 'node:path'
 import assets from '#nitro/virtual/public-assets-data'
 export function readAsset (id, range) {
-  const serverDir = dirname(fileURLToPath(globalThis.__nitro_main__))
-  const path = resolve(serverDir, assets[id].path)
+  const path = ${path}
   // Public dirs might be pruned after the build (uploaded to a CDN, sourcemaps
   // stripped), so a manifest entry with no file behind it reads as absent, not broken.
   return (range ? readRange(path, range) : fsp.readFile(path)).catch((error) => {
