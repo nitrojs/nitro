@@ -69,6 +69,7 @@ export async function watchDev(nitro: Nitro, config: BunConfig, container: Plugi
     join(dir, "middleware"),
     join(dir, "plugins"),
     join(dir, "modules"),
+    join(dir, "tasks"),
   ]);
 
   const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);

@@ -22,26 +22,14 @@ const GLOB_MODULES_SCAN_PATTERN = [
 type FileInfo = { path: string; fullPath: string };
 
 const pluginScans = new WeakMap<Nitro, { scanned: Set<string>; added: Set<string> }>();
+const taskScans = new WeakMap<
+  Nitro,
+  { scanned: Set<string>; added: Map<string, { handler: string; entry: boolean }> }
+>();
 
 export async function scanAndSyncOptions(nitro: Nitro) {
   await syncScannedPlugins(nitro);
-
-  // Scan tasks
-  if (nitro.options.experimental.tasks) {
-    const scannedTasks = await scanTasks(nitro);
-    for (const scannedTask of scannedTasks) {
-      if (scannedTask.name in nitro.options.tasks) {
-        if (!nitro.options.tasks[scannedTask.name].handler) {
-          nitro.options.tasks[scannedTask.name].handler = scannedTask.handler;
-        }
-      } else {
-        nitro.options.tasks[scannedTask.name] = {
-          handler: scannedTask.handler,
-          description: "",
-        };
-      }
-    }
-  }
+  await syncScannedTasks(nitro);
 
   // Scan modules
   const scannedModules = await scanModules(nitro);
@@ -88,8 +76,58 @@ async function syncScannedPlugins(nitro: Nitro) {
   state.scanned = scanned;
 }
 
+async function syncScannedTasks(nitro: Nitro) {
+  if (!nitro.options.experimental.tasks) {
+    return;
+  }
+  const scannedTasks = await scanTasks(nitro);
+  const scanned = new Set(scannedTasks.map((task) => task.handler));
+  let state = taskScans.get(nitro);
+  if (!state) {
+    state = { scanned: new Set(), added: new Map() };
+    taskScans.set(nitro, state);
+  }
+  const tasks = nitro.options.tasks;
+  const removed = new Set<string>();
+  for (const [name, added] of state.added) {
+    if (scanned.has(added.handler)) {
+      continue;
+    }
+    state.added.delete(name);
+    removed.add(name);
+    const task = Object.hasOwn(tasks, name) ? tasks[name] : undefined;
+    if (task?.handler === added.handler) {
+      const unchanged =
+        !task.description &&
+        Object.keys(task).every((key) => key === "handler" || key === "description");
+      if (added.entry && unchanged) {
+        delete tasks[name];
+      } else {
+        delete task.handler;
+      }
+    }
+  }
+  for (const { name, handler } of scannedTasks) {
+    if (state.scanned.has(handler) && !removed.has(name)) {
+      continue;
+    }
+    const task = Object.hasOwn(tasks, name) ? tasks[name] : undefined;
+    if (task?.handler) {
+      continue;
+    }
+    if (task) {
+      task.handler = handler;
+    } else {
+      tasks[name] = { handler, description: "" };
+    }
+    state.added.set(name, { handler, entry: !task });
+  }
+  state.scanned = scanned;
+}
+
 export async function scanHandlers(nitro: Nitro) {
   await syncScannedPlugins(nitro);
+  await syncScannedTasks(nitro);
 
   const middleware = await scanMiddleware(nitro);
 
