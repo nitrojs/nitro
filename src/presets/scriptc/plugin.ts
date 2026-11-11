@@ -42,6 +42,9 @@ export function scriptcPlugin(): NitroBuildPlugin {
               `Patch for scriptc did not apply to \`${id}\` (\`${String(patch.from).slice(0, 60)}\`). The build may not compile with scriptc.`
             );
           }
+          if (patch.leftover && next.includes(patch.leftover.match)) {
+            this.warn(`${patch.leftover.message} (\`${id}\`)`);
+          }
           patched = next;
         }
         return patched === code ? undefined : { code: patched, map: null };

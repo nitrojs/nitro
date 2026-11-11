@@ -7,7 +7,8 @@ export type { ScriptcOptions as PresetOptions } from "./types.ts";
 const scriptc = defineNitroPreset(
   {
     entry: "./scriptc/runtime/scriptc",
-    serveStatic: true,
+    // Embedded in the binary, so it can be moved (`import.meta.url` is fixed at compile time)
+    serveStatic: "inline",
     minify: false,
     noExternals: true,
     exportConditions: ["scriptc"],
@@ -15,9 +16,6 @@ const scriptc = defineNitroPreset(
       fastResponse: false,
     },
     buildPlugins: [scriptcPlugin()],
-    commands: {
-      preview: "./server/index",
-    },
     hooks: {
       async compiled(nitro) {
         if (nitro.options.scriptc?.compile !== false) {

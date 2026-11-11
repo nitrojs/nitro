@@ -1,5 +1,6 @@
 import type { Nitro } from "nitro/types";
 import { spawn } from "node:child_process";
+import { stat } from "node:fs/promises";
 import { resolveModulePath } from "exsolve";
 import { dirname, join, relative } from "pathe";
 
@@ -12,7 +13,7 @@ export async function compileScriptc(nitro: Nitro): Promise<void> {
   const serverDir = nitro.options.output.serverDir;
   const entry = join(serverDir, "index.mjs");
   const output = join(serverDir, "index");
-  const bin = resolveScriptc(nitro.options.rootDir);
+  const scriptc = resolveScriptc(nitro.options.rootDir);
   const args = [
     "build",
     entry,
@@ -22,10 +23,20 @@ export async function compileScriptc(nitro: Nitro): Promise<void> {
     output,
     ...(nitro.options.scriptc?.args || []),
   ];
+  const command = ["scriptc", ...args]
+    .map((arg) => (arg === entry || arg === output ? relative(process.cwd(), arg) : arg))
+    .join(" ");
+
+  if (scriptc.from === "package" && (await isPlaceholder(scriptc.bin))) {
+    nitro.logger.warn(
+      `The \`scriptc\` package is installed, but its native compiler is not: its install script did not run (pnpm and bun block install scripts by default). Allow install scripts for \`scriptc\` and reinstall it, then run \`${command}\`.`
+    );
+    return;
+  }
 
   const start = Date.now();
   const code = await new Promise<number | "ENOENT">((resolve, reject) => {
-    const child = spawn(bin, args, { stdio: "inherit" });
+    const child = spawn(scriptc.bin, args, { stdio: "inherit" });
     child.on("error", (error: NodeJS.ErrnoException) =>
       error.code === "ENOENT" ? resolve("ENOENT") : reject(error)
     );
@@ -33,11 +44,10 @@ export async function compileScriptc(nitro: Nitro): Promise<void> {
   });
 
   if (code === "ENOENT") {
-    const command = ["scriptc", ...args]
-      .map((arg) => (arg === entry || arg === output ? relative(process.cwd(), arg) : arg))
-      .join(" ");
     nitro.logger.warn(
-      `Could not find \`scriptc\` to compile the server. Install it (\`npm i -D scriptc\`) or set \`SCRIPTC\`, then run \`${command}\`.`
+      scriptc.from === "env"
+        ? `\`SCRIPTC\` is set to \`${scriptc.bin}\`, which does not exist. Fix it, then run \`${command}\`.`
+        : `Could not find \`scriptc\` to compile the server. Install it (\`npm i -D scriptc\`) or set \`SCRIPTC\` to its path, then run \`${command}\`.`
     );
     return;
   }
@@ -51,10 +61,18 @@ export async function compileScriptc(nitro: Nitro): Promise<void> {
   );
 }
 
-function resolveScriptc(rootDir: string): string {
+function resolveScriptc(rootDir: string): { bin: string; from: "env" | "package" | "path" } {
   if (process.env.SCRIPTC) {
-    return process.env.SCRIPTC;
+    return { bin: process.env.SCRIPTC, from: "env" };
   }
   const pkg = resolveModulePath("scriptc/package.json", { from: rootDir, try: true });
-  return pkg ? join(dirname(pkg), "bin/scriptc.exe") : "scriptc";
+  return pkg
+    ? { bin: join(dirname(pkg), "bin/scriptc.exe"), from: "package" }
+    : { bin: "scriptc", from: "path" };
+}
+
+// The npm package ships a small shell script that its install script replaces with the compiler
+async function isPlaceholder(bin: string): Promise<boolean> {
+  const stats = await stat(bin).catch(() => undefined);
+  return !stats || stats.size < 4096;
 }

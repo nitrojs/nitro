@@ -61,6 +61,12 @@ class ScriptcServer implements Server {
     this.fetch = fetchHandler;
 
     const silent = this.options.silent;
+    if (!silent && options.tls) {
+      console.warn("[srvx] HTTPS is not supported with scriptc yet: serving HTTP.");
+    }
+    if (!silent && (options.node as { path?: string } | undefined)?.path) {
+      console.warn("[srvx] UNIX sockets are not supported with scriptc yet: listening on TCP.");
+    }
     this.#server = createServer({}, (req: IncomingMessage, res: ServerResponse) => {
       void handleRequest(fetchHandler, req, res, silent);
     });

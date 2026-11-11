@@ -2,6 +2,7 @@ import { execa } from "execa";
 import { getRandomPort } from "get-port-please";
 import type { ResultPromise } from "execa";
 import { build, copyPublicAssets, createNitro, prepare } from "nitro/builder";
+import { rename, rm } from "node:fs/promises";
 import { resolve } from "pathe";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getPresetTmpDir, setupTest, testNitro } from "../tests.ts";
@@ -52,15 +53,20 @@ describe.runIf(process.env.SCRIPTC)("nitro:preset:scriptc (native)", { timeout: 
     await build(nitro);
     await nitro.close();
 
+    // The binary must not depend on the location it was built in
+    const movedDir = resolve(outDir, "../.output-moved");
+    await rm(movedDir, { recursive: true, force: true });
+    await rename(outDir, movedDir);
+
     const port = await getRandomPort();
     url = `http://127.0.0.1:${port}`;
-    child = execa(resolve(outDir, "server/index"), {
+    child = execa(resolve(movedDir, "server/index"), {
       env: { PORT: String(port) },
       stdio: process.env.TEST_DEBUG ? "inherit" : "ignore",
       reject: false,
     });
     await waitForServer(`${url}/`, child.nodeChildProcess);
-  });
+  }, 300_000);
 
   afterAll(() => {
     child?.kill();
@@ -123,5 +129,13 @@ describe.runIf(process.env.SCRIPTC)("nitro:preset:scriptc (native)", { timeout: 
     const res = await get("/static.txt");
     expect(await res.text()).toBe("static file\n");
     expect(res.headers.get("etag")).toBeTruthy();
+    const range = await get("/static.txt", { headers: { range: "bytes=0-5" } });
+    expect(range.status).toBe(206);
+    expect(await range.text()).toBe("static");
+  });
+
+  it("reads server assets", async () => {
+    const res = await get("/api/asset");
+    expect(await res.text()).toBe("server asset\n");
   });
 });
