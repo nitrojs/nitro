@@ -133,7 +133,7 @@ export { readAsset } from "${readAssetImport}"
 export const publicAssetBases = ${JSON.stringify(publicAssetBases)}
 
 export function isPublicAssetURL(id = '') {
-  return !!assets[id] || isPublicAssetBaseURL(id)
+  return hasAsset(id) || isPublicAssetBaseURL(id)
 }
 
 export function isPublicAssetBaseURL(id = '') {

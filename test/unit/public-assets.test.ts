@@ -260,6 +260,17 @@ describe("virtual/public-assets lookup", () => {
     expect(isPublicAssetURL("/api/hello")).toBe(false);
   });
 
+  it("matches directory URLs whose index.html is a public asset", () => {
+    expect(isPublicAssetURL("/docs")).toBe(true);
+    expect(isPublicAssetURL("/docs/")).toBe(true);
+    expect(isPublicAssetURL("/page/")).toBe(true);
+    // Only the compressed index exists for this directory
+    expect(isPublicAssetURL("/blog/")).toBe(true);
+    expect(isPublicAssetURL("/")).toBe(true);
+    expect(isPublicAssetURL("/docs/index")).toBe(false);
+    expect(isPublicAssetURL("/missing/")).toBe(false);
+  });
+
   it("matches only public asset bases with isPublicAssetBaseURL", () => {
     expect(isPublicAssetBaseURL("/_nuxt/missing.js")).toBe(true);
     expect(isPublicAssetBaseURL("/_nuxt/entry.js")).toBe(true);
