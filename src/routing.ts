@@ -19,7 +19,8 @@ type RouteSource = "routes" | "handlers" | "scan";
  *
  * rou3 serves the first registration of a pattern, so later ones would still be
  * imported into the routing module without ever matching. Catch-all handlers are
- * kept: `mergeCatchAll` combines them into one multi-handler.
+ * kept: `mergeCatchAll` combines them into one multi-handler. HTTP and WebSocket
+ * handlers may share a path, so they are deduplicated separately.
  */
 function dedupeRoutes(
   nitro: Nitro,
@@ -32,12 +33,14 @@ function dedupeRoutes(
       routes.push(handler);
       continue;
     }
-    const key = `${handler.method?.toUpperCase() || ""} ${handler.route}`;
+    const key = handler.ws
+      ? `ws ${handler.route}`
+      : `http ${handler.method?.toUpperCase() || ""} ${handler.route}`;
     const previous = registered.get(key);
     if (previous) {
       if (nitro.options.dev) {
         nitro.logger.warn(
-          `Route \`${key.trim()}\` from ${sourceLabel(source)} (\`${handler.handler}\`) is shadowed by \`${previous.handler}\` and will not be registered.`
+          `Route \`${key.split(" ").slice(1).join(" ").trim()}\` from ${sourceLabel(source)} (\`${handler.handler}\`) is shadowed by \`${previous.handler}\` and will not be registered.`
         );
       }
       continue;

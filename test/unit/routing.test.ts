@@ -193,6 +193,18 @@ describe("initNitroRouting", () => {
     ).toEqual(["./handlers/get.ts", "./routes/post.ts"]);
   });
 
+  it("keeps an HTTP and a WebSocket handler on the same path", () => {
+    const nitro = createNitro([{ route: "/chat", ws: true, handler: "./handlers/chat-ws.ts" }], {
+      routes: { "/chat": "./routes/chat.ts" },
+    });
+    expect(nitro.routing.routes.routes.map((r) => (r.data as NitroEventHandler).handler)).toEqual([
+      "./routes/chat.ts",
+    ]);
+    expect(
+      nitro.routing.webSocketRoutes.routes.map((r) => (r.data as NitroEventHandler).handler)
+    ).toEqual(["./handlers/chat-ws.ts"]);
+  });
+
   it("warns in dev when a filesystem route is shadowed by a config route", () => {
     const warnings: string[] = [];
     createNitro([], {
