@@ -12,6 +12,49 @@ import { hash } from "./utils/hash.ts";
 
 const isGlobalMiddleware = (h: NitroEventHandler) => !h.method && (!h.route || h.route === "/**");
 
+type RouteSource = "routes" | "handlers" | "scan";
+
+/**
+ * Drop route handlers whose pattern and method are already registered.
+ *
+ * rou3 serves the first registration of a pattern, so later ones would still be
+ * imported into the routing module without ever matching. Catch-all handlers are
+ * kept: `mergeCatchAll` combines them into one multi-handler. HTTP and WebSocket
+ * handlers may share a path, so they are deduplicated separately.
+ */
+function dedupeRoutes(
+  nitro: Nitro,
+  entries: { handler: NitroEventHandler; source: RouteSource }[]
+): NitroEventHandler[] {
+  const routes: NitroEventHandler[] = [];
+  const registered = new Map<string, NitroEventHandler>();
+  for (const { handler, source } of entries) {
+    if (!handler.route || handler.route === "/**") {
+      routes.push(handler);
+      continue;
+    }
+    const key = handler.ws
+      ? `ws ${handler.route}`
+      : `http ${handler.method?.toUpperCase() || ""} ${handler.route}`;
+    const previous = registered.get(key);
+    if (previous) {
+      if (nitro.options.dev) {
+        nitro.logger.warn(
+          `Route \`${key.split(" ").slice(1).join(" ").trim()}\` from ${sourceLabel(source)} (\`${handler.handler}\`) is shadowed by \`${previous.handler}\` and will not be registered.`
+        );
+      }
+      continue;
+    }
+    registered.set(key, handler);
+    routes.push(handler);
+  }
+  return routes;
+}
+
+function sourceLabel(source: RouteSource) {
+  return source === "scan" ? "filesystem routing" : `\`${source}\` config`;
+}
+
 export function initNitroRouting(nitro: Nitro) {
   const envConditions = new Set(
     [
@@ -63,16 +106,22 @@ export function initNitroRouting(nitro: Nitro) {
     );
 
     // Update routes
-    const _routes = [
-      ...Object.entries(nitro.options.routes).flatMap(([route, handler]) => {
-        if (typeof handler === "string") {
-          handler = { handler };
-        }
-        return { ...handler, route, middleware: false };
-      }),
-      ...nitro.options.handlers,
-      ...nitro.scannedHandlers,
-    ].filter((h) => h && !h.middleware && matchesEnv(h));
+    const _routes = dedupeRoutes(
+      nitro,
+      [
+        ...Object.entries(nitro.options.routes).flatMap(([route, handler]) => {
+          if (typeof handler === "string") {
+            handler = { handler };
+          }
+          return {
+            handler: { ...handler, route, middleware: false } as NitroEventHandler,
+            source: "routes" as const,
+          };
+        }),
+        ...nitro.options.handlers.map((handler) => ({ handler, source: "handlers" as const })),
+        ...nitro.scannedHandlers.map((handler) => ({ handler, source: "scan" as const })),
+      ].filter(({ handler }) => handler && !handler.middleware && matchesEnv(handler))
+    );
     if (nitro.options.serverEntry && nitro.options.serverEntry.handler) {
       _routes.push({
         route: "/**",
