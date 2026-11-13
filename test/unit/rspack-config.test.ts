@@ -155,6 +155,38 @@ describe("rspack: rollupConfig options", () => {
   });
 });
 
+describe.skipIf(!isRspack)("rspack: dynamic imports", () => {
+  it("keeps a non-literal import native in the server output", async () => {
+    const rootDir = createApp({
+      "server.ts": [
+        `import { pathToFileURL } from "node:url";`,
+        `export default async () => {`,
+        `  const mod = await import(pathToFileURL(process.env.PLUGIN_FILE).href);`,
+        `  return new Response(mod.default);`,
+        `};`,
+      ].join("\n"),
+      "plugin.mjs": `export default "loaded plugin.mjs";`,
+    });
+    const nitro = await createNitro({
+      rootDir,
+      builder: "rspack",
+      preset: "node",
+      compatibilityDate: "latest",
+      logLevel: 0,
+      handlers: [{ route: "/", handler: join(rootDir, "server.ts") }],
+    });
+    try {
+      await prepare(nitro);
+      await build(nitro);
+    } finally {
+      await nitro.close();
+    }
+    const code = await readFile(join(nitro.options.output.serverDir, "index.mjs"), "utf8");
+    expect(code).not.toContain("__rspack_empty_async_context");
+    expect(code).toMatch(/import\([^)]*pathToFileURL/);
+  });
+});
+
 describe("rspack: rspackConfig", () => {
   it.each([
     ["an object", { "user-pkg": "user-pkg" }],

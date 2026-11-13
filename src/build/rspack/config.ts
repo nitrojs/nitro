@@ -116,8 +116,13 @@ export async function getRspackConfig(
     },
     module: {
       parser: {
-        // `import.meta.*` replacements are applied by Nitro, others are kept as is (runtime values)
-        javascript: { importMeta: false, url: !!nitro.options.node, worker: false },
+        // Non-literal `import(expr)` stays native; `import.meta.*` replacements are applied by Nitro
+        javascript: {
+          importDynamic: false,
+          importMeta: false,
+          url: !!nitro.options.node,
+          worker: false,
+        },
       },
       rules: [
         { test: /\.[cm]?[jt]sx?$/, resolve: { fullySpecified: false } },
