@@ -19,6 +19,12 @@ function createNitroStub(
     _importHash: "_abc123",
     ...opts.handler,
   };
+  const middleware: NitroEventHandler & { _importHash: string } = {
+    route: "/api/**",
+    middleware: true,
+    handler: "/path/to/middleware.ts",
+    _importHash: "_mw123",
+  };
 
   return {
     options: {
@@ -37,8 +43,9 @@ function createNitroStub(
         compileToString: () => `{}`,
       },
       routedMiddleware: {
-        routes: [],
-        compileToString: () => `{}`,
+        routes: [{ route: "/api/**", middleware: true, data: middleware }],
+        compileToString: ({ serialize }: { serialize: (h: unknown) => string }) =>
+          `{"/api/**":${serialize(middleware)}}`,
       },
       globalMiddleware: [],
     },
@@ -66,6 +73,20 @@ describe("virtual/routing template", () => {
     ).template();
     expect(template).toContain(`import { wrapHandlerWithTracing } from "h3/tracing"`);
     expect(template).toContain("wrapHandlerWithTracing(h3.toEventHandler(_abc123))");
+  });
+
+  it("wraps routed middleware with wrapHandlerWithTracing when tracingChannel.h3 is true", async () => {
+    const template = await routing(
+      createNitroStub({ tracingChannel: { srvx: true, h3: true, unstorage: true } })
+    ).template();
+    expect(template).toContain("wrapHandlerWithTracing(h3.toEventHandler(_mw123))");
+  });
+
+  it("does not wrap routed middleware when tracingChannel.h3 is false", async () => {
+    const template = await routing(
+      createNitroStub({ tracingChannel: { srvx: true, h3: false, unstorage: true } })
+    ).template();
+    expect(template).toContain('"/api/**":h3.toEventHandler(_mw123)');
   });
 
   it("does not convert web format handlers", async () => {
