@@ -2,7 +2,7 @@
 import type { NitroConfig } from "nitro/types";
 import type { ServerRequestContext } from "srvx";
 import { toRequest, type H3EventContext } from "h3";
-import { beginServerFetch, serverFetchKey } from "./internal/server-fetch-guard.ts";
+import { serverFetchKey, withServerFetchGuard } from "./internal/server-fetch-guard.ts";
 
 export function defineConfig(config: Omit<NitroConfig, "rootDir">): Omit<NitroConfig, "rootDir"> {
   return config;
@@ -43,13 +43,7 @@ export function serverFetch(
   }
   const req = toRequest(resource, init);
   req.context = { ...req.context, ...context } as ServerRequestContext;
-  const release = beginServerFetch(serverFetchKey(req));
-  try {
-    return Promise.resolve(nitro.fetch(req)).finally(release);
-  } catch (error) {
-    release();
-    return Promise.reject(error);
-  }
+  return withServerFetchGuard(serverFetchKey(req), () => Promise.resolve(nitro.fetch(req)));
 }
 
 export function fetch(

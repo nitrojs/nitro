@@ -6,7 +6,7 @@ import { composeMiddleware, HTTPError, toRequest } from "h3";
 import { HookableCore } from "hookable";
 import type { MatchedRouteRules } from "h3/rules";
 import { createMatcherFromFind, memoizeRouteRulesMatcher } from "h3/rules";
-import { beginServerFetch, serverFetchKey } from "./server-fetch-guard.ts";
+import { serverFetchKey, withServerFetchGuard } from "./server-fetch-guard.ts";
 
 // IMPORTANT: virtual imports and user code should be imported last to avoid initialization order issues
 import { findRouteRules } from "#nitro/virtual/routing";
@@ -48,14 +48,10 @@ export function serverFetch(
 ): Promise<Response> {
   const req = toRequest(resource, init);
   req.context = { ...req.context, ...context } as ServerRequestContext;
-  const release = beginServerFetch(serverFetchKey(req));
-  const appHandler = useNitroApp().fetch;
-  try {
-    return Promise.resolve(appHandler(req)).finally(release);
-  } catch (error) {
-    release();
-    return Promise.reject(error);
-  }
+  return withServerFetchGuard(serverFetchKey(req), () => {
+    const appHandler = useNitroApp().fetch;
+    return Promise.resolve(appHandler(req));
+  });
 }
 
 // crossws' wire format for handing WebSocket hooks off on the *request*, written
