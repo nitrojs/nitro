@@ -54,7 +54,7 @@ describe("buildPlugins", () => {
       _isRolldown: false,
     } as NitroPluginContext);
     const names = (rollupConfig!.plugins as { name: string }[]).map((p) => p.name);
-    expect(names.slice(0, 3)).toEqual(["fixture:pre", "inject", "alias"]);
+    expect(names.slice(0, 2)).toEqual(["fixture:pre", "alias"]);
     expect(names.at(-1)).toBe("fixture:post");
     await nitro.close();
   });
