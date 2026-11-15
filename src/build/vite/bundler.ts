@@ -108,7 +108,7 @@ export const getBundlerConfig = async (
       {
         ...commonConfig,
         plugins: await withBuildPlugins(nitro, [
-          inject(base.env.inject),
+          ...(Object.keys(base.env.inject).length > 0 ? [inject(base.env.inject)] : []),
           alias({ entries: base.aliases }),
           ...nitroPlugins,
         ]),

@@ -50,7 +50,9 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
         ...nitro.options.commonJS,
       }),
       (json as unknown as typeof json.default)(),
-      (inject as unknown as typeof inject.default)(base.env.inject),
+      ...(Object.keys(base.env.inject).length > 0
+        ? [(inject as unknown as typeof inject.default)(base.env.inject)]
+        : []),
       // Emitted files are read from the filesystem, which worker runtimes do not have
       nitro.options.node && (await assetUrls(nitro)),
     ]),
