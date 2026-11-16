@@ -75,6 +75,23 @@ describe("writeWranglerConfig (cloudflare-module)", () => {
     expect(config.rules).toBeUndefined();
   });
 
+  it("reads a wrangler.jsonc with comments and trailing commas", async () => {
+    const { root, nitro } = createNitroStub();
+    cleanup.push(root);
+    writeFileSync(
+      join(root, "wrangler.jsonc"),
+      `{
+  // Worker name
+  "name": "my-worker",
+  "vars": { "A": "1", },
+}`
+    );
+    await writeWranglerConfig(nitro, "module");
+    const config = JSON.parse(readFileSync(join(root, ".output/server/wrangler.json"), "utf8"));
+    expect(config.name).toBe("my-worker");
+    expect(config.vars).toEqual({ A: "1" });
+  });
+
   it.each([
     ["2024-09-22", []],
     ["2024-09-23", ["nodejs_compat"]],

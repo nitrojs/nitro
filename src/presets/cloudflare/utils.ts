@@ -234,9 +234,12 @@ export async function enableNodeCompat(nitro: Nitro) {
   }
 }
 
+// Wrangler accepts comments and trailing commas in both JSON formats
+const parseWranglerJSON = (text: string) => parseJSONC(text, { allowTrailingComma: true });
+
 const extensionParsers = {
-  ".json": parseJSONC,
-  ".jsonc": parseJSONC,
+  ".json": parseWranglerJSON,
+  ".jsonc": parseWranglerJSON,
   ".toml": parseTOML,
 } as const;
 
