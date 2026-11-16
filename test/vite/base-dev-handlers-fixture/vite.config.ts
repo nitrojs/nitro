@@ -27,6 +27,15 @@ export default defineConfig({
       ],
       devProxy: {
         [joinURL(baseURL, "_assets/upstream/**")]: { target: process.env.NITRO_TEST_UPSTREAM },
+        [joinURL(baseURL, "_assets/configured/**")]: {
+          target: process.env.NITRO_TEST_UPSTREAM,
+          configure(proxy) {
+            proxy.on("proxyReq", (req) => req.setHeader("x-proxy-configured", "request"));
+            proxy.on("proxyRes", (res) => {
+              res.headers["x-proxy-configured"] = "response";
+            });
+          },
+        },
       },
     }),
   ],

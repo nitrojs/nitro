@@ -19,7 +19,10 @@ describe.each(["/", "/app/"])("vite:dev handlers under base (baseURL: %s)", (bas
   const url = (path: string) => joinURL(baseURL, path);
 
   beforeAll(async () => {
-    upstream = createHTTPServer((req, res) => res.end(`upstream:${req.url}`));
+    upstream = createHTTPServer((req, res) => {
+      res.setHeader("x-upstream-proxy-configured", req.headers["x-proxy-configured"] || "missing");
+      res.end(`upstream:${req.url}`);
+    });
     await new Promise<void>((resolve) => upstream.listen(0, "127.0.0.1", resolve));
     process.env.NITRO_TEST_UPSTREAM = `http://127.0.0.1:${(upstream.address() as AddressInfo).port}`;
     process.env.NITRO_TEST_BASE_URL = baseURL;
@@ -85,6 +88,18 @@ describe.each(["/", "/app/"])("vite:dev handlers under base (baseURL: %s)", (bas
       redirect: "manual",
     });
     expect(response.status).toBe(200);
+    expect(await response.text()).toBe(`upstream:${path}`);
+  });
+
+  test("configures proxy request and response events through Vite", async () => {
+    const path = url("/_assets/configured/a.woff2");
+    const response = await fetch(`${serverURL}${path}`, {
+      headers: { "sec-fetch-dest": "font" },
+      redirect: "manual",
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-upstream-proxy-configured")).toBe("request");
+    expect(response.headers.get("x-proxy-configured")).toBe("response");
     expect(await response.text()).toBe(`upstream:${path}`);
   });
 

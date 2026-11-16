@@ -1,6 +1,6 @@
 import { createServer, request, type Server } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
-import type { Nitro } from "nitro/types";
+import type { Nitro, NitroOptions } from "nitro/types";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { NitroDevApp } from "../../src/dev/app.ts";
 
@@ -59,23 +59,33 @@ function upgradeRequest(port: number, path: string) {
 describe("dev server devProxy websocket upgrades", () => {
   const upgrades: string[] = [];
   const target = createUpgradeTarget(upgrades);
+  const configuredHeaders: (string | string[] | undefined)[] = [];
   let devServer: Server;
   let devPort: number;
   let workerUpgrades = 0;
 
   beforeAll(async () => {
+    target.on("upgrade", (req) => configuredHeaders.push(req.headers["x-configured-ws"]));
     const targetPort = await listen(target);
+    const devProxy: NitroOptions["devProxy"] = {
+      "/proxy/ws": { target: `http://127.0.0.1:${targetPort}`, ws: true },
+      "/proxy/wild/**": { target: `http://127.0.0.1:${targetPort}`, ws: true },
+      "/proxy/http": { target: `http://127.0.0.1:${targetPort}` },
+      "/proxy/configured": {
+        target: `http://127.0.0.1:${targetPort}`,
+        ws: true,
+        configure(proxy) {
+          proxy.on("proxyReqWs", (req) => req.setHeader("x-configured-ws", "configured"));
+        },
+      },
+    };
     const app = new NitroDevApp({
       logger: console,
       options: {
         baseURL: "/",
         devHandlers: [],
         publicAssets: [],
-        devProxy: {
-          "/proxy/ws": { target: `http://127.0.0.1:${targetPort}`, ws: true },
-          "/proxy/wild/**": { target: `http://127.0.0.1:${targetPort}`, ws: true },
-          "/proxy/http": { target: `http://127.0.0.1:${targetPort}` },
-        },
+        devProxy,
       },
     } as unknown as Nitro);
     devServer = createServer(async (req, res) => {
@@ -112,6 +122,12 @@ describe("dev server devProxy websocket upgrades", () => {
     const res = await upgradeRequest(devPort, "/proxy/wild/nested?foo=1");
     expect(res.status).toBe(101);
     expect(upgrades).toContain("/proxy/wild/nested?foo=1");
+  });
+
+  it("registers proxyReqWs listeners before Node WebSocket upgrades", async () => {
+    const res = await upgradeRequest(devPort, "/proxy/configured");
+    expect(res).toEqual({ status: 101, echo: "ping" });
+    expect(configuredHeaders.at(-1)).toBe("configured");
   });
 
   it("forwards upgrades to the worker when no `ws` rule matches", async () => {
