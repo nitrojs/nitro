@@ -6,7 +6,7 @@ import { relative, dirname, extname } from "node:path";
 import { writeFile } from "../_utils/fs.ts";
 import { parseTOML, parseJSONC } from "confbox";
 import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
-import { defu } from "defu";
+import { createDefu, defu } from "defu";
 import { glob } from "tinyglobby";
 import { join, resolve } from "pathe";
 import {
@@ -344,7 +344,12 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
   }
 
   // (first argument takes precedence)
-  const wranglerConfig = defu(overrides, ctxConfig, userConfig, defaults) as WranglerConfig;
+  const wranglerConfig = mergeWranglerConfig(
+    overrides,
+    ctxConfig,
+    userConfig,
+    defaults
+  ) as WranglerConfig;
 
   // Name is required
   if (!wranglerConfig.name) {
@@ -409,6 +414,25 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
     true
   );
 }
+
+// Wrangler rejects two bindings with the same name, so binding lists are merged by
+// `binding` instead of concatenated: the first source's entry wins and the others fill its missing fields.
+const mergeWranglerConfig = createDefu((target, key, value) => {
+  const current = target[key];
+  if (!Array.isArray(value) || !Array.isArray(current)) {
+    return false;
+  }
+  if (![...value, ...current].every((entry) => typeof entry?.binding === "string")) {
+    return false;
+  }
+  const merged = new Map<string, Record<string, unknown>>();
+  for (const entry of [...value, ...current]) {
+    const existing = merged.get(entry.binding);
+    merged.set(entry.binding, existing ? defu(existing, entry) : entry);
+  }
+  target[key] = [...merged.values()] as typeof current;
+  return true;
+});
 
 async function generateWorkerName(nitro: Nitro) {
   const gitConfig = await readGitConfig(nitro.options.rootDir).catch(() => undefined);

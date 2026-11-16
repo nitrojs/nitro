@@ -75,6 +75,40 @@ describe("writeWranglerConfig (cloudflare-module)", () => {
     expect(config.rules).toBeUndefined();
   });
 
+  it("merges bindings with the same name from config and the wrangler file", async () => {
+    const { root, nitro } = createNitroStub({
+      wrangler: {
+        d1_databases: [{ binding: "DB", database_name: "app", database_id: "from-config" }],
+        kv_namespaces: [{ binding: "KV", id: "kv-config" }],
+      },
+    });
+    cleanup.push(root);
+    writeFileSync(
+      join(root, "wrangler.json"),
+      JSON.stringify({
+        d1_databases: [
+          { binding: "DB", database_id: "from-file", migrations_dir: "migrations" },
+          { binding: "OTHER", database_id: "other" },
+        ],
+        kv_namespaces: [{ binding: "KV", id: "kv-file" }],
+        env: { staging: { d1_databases: [{ binding: "DB", database_id: "staging" }] } },
+      })
+    );
+    await writeWranglerConfig(nitro, "module");
+    const config = JSON.parse(readFileSync(join(root, ".output/server/wrangler.json"), "utf8"));
+    expect(config.d1_databases).toEqual([
+      {
+        binding: "DB",
+        database_name: "app",
+        database_id: "from-config",
+        migrations_dir: "migrations",
+      },
+      { binding: "OTHER", database_id: "other" },
+    ]);
+    expect(config.kv_namespaces).toEqual([{ binding: "KV", id: "kv-config" }]);
+    expect(config.env.staging.d1_databases).toEqual([{ binding: "DB", database_id: "staging" }]);
+  });
+
   it.each([
     ["2024-09-22", []],
     ["2024-09-23", ["nodejs_compat"]],
