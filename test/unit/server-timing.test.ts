@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { tracingChannel } from "node:diagnostics_channel";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { H3, HTTPError } from "h3";
+import type { H3Event } from "h3";
 import { FastResponse } from "srvx";
 import type { ServerRequest } from "srvx";
 import {
@@ -17,7 +18,9 @@ const options = { total: true, kv: true, db: true, cache: true };
 
 const TOTAL = "total;dur=[\\d.]+";
 
-function createApp(opts: { errorHandler?: (error: HTTPError) => unknown } = {}) {
+function createApp(
+  opts: { errorHandler?: (error: HTTPError) => unknown; metrics?: typeof options } = {}
+) {
   const errorHandler =
     opts.errorHandler ??
     ((error: HTTPError) =>
@@ -26,7 +29,9 @@ function createApp(opts: { errorHandler?: (error: HTTPError) => unknown } = {}) 
         headers: { "content-type": "application/json" },
       }));
   const app = new H3({ onError: (error) => errorHandler(error) as any });
-  const fetch = withServerTimingContext((req) => app.fetch(req), { metrics: options });
+  const fetch = withServerTimingContext((req) => app.fetch(req), {
+    metrics: opts.metrics ?? options,
+  });
   return {
     app,
     request: async (path: string) =>
@@ -108,6 +113,79 @@ describe("runtime: server timing", () => {
       return "ok";
     });
     expect(await request("/")).toMatch(new RegExp(`^db;desc="2 queries";dur=[\\d.]+, ${TOTAL}$`));
+  });
+});
+
+describe("runtime: server timing cache metric", () => {
+  const channel = tracingChannel<object>("ocache.handler");
+
+  /** Publishes a cached handler call the way ocache does: `status` is set once it is served. */
+  function cachedCall(
+    event: H3Event,
+    status?: string,
+    fn: () => Promise<unknown> = async () => {}
+  ) {
+    const trace = { event, name: "handler", group: "nitro/handlers", status: undefined as unknown };
+    return channel.tracePromise(async () => {
+      await fn();
+      trace.status = status;
+      return new Response("ok");
+    }, trace);
+  }
+
+  it("reports the status of each cached handler call", async () => {
+    const { app, request } = createApp();
+    app.get("/", async (event) => {
+      await cachedCall(event, "miss", () => cachedCall(event, "hit"));
+      await cachedCall(event, "hit");
+      return "ok";
+    });
+    expect(await request("/")).toMatch(
+      new RegExp(`^cache;desc="2 hit, 1 miss";dur=[\\d.]+, ${TOTAL}$`)
+    );
+  });
+
+  it("reports calls served without the cache as bypass", async () => {
+    const { app, request } = createApp();
+    app.get("/", async (event) => {
+      await cachedCall(event);
+      return "ok";
+    });
+    expect(await request("/")).toMatch(new RegExp(`^cache;desc="bypass";dur=[\\d.]+, ${TOTAL}$`));
+  });
+
+  it("reports no status for calls that threw", async () => {
+    const { app, request } = createApp();
+    app.get("/", async (event) => {
+      await cachedCall(event, undefined, async () => {
+        throw new Error("boom");
+      }).catch(() => {});
+      return "ok";
+    });
+    expect(await request("/")).toMatch(new RegExp(`^cache;dur=[\\d.]+, ${TOTAL}$`));
+  });
+
+  it("reads the request from the call instead of an async context", async () => {
+    const run = vi.spyOn(AsyncLocalStorage.prototype, "run");
+    const { app, request } = createApp({ metrics: { ...options, kv: false, db: false } });
+    app.get("/", async (event) => {
+      await cachedCall(event, "hit");
+      return "ok";
+    });
+    expect(await request("/")).toMatch(new RegExp(`^cache;desc="hit";dur=[\\d.]+, ${TOTAL}$`));
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it("ignores calls once the header is built", async () => {
+    const { app, request } = createApp();
+    let event: H3Event | undefined;
+    app.get("/", (_event) => {
+      event = _event;
+      return "ok";
+    });
+    expect(await request("/")).toMatch(new RegExp(`^${TOTAL}$`));
+    await cachedCall(event!, "hit");
+    expect(getServerTimingContext(event)?.cache).toBeUndefined();
   });
 });
 
@@ -230,21 +308,19 @@ describe("runtime: server timing across runtime reloads", () => {
   });
 });
 
-describe("runtime: server timing without async context", () => {
-  it("still reports total and event-based metrics", async () => {
+describe("runtime: server timing without node builtins", () => {
+  it("still reports total", async () => {
     vi.resetModules();
     vi.spyOn(process, "getBuiltinModule").mockReturnValue(undefined as any);
     const timing = await import("../../src/runtime/internal/server-timing.ts");
     const app = new H3();
     app.get("/", (event) => {
       expect(timing.getServerTimingContext()).toBeUndefined();
-      timing.endOp(timing.beginOp(timing.getServerTimingContext(event), "cache"), "hit");
+      expect(timing.getServerTimingContext(event)).toBeDefined();
       return "ok";
     });
     const fetch = timing.withServerTimingContext((req) => app.fetch(req), { metrics: options });
     const res = await fetch(new Request("http://localhost/") as ServerRequest);
-    expect(res.headers.get("server-timing")).toMatch(
-      new RegExp(`^cache;desc="hit";dur=[\\d.]+, ${TOTAL}$`)
-    );
+    expect(res.headers.get("server-timing")).toMatch(new RegExp(`^${TOTAL}$`));
   });
 });

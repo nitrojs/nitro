@@ -1370,6 +1370,11 @@ export interface TracingChannelOptions {
   unstorage?: boolean;
   /** Database queries made with `useDatabase()` (`db0.query`). Requires `experimental.database`. */
   db0?: boolean;
+  /**
+   * Cached handlers, including `cache` route rules (`ocache.handler`), and cached functions
+   * (`ocache.function`).
+   */
+  ocache?: boolean;
 }
 
 /**

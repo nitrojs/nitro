@@ -1,9 +1,11 @@
 import type { H3Event } from "h3";
+import type { HandlerTraceContext } from "ocache";
 import type { ServerRequest } from "srvx";
 import type { NitroOptions } from "nitro/types";
 import type { AsyncLocalStorage } from "node:async_hooks";
 import { subscribeTracingChannels } from "./telemetry/subscribe.ts";
 import { DB0_QUERY_CHANNEL } from "./telemetry/db0.ts";
+import { OCACHE_HANDLER_CHANNEL } from "./telemetry/ocache.ts";
 import { UNSTORAGE_CHANNELS } from "./telemetry/unstorage.ts";
 
 type ServerTimingOptions = Exclude<NitroOptions["serverTiming"], false>;
@@ -35,6 +37,16 @@ export interface ServerTimingContextOptions {
   getRequest?: () => ServerRequest | undefined;
 }
 
+interface TraceServerTimingOptions<T> {
+  channels: readonly string[];
+  /** Defaults to the context of the current async execution. */
+  getContext?: (message: T) => ServerTimingContext | undefined;
+  getStatus?: (message: T) => string | undefined;
+}
+
+/** `ocache.handler` payload once the call has settled (the channel adds `error`). */
+type CacheTraceMessage = HandlerTraceContext & { error?: unknown };
+
 const kServerTiming = /* @__PURE__ */ Symbol.for("nitro.serverTiming");
 
 /** Context of the request the current async execution belongs to. */
@@ -44,8 +56,9 @@ let getStore: (() => ServerTimingContext | undefined) | undefined;
  * Wraps the Nitro app handler: measures the request and appends the `Server-Timing` header to
  * whatever response it produces (routes, errors, 404s, server entry).
  *
- * `kv` / `db` are recorded from the `unstorage.*` / `db0.query` tracing channels, which needs
- * async context to attribute operations to a request (`node:async_hooks`).
+ * `kv` / `db` / `cache` are recorded from the `unstorage.*` / `db0.query` / `ocache.handler`
+ * tracing channels. `kv` and `db` also need async context to attribute operations to a request
+ * (`node:async_hooks`), while a cached handler call carries its event.
  */
 export function withServerTimingContext(
   handler: (req: ServerRequest) => Response | Promise<Response>,
@@ -62,11 +75,19 @@ export function withServerTimingContext(
   }
   if (getStore) {
     if (metrics.kv) {
-      traceServerTiming("kv", UNSTORAGE_CHANNELS);
+      traceServerTiming("kv", { channels: UNSTORAGE_CHANNELS });
     }
     if (metrics.db) {
-      traceServerTiming("db", [DB0_QUERY_CHANNEL]);
+      traceServerTiming("db", { channels: [DB0_QUERY_CHANNEL] });
     }
+  }
+  if (metrics.cache) {
+    traceServerTiming<CacheTraceMessage>("cache", {
+      channels: [OCACHE_HANDLER_CHANNEL],
+      getContext: ({ event }) => getServerTimingContext(event as H3Event),
+      // ocache leaves `status` unset for a call served without the cache, and for one that threw
+      getStatus: ({ status, error }) => (error === undefined ? (status ?? "bypass") : undefined),
+    });
   }
   return (req) => {
     const ctx: ServerTimingContext = { options: metrics, start: performance.now() };
@@ -127,11 +148,14 @@ export function formatServerTiming(ctx: ServerTimingContext): string {
   return entries.join(", ");
 }
 
-function traceServerTiming(name: "kv" | "db", channels: readonly string[]): void {
+function traceServerTiming<T>(
+  name: MetricName,
+  { channels, getContext = () => getStore?.(), getStatus }: TraceServerTimingOptions<T>
+): void {
   subscribeTracingChannels(channels, {
     id: `nitro.serverTiming.${name}`,
-    onStart: () => beginOp(getStore?.(), name),
-    onEnd: (_, __, metric) => endOp(metric),
+    onStart: (_, message) => beginOp(getContext(message as T), name),
+    onEnd: (_, message, metric) => endOp(metric, getStatus?.(message as T)),
   });
 }
 

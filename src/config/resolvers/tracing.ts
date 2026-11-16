@@ -9,6 +9,7 @@ export async function resolveTracingChannelOptions(options: NitroOptions) {
     h3: true,
     unstorage: true,
     db0: true,
+    ocache: true,
     ...(typeof options.tracingChannel === "object" ? options.tracingChannel : {}),
   };
   options.plugins = options.plugins || [];

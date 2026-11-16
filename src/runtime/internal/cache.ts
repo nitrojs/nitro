@@ -3,20 +3,16 @@ import { FastResponse } from "srvx";
 import {
   defineCachedFunction as _defineCachedFunction,
   defineCachedHandler as _defineCachedHandler,
-  getCacheStatus,
 } from "ocache";
 import type { CachedFunction, StorageInterface } from "ocache";
 import {
   cacheFunctionDefaults,
   cacheHandlerDefaults,
-  cacheServerTiming,
   createCacheStorage,
 } from "#nitro/virtual/cache";
 import { useNitroApp } from "./app.ts";
-import { beginOp, endOp, getServerTimingContext } from "./server-timing.ts";
 
 import type { EventHandler, H3Event } from "h3";
-import type { RuleHandler } from "h3/rules";
 import type { CachedFunctionOptions, CachedHandlerOptions } from "nitro/types";
 
 let _cacheStorage: StorageInterface | undefined;
@@ -59,39 +55,7 @@ export function defineCachedHandler(
       ...definedOptions(opts),
     }) as EventHandler
   );
-  const cachedHandler = (event: H3Event) => ocacheHandler(event as any);
-  return defineHandler(cacheServerTiming ? withCacheServerTiming(cachedHandler) : cachedHandler);
-}
-
-/** Records the `cache` server timing metric around the `cache` route rule. */
-export function withCacheRuleServerTiming(rule: RuleHandler<"cache">): RuleHandler<"cache"> {
-  if (!cacheServerTiming) {
-    return rule;
-  }
-  return {
-    ...rule,
-    handler: (matched) => withCacheServerTiming(rule.handler(matched)),
-  };
-}
-
-/** Records the duration and cache status of a cached handler as the `cache` server timing metric. */
-function withCacheServerTiming<T extends (event: H3Event, ...args: any[]) => unknown>(
-  handler: T
-): T {
-  return (async (event: H3Event, ...args: unknown[]) => {
-    const metric = beginOp(getServerTimingContext(event), "cache");
-    if (!metric) {
-      return handler(event, ...args);
-    }
-    let status: string | undefined;
-    try {
-      const res = await handler(event, ...args);
-      status = getCacheStatus(event as any) ?? "bypass";
-      return res;
-    } finally {
-      endOp(metric, status);
-    }
-  }) as T;
+  return defineHandler((event) => ocacheHandler(event as any));
 }
 
 function definedOptions<T extends object>(opts: T): T {
