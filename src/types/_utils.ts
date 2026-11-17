@@ -5,7 +5,8 @@ export type Invalid<Message extends string> = Message & { readonly [invalidValue
 
 type LibOptionName = "lib" | `${string}Lib`;
 
-type LibOption = null | Invalid<"Library imports are not JSON-serializable; nitro injects them for installed driver dependencies (set `null` to opt out)">;
+type LibOption =
+  null | Invalid<"Library imports are not JSON-serializable; nitro injects them for installed driver dependencies (set `null` to opt out)">;
 
 type JsonPrimitive = string | number | boolean | null | undefined;
 
