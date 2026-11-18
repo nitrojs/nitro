@@ -16,6 +16,8 @@ export interface DevErrorRecoveryOptions {
   v: number;
   /** Check that the page renders again before reloading, for servers that reload lazily (Vite). */
   poll?: boolean;
+  /** CSP nonce for the script tag. */
+  nonce?: string;
 }
 
 /**
@@ -42,7 +44,8 @@ export function withDevErrorRecovery(
 
 /** Reloads the error page once the server reloads, since it loads no client modules. */
 export function appendDevErrorRecovery(res: Response, opts: DevErrorRecoveryOptions): Response {
-  const script = new TextEncoder().encode(devErrorRecoveryScript(opts));
+  const nonce = opts.nonce ?? getScriptNonce(res.headers.get("content-security-policy"));
+  const script = new TextEncoder().encode(devErrorRecoveryScript({ ...opts, nonce }));
   const headers = new Headers(res.headers);
   headers.delete("content-length");
   // Appended once the page ends so a streamed body is forwarded as it arrives.
@@ -54,6 +57,34 @@ export function appendDevErrorRecovery(res: Response, opts: DevErrorRecoveryOpti
     })
   );
   return new Response(body, { status: res.status, statusText: res.statusText, headers });
+}
+
+/**
+ * The nonce a strict CSP allows inline scripts with, so the appended script is not blocked.
+ * Script elements follow `script-src-elem`, then `script-src`, then `default-src`.
+ */
+export function getScriptNonce(csp: string | null): string | undefined {
+  if (!csp) {
+    return;
+  }
+  // Several policies may be joined with commas; the first one that sets a nonce is used.
+  for (const policy of csp.split(",")) {
+    const directives = new Map<string, string>();
+    for (const directive of policy.split(";")) {
+      const [name, ...values] = directive.trim().split(/\s+/);
+      if (name && !directives.has(name.toLowerCase())) {
+        directives.set(name.toLowerCase(), values.join(" "));
+      }
+    }
+    const sources =
+      directives.get("script-src-elem") ??
+      directives.get("script-src") ??
+      directives.get("default-src");
+    const nonce = sources?.match(/'nonce-([\w+/=-]+)'/)?.[1];
+    if (nonce) {
+      return nonce;
+    }
+  }
 }
 
 export function isRecoverableDevErrorPage(method: string | undefined, res: Response): boolean {
@@ -85,7 +116,9 @@ export function devErrorRecoveryScript(opts: DevErrorRecoveryOptions): string {
     /[<\u007f-\uffff]/g,
     (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`
   );
-  return /* js */ `<script type="module">
+  // Only base64 characters are accepted when the nonce is read, so it needs no escaping
+  const nonce = opts.nonce && /^[\w+/=-]+$/.test(opts.nonce) ? ` nonce="${opts.nonce}"` : "";
+  return /* js */ `<script type="module"${nonce}>
 // Pages that load client modules of their own (hydrated framework error pages) recover through them.
 if (!document.querySelector("script[type=module][src]")) {
   const state = ${state};
