@@ -458,6 +458,134 @@ describe("runtime static middleware", () => {
     expect(event.res.headers.get("Content-Encoding")).toBeNull();
   });
 
+  describe("identity and wildcard Accept-Encoding negotiation", () => {
+    const plain = { etag: '"plain"', mtime: MTIME, type: "text/plain", size: 4 };
+
+    beforeEach(() => {
+      readAsset.mockResolvedValue("body");
+    });
+
+    it("prefers identity when it has a higher weight than compressed encodings", async () => {
+      setAssets({
+        "/asset.txt": plain,
+        "/asset.txt.gz": { ...plain, etag: '"gz"', encoding: "gzip" },
+        "/asset.txt.br": { ...plain, etag: '"br"', encoding: "br" },
+      });
+      const event = createEvent("/asset.txt", "identity;q=1, gzip;q=0.5");
+
+      await handler(event);
+
+      expect(readAsset).toHaveBeenCalledWith("/asset.txt");
+      expect(event.res.headers.get("Content-Encoding")).toBeNull();
+    });
+
+    it("selects an available wildcard match while respecting explicit exclusions", async () => {
+      setAssets({
+        "/asset.txt": plain,
+        "/asset.txt.gz": { ...plain, etag: '"gz"', encoding: "gzip" },
+        "/asset.txt.br": { ...plain, etag: '"br"', encoding: "br" },
+        "/asset.txt.zst": { ...plain, etag: '"zst"', encoding: "zstd" },
+      });
+      const event = createEvent("/asset.txt", "gzip;q=0, *;q=1, identity;q=0");
+
+      await handler(event);
+
+      expect(readAsset).toHaveBeenCalledWith("/asset.txt.br");
+      expect(event.res.headers.get("Content-Encoding")).toBe("br");
+    });
+
+    it("falls back to another available wildcard encoding when brotli is absent", async () => {
+      setAssets({
+        "/asset.txt": plain,
+        "/asset.txt.gz": { ...plain, etag: '"gz"', encoding: "gzip" },
+        "/asset.txt.zst": { ...plain, etag: '"zst"', encoding: "zstd" },
+      });
+      const event = createEvent("/asset.txt", "gzip;q=0, *;q=1, identity;q=0");
+
+      await handler(event);
+
+      expect(readAsset).toHaveBeenCalledWith("/asset.txt.zst");
+      expect(event.res.headers.get("Content-Encoding")).toBe("zstd");
+    });
+
+    it("prefers compressed over identity on equal wildcard weights", async () => {
+      setAssets({
+        "/asset.txt": plain,
+        "/asset.txt.gz": { ...plain, etag: '"gz"', encoding: "gzip" },
+      });
+      const event = createEvent("/asset.txt", "*");
+
+      await handler(event);
+
+      expect(readAsset).toHaveBeenCalledWith("/asset.txt.gz");
+      expect(event.res.headers.get("Content-Encoding")).toBe("gzip");
+    });
+
+    it("respects wildcard weight relative to explicit encoding weights", async () => {
+      setAssets({
+        "/asset.txt": plain,
+        "/asset.txt.br": { ...plain, etag: '"br"', encoding: "br" },
+        "/asset.txt.gz": { ...plain, etag: '"gz"', encoding: "gzip" },
+      });
+      const event = createEvent("/asset.txt", "br;q=0.5, *;q=0.8");
+
+      await handler(event);
+
+      expect(readAsset).toHaveBeenCalledWith("/asset.txt.gz");
+      expect(event.res.headers.get("Content-Encoding")).toBe("gzip");
+    });
+
+    it("allows explicit identity to override wildcard rejection", async () => {
+      setAssets({
+        "/asset.txt": plain,
+        "/asset.txt.gz": { ...plain, etag: '"gz"', encoding: "gzip" },
+      });
+      const event = createEvent("/asset.txt", "*;q=0, identity;q=1");
+
+      await handler(event);
+
+      expect(readAsset).toHaveBeenCalledWith("/asset.txt");
+      expect(event.res.headers.get("Content-Encoding")).toBeNull();
+    });
+
+    it.each(["*;q=0", "identity;q=0"])(
+      "responds with 406 when all available representations are rejected (%j)",
+      async (acceptEncoding) => {
+        setAssets({
+          "/asset.txt": plain,
+          "/asset.txt.gz": { ...plain, etag: '"gz"', encoding: "gzip" },
+        });
+        const event = createEvent("/asset.txt", acceptEncoding);
+        const error = catchError(() => handler(event));
+
+        expectNoStore(error, 406);
+        const res = await toResponse(error as HTTPError, event);
+        expect(res.headers.get("Vary")).toBe("Accept-Encoding");
+      }
+    );
+
+    it("responds with 406 when identity is rejected and no accepted compressed variant exists", () => {
+      setAssets({ "/asset.txt": plain });
+      const event = createEvent("/asset.txt", "gzip;q=1, identity;q=0");
+
+      expectNoStore(
+        catchError(() => handler(event)),
+        406
+      );
+    });
+
+    it("still responds with 404 for a missing asset when Accept-Encoding is *;q=0", () => {
+      setAssets({});
+      isPublicAssetURL.mockReturnValue(true);
+      const event = createEvent("/missing.txt", "*;q=0");
+
+      expectNoStore(
+        catchError(() => handler(event)),
+        404
+      );
+    });
+  });
+
   // Parsed `Accept-Encoding` values are cached with a bounded size
   it("negotiates each Accept-Encoding value on its own", async () => {
     setAssets({
