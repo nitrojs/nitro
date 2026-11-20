@@ -14,8 +14,13 @@ import {
 
 const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 
-// Must match `_exts` of the `#nitro/virtual/public-assets` template: others are never served
-const EncodingMap = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
+// Must match `_exts` of the `#nitro/virtual/public-assets` template: others are never served.
+// Ordered by server preference on equal client weights.
+const Encodings = [
+  ["br", ".br"],
+  ["gzip", ".gz"],
+  ["zstd", ".zst"],
+] as const;
 
 // Clients send only a few distinct `Accept-Encoding` values
 const encodingsCache = new Map<string, readonly string[]>();
@@ -37,7 +42,8 @@ export default defineHandler((event) => {
   let id = path.includes("%") ? decodePath(path) : path;
 
   // Most requests are not for public assets: skip the encoding negotiation for them
-  if (!hasAsset(id) && !isPublicAssetBaseURL(id)) {
+  const exists = hasAsset(id);
+  if (!exists && !isPublicAssetBaseURL(id)) {
     return;
   }
 
@@ -53,6 +59,9 @@ export default defineHandler((event) => {
   }
 
   if (!asset) {
+    if (exists && !encodings.includes("")) {
+      throw new HTTPError({ status: 406, headers: noCacheHeaders });
+    }
     if (isPublicAssetURL(id)) {
       throw new HTTPError({ status: 404, headers: noCacheHeaders });
     }
@@ -190,7 +199,7 @@ function isModifiedSince(mtime: string, header: string | null): boolean | undefi
   return Math.floor(modified / 1000) * 1000 > since;
 }
 
-// Accepted encoding extensions, most preferred first, ending with the identity
+// Accepted encoding extensions, most preferred first (RFC 9110 12.5.3)
 function getEncodings(header: string): readonly string[] {
   let encodings = encodingsCache.get(header);
   if (!encodings) {
@@ -207,28 +216,55 @@ function getEncodings(header: string): readonly string[] {
 }
 
 function parseAcceptEncoding(header: string): string[] {
-  return [
-    ...header
-      .split(",")
-      .map((entry) => {
-        const [name, ...parameters] = entry.split(";");
-        const quality = parameters
-          .map((parameter) => parameter.trim().split("="))
-          .find(([key]) => key.toLowerCase() === "q")?.[1];
-        const weight = quality === undefined ? 1 : Number.parseFloat(quality);
-        return {
-          ext: EncodingMap[name.trim().toLowerCase() as keyof typeof EncodingMap],
-          // An unparsable weight is an invalid parameter, not a rejection
-          weight: Number.isNaN(weight) ? 1 : weight,
-        };
-      })
-      // `q=0` means "not acceptable" (RFC 9110 12.4.2)
-      .filter((entry) => entry.ext && entry.weight > 0)
-      // Highest client weight wins, then our own (alphabetical) preference
-      .sort((a, b) => b.weight - a.weight || (a.ext < b.ext ? -1 : a.ext > b.ext ? 1 : 0))
-      .map((entry) => entry.ext),
-    "",
-  ];
+  if (!header) {
+    return [""];
+  }
+
+  const weights = new Map<string, number>();
+  for (const entry of header.split(",")) {
+    const [rawName, ...parameters] = entry.split(";");
+    const name = rawName.trim().toLowerCase();
+    if (!name) {
+      continue;
+    }
+    const quality = parameters
+      .map((parameter) => parameter.trim().split("="))
+      .find(([key]) => key.trim().toLowerCase() === "q")?.[1];
+    const parsed = quality === undefined ? 1 : Number.parseFloat(quality);
+    // An unparsable weight is an invalid parameter, not a rejection
+    const weight = Number.isNaN(parsed) ? 1 : parsed;
+    const prev = weights.get(name);
+    if (prev === undefined || weight > prev) {
+      weights.set(name, weight);
+    }
+  }
+
+  const wildcard = weights.get("*");
+  const candidates: { ext: string; weight: number; order: number }[] = [];
+
+  for (let i = 0; i < Encodings.length; i++) {
+    const [name, ext] = Encodings[i];
+    const weight = weights.get(name) ?? wildcard ?? 0;
+    if (weight > 0) {
+      candidates.push({ ext, weight, order: i });
+    }
+  }
+
+  const identityWeight = weights.get("identity") ?? wildcard;
+  if (identityWeight !== undefined && identityWeight > 0) {
+    candidates.push({ ext: "", weight: identityWeight, order: Encodings.length });
+  }
+
+  // Highest client weight wins, then our own preference (compressed before identity)
+  candidates.sort((a, b) => b.weight - a.weight || a.order - b.order);
+  const result = candidates.map((entry) => entry.ext);
+
+  // Identity is acceptable by default unless explicitly weighted or matched by `*` (RFC 9110 12.5.3)
+  if (identityWeight === undefined) {
+    result.push("");
+  }
+
+  return result;
 }
 
 type ByteRange = { start: number; end: number };
