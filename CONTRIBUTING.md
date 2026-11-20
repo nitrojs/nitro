@@ -8,7 +8,7 @@
 
 You can involve in discussions using:
 
-- [GitHub Discussions](discussions)
+- [GitHub Discussions](https://github.com/nitrojs/nitro/discussions)
 - [Nitro Discord](https://discord.nitro.build)
 
 ## Contribute to the Code
