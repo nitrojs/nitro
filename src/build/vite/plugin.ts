@@ -39,6 +39,7 @@ import { nitroRequireExternals } from "./_require-externals.ts";
 import { nitroServerAliases } from "./_server-aliases.ts";
 import { importVite, setRunningVite, viteImportOptions } from "./_import.ts";
 import { isVitest, nitroVitest } from "./vitest.ts";
+import { unwasm } from "unwasm/plugin";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -61,6 +62,7 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
     nitroMain(ctx),
     nitroPrepare(ctx),
     nitroDevServiceProxy(ctx),
+    nitroServiceUnwasm(ctx),
     nitroRequireExternals(),
     nitroPreviewPlugin(ctx),
     nitroVitest(ctx),
@@ -450,6 +452,30 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         }
         return sharedModules;
       }
+    },
+  };
+}
+
+// Service environments resolve with the server export conditions, which include `wasm` and
+// `unwasm` whenever WASM support is on. The unwasm plugin is part of the nitro environment's
+// rollup plugins only, so a dependency bundled in a service (its `unwasm` export is often the
+// raw `.wasm` module) fails to build there (#5150). Preset options (`esmImport` on
+// `cloudflare_module`) are the same ones the server build uses.
+function nitroServiceUnwasm(ctx: NitroPluginContext): VitePlugin {
+  return {
+    name: "nitro:service-unwasm",
+    sharedDuringBuild: true,
+    applyToEnvironment(env) {
+      const wasm = ctx.nitro?.options.wasm;
+      if (
+        wasm === false ||
+        env.name === "nitro" ||
+        env.config.consumer !== "server" ||
+        !ctx.services[env.name]
+      ) {
+        return;
+      }
+      return [unwasm(wasm || {})];
     },
   };
 }
