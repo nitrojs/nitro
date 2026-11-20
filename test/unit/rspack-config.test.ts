@@ -44,6 +44,13 @@ async function rspackConfig(config: NitroConfig) {
   return { config: result, warnings: warn.mock.calls.map((call) => String(call[0])) };
 }
 
+describe("rspack: dynamic import", () => {
+  it("leaves non-literal import() unparsed", async () => {
+    const { config } = await rspackConfig({});
+    expect(config.module?.parser?.javascript).toMatchObject({ importDynamic: false });
+  });
+});
+
 describe("rspack: rollupConfig options", () => {
   it("maps output file names, code splitting and source map options", async () => {
     const { config, warnings } = await rspackConfig({
