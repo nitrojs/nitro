@@ -88,8 +88,8 @@ describe("resolveCacheOptions", () => {
 });
 
 describe("virtual/cache template", () => {
-  const render = (config: NitroOptions["cache"]) =>
-    cache({ options: { cache: config } } as unknown as Nitro).template();
+  const render = (config: NitroOptions["cache"], options: Partial<NitroOptions> = {}) =>
+    cache({ options: { cache: config, ...options } } as unknown as Nitro).template();
 
   it("uses ocache memory storage", () => {
     const template = render({ driver: "memory", memory: { maxSize: Infinity } });
@@ -118,6 +118,39 @@ describe("virtual/cache template", () => {
     expect(template).toContain(
       `cacheHandlerDefaults = {"maxAge":60,"swr":true,"varies":["accept-language"]}`
     );
+  });
+
+  it("traces cached handlers and functions with tracingChannel.ocache", () => {
+    const template = render(
+      { driver: "memory", defaults: { maxAge: 60 } },
+      { tracingChannel: { ocache: true } }
+    );
+    expect(template).toContain(`cacheFunctionDefaults = {"maxAge":60,"tracing":true}`);
+    expect(template).toContain(`cacheHandlerDefaults = {"maxAge":60,"tracing":true}`);
+  });
+
+  it("traces cached handlers only for the cache server timing metric", () => {
+    const template = render(
+      { driver: "memory" },
+      {
+        tracingChannel: { h3: true, ocache: false },
+        serverTiming: { total: true, kv: false, db: false, cache: true },
+      }
+    );
+    expect(template).toContain(`cacheFunctionDefaults = {}`);
+    expect(template).toContain(`cacheHandlerDefaults = {"tracing":true}`);
+  });
+
+  it("does not trace without tracingChannel.ocache or the cache server timing metric", () => {
+    const template = render(
+      { driver: "memory" },
+      {
+        tracingChannel: { h3: true, ocache: false },
+        serverTiming: { total: true, kv: true, db: true, cache: false },
+      }
+    );
+    expect(template).toContain(`cacheFunctionDefaults = {}`);
+    expect(template).toContain(`cacheHandlerDefaults = {}`);
   });
 });
 

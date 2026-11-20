@@ -1,4 +1,7 @@
 import type { IKeyValue, ChannelDescriber, SpanInfo } from "./types.ts";
+import { DB0_QUERY_CHANNEL } from "./db0.ts";
+import { OCACHE_FUNCTION_CHANNEL, OCACHE_HANDLER_CHANNEL } from "./ocache.ts";
+import { UNSTORAGE_CHANNELS } from "./unstorage.ts";
 
 // OTLP `SpanKind` (proto enum) Wire values: INTERNAL = 1, SERVER = 2, CLIENT = 3.
 const SPAN_KIND_INTERNAL = 1;
@@ -90,20 +93,8 @@ export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
     };
   },
   ...Object.fromEntries(
-    [
-      "getItem",
-      "getItems",
-      "getItemRaw",
-      "getMeta",
-      "getKeys",
-      "hasItem",
-      "setItem",
-      "setItems",
-      "setItemRaw",
-      "removeItem",
-      "clear",
-    ].map((operation) => [
-      `unstorage.${operation}`,
+    UNSTORAGE_CHANNELS.map((name) => [
+      name,
       (channel: string, data: unknown) => {
         const { driver, base, keys } = data as {
           driver?: { name?: string };
@@ -128,7 +119,7 @@ export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
       },
     ])
   ),
-  "db0.query"(channel: string, data: unknown): SpanInfo {
+  [DB0_QUERY_CHANNEL](channel: string, data: unknown): SpanInfo {
     // The query text is left out: `exec()` queries can inline user data.
     const { method, dialect } = data as { method: string; dialect?: string };
     const attributes: IKeyValue[] = [{ key: "db.operation", value: { stringValue: method } }];
@@ -139,4 +130,17 @@ export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
       attributes,
     };
   },
+  [OCACHE_HANDLER_CHANNEL]: describeCacheCall,
+  [OCACHE_FUNCTION_CHANNEL]: describeCacheCall,
 };
+
+/** A cached handler or function call. `status` is unset when it was not served from the cache. */
+function describeCacheCall(channel: string, data: unknown): SpanInfo {
+  const { name, group, status } = data as { name: string; group: string; status?: string };
+  const attributes: IKeyValue[] = [
+    { key: "ocache.name", value: { stringValue: name } },
+    { key: "ocache.group", value: { stringValue: group } },
+  ];
+  if (status) attributes.push({ key: "ocache.status", value: { stringValue: status } });
+  return { name: `cache ${name}`, kind: SPAN_KIND_INTERNAL, attributes };
+}

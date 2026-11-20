@@ -19,12 +19,20 @@ export default function cache(nitro: Nitro) {
     template: () => {
       const config = nitro.options.cache || {};
       const defaults = config.defaults || {};
+      const functionDefaults = pickDefined(defaults, functionDefaultKeys);
+      const handlerDefaults = pickDefined(defaults, handlerDefaultKeys);
+      if (nitro.options.tracingChannel?.ocache) {
+        functionDefaults.tracing = handlerDefaults.tracing = true;
+      } else if (nitro.options.serverTiming && nitro.options.serverTiming.cache) {
+        // The `cache` server timing metric is read from the `ocache.handler` tracing channel
+        handlerDefaults.tracing = true;
+      }
       return /* js */ `
 ${genStorage(config)}
 
-export const cacheFunctionDefaults = ${genValue(pickDefined(defaults, functionDefaultKeys))};
+export const cacheFunctionDefaults = ${genValue(functionDefaults)};
 
-export const cacheHandlerDefaults = ${genValue(pickDefined(defaults, handlerDefaultKeys))};
+export const cacheHandlerDefaults = ${genValue(handlerDefaults)};
 `;
     },
   };
