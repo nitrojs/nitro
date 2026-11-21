@@ -34,10 +34,11 @@ export async function defaultHandler(
   if (status === 404) {
     const baseURL = import.meta.baseURL || "/";
     if (/^\/[^/]/.test(baseURL) && !url.pathname.startsWith(baseURL)) {
+      const path = url.pathname === baseURL.slice(0, -1) ? "" : url.pathname.slice(1);
       return {
         status: 302,
         statusText: "Found",
-        headers: new Headers({ location: `${baseURL}${url.pathname.slice(1)}${url.search}` }),
+        headers: new Headers({ location: `${baseURL}${path}${url.search}` }),
         body: `Redirecting...`,
       };
     }
