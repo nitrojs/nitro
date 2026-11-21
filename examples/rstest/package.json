@@ -1,0 +1,13 @@
+{
+  "type": "module",
+  "scripts": {
+    "test": "rstest"
+  },
+  "dependencies": {
+    "unstorage": "^2.0.0-beta.0"
+  },
+  "devDependencies": {
+    "@rstest/core": "latest",
+    "nitro": "latest"
+  }
+}
