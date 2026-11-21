@@ -31,6 +31,11 @@ describe("prerender utils", () => {
     expect(formatPrerenderRoute(route)).toContain("Linked from /base/parent");
   });
 
+  it("stores parents by the decoded route", async () => {
+    await extractLinks(`<a href="/caf%C3%A9">café</a>`, "/", new Response(), true);
+    expect(getLinkParents("/café")).toEqual(["/"]);
+  });
+
   describe("matchesIgnorePattern", () => {
     const matches = (pattern: Parameters<typeof matchesIgnorePattern>[1], paths: string[]) =>
       paths.filter((path) => matchesIgnorePattern(path, pattern));

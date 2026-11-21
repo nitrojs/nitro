@@ -60,8 +60,8 @@ export async function extractLinks(
     links.push(_link.pathname + _link.search);
   }
   for (const _link of links) {
-    // Keyed by the route relative to `baseURL`
-    const link = withoutBase(_link, baseURL);
+    // Keyed by the decoded route relative to `baseURL`
+    const link = decodeURI(withoutBase(_link, baseURL));
     const _parents = linkParents.get(link);
     if (_parents) {
       _parents.add(from);
