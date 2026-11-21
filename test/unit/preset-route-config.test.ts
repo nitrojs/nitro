@@ -478,7 +478,7 @@ describe("cloudflare pages _redirects and _headers", () => {
     const { dir, nitro } = await createNitro({ routeRules: optOutRules });
     await writeCFPagesRedirects(nitro);
     expect(await readFile(join(dir, "_redirects"), "utf8")).toBe(
-      "/blog/keep/*\t/blog/keep/:splat\t200\n/blog/feed.xml\t/blog/feed.xml\t200\n/blog/*\thttps://example.com/:splat\t302\n"
+      "/blog/keep\t/blog/keep\t200\n/blog/keep/*\t/blog/keep/:splat\t200\n/blog/feed.xml\t/blog/feed.xml\t200\n/blog/*\thttps://example.com/:splat\t302\n"
     );
   });
 
@@ -490,7 +490,7 @@ describe("cloudflare pages _redirects and _headers", () => {
     });
     await writeCFPagesRedirects(nitro);
     expect(await readFile(join(dir, "_redirects"), "utf8")).toBe(
-      "/base/blog/keep/*\t/base/blog/keep/:splat\t200\n/base/blog/feed.xml\t/base/blog/feed.xml\t200\n/base/blog/*\thttps://example.com/:splat\t302\n"
+      "/base/blog/keep\t/base/blog/keep\t200\n/base/blog/keep/*\t/base/blog/keep/:splat\t200\n/base/blog/feed.xml\t/base/blog/feed.xml\t200\n/base/blog/*\thttps://example.com/:splat\t302\n"
     );
   });
 

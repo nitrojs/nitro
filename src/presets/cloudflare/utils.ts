@@ -213,6 +213,11 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
         writtenRedirects.some((route) => findShadowedRoute(route, [key]))
       ) {
         const from = joinURL(nitro.options.baseURL, routeToSplat(key));
+        // A `/**` route also matches its base path, which a `/*` splat does not
+        if (from.endsWith("/*") && from !== "/*") {
+          const base = from.slice(0, -2);
+          contents.push(`${base}\t${base}\t200`);
+        }
         contents.push(`${from}\t${from.replace("*", ":splat")}\t200`);
       }
       continue;
