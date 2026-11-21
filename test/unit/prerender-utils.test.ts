@@ -36,6 +36,12 @@ describe("prerender utils", () => {
     expect(getLinkParents("/café")).toEqual(["/"]);
   });
 
+  it("does not throw when a header link cannot be decoded", async () => {
+    const res = new Response(null, { headers: { "x-nitro-prerender": "/ignored%25" } });
+    expect(await extractLinks("", "/", res, false)).toEqual(["/ignored%"]);
+    expect(getLinkParents("/ignored%")).toEqual([]);
+  });
+
   describe("matchesIgnorePattern", () => {
     const matches = (pattern: Parameters<typeof matchesIgnorePattern>[1], paths: string[]) =>
       paths.filter((path) => matchesIgnorePattern(path, pattern));
