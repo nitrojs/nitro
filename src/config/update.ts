@@ -1,4 +1,3 @@
-import consola from "consola";
 import type { Nitro, NitroDynamicConfig } from "nitro/types";
 import { addClientAssetsRouteRule, resolvePublicAssetsRouteRules } from "./resolvers/assets.ts";
 import { normalizeRouteRules } from "./resolvers/route-rules.ts";
@@ -18,5 +17,7 @@ export async function updateNitroConfig(nitro: Nitro, config: NitroDynamicConfig
     runtimeConfig: config.runtimeConfig || nitro.options.runtimeConfig,
   });
   await nitro.hooks.callHook("build:reload");
-  consola.success("Nitro config hot reloaded!");
+  if (nitro.options.dev) {
+    nitro.logger.success("Nitro config hot reloaded!");
+  }
 }
