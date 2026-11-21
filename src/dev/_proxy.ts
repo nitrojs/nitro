@@ -3,6 +3,7 @@ import type { Socket } from "node:net";
 import type { H3Event } from "h3";
 import type { Hooks, Peer, WebSocketProxyOptions } from "crossws";
 import type { ProxyAddr, ProxyServerOptions, ProxyTarget } from "httpxy";
+import type { DevProxyOptions } from "../types/config.ts";
 import { createProxyServer, proxyFetch } from "httpxy";
 import { fromNodeHandler, HTTPError } from "h3";
 import { joinURL } from "ufo";
@@ -16,8 +17,9 @@ export type DevProxy = ReturnType<typeof createDevProxy>;
  * use web-standard `proxyFetch` for HTTP and a terminating `crossws` proxy for WebSockets.
  */
 export function createDevProxy(defaults: ProxyServerOptions = {}) {
-  const opts: ProxyServerOptions = { xfwd: true, ...defaults };
+  const opts: DevProxyOptions = { xfwd: true, ...defaults };
   const proxy = createProxyServer(opts);
+  opts.configure?.(proxy, defaults);
   const nodeHandler = fromNodeHandler((req, res) =>
     proxy.web(req as IncomingMessage, res as ServerResponse)
   );

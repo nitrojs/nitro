@@ -5,7 +5,7 @@ import type { CompatibilityDateSpec, CompatibilityDates } from "compatx";
 import type { LogLevel } from "./_consola.ts";
 import type { ConnectorName, ConnectorOptions } from "db0";
 import type { NestedHooks } from "hookable";
-import type { ProxyServerOptions } from "httpxy";
+import type { createProxyServer, ProxyServerOptions } from "httpxy";
 import type {
   CacheOptions as OCacheOptions,
   CachedEventHandlerOptions as OCacheEventHandlerOptions,
@@ -639,6 +639,7 @@ export interface NitroOptions extends PresetOptions {
    * Proxy configuration for the development server.
    *
    * A map of path prefixes to proxy target URLs or options.
+   * Use `configure` to register httpxy event listeners for Node.js proxy requests.
    *
    * @example
    * ```ts
@@ -651,7 +652,7 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config/dev#devproxy
    * @see https://github.com/unjs/httpxy
    */
-  devProxy: Record<string, string | ProxyServerOptions>;
+  devProxy: Record<string, string | DevProxyOptions>;
 
   // Logging
 
@@ -1274,6 +1275,16 @@ export interface NitroServiceConfig {
  * @deprecated Use {@link NitroServiceConfig}.
  */
 export type ViteServiceConfig = NitroServiceConfig;
+
+/** Options for a development-server proxy rule. */
+export interface DevProxyOptions extends ProxyServerOptions {
+  /**
+   * Configure the httpxy proxy synchronously once per instance during dev server initialization.
+   * Register event listeners such as `proxyReq`, `proxyRes`, or `proxyReqWs`.
+   * These events only fire for Node.js proxy requests, not native Bun/Deno requests.
+   */
+  configure?: (proxy: ReturnType<typeof createProxyServer>, options: DevProxyOptions) => void;
+}
 
 /**
  * Configuration for a public asset directory served in development and
