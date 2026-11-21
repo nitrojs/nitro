@@ -391,7 +391,7 @@ export async function prerender(nitro: Nitro) {
   // Every route failed and nothing was written: fail regardless of `failOnError` (#4591)
   if (failedRoutes.size > 0 && nitro._prerenderedRoutes.length === 0) {
     logPrerenderErrors(nitro, failedRoutes);
-    throw new Error(
+    throw createPrerenderError(
       `Prerendered 0 routes. All ${failedRoutes.size} route(s) failed, so nothing was written to \`${prettyPath(nitro.options.output.publicDir)}\`.` +
         missingRendererHint(nitro)
     );
@@ -403,7 +403,9 @@ export async function prerender(nitro: Nitro) {
   );
   if (nitro.options.prerender.failOnError && fatalRoutes.size > 0) {
     logPrerenderErrors(nitro, fatalRoutes);
-    throw new Error("Exiting due to prerender errors.");
+    throw createPrerenderError(
+      `Exiting due to prerender errors. ${fatalRoutes.size} route(s) failed to prerender:\n${formatFailedRoutes(fatalRoutes)}\n\nFix the routes above, add them to \`prerender.ignore\`, add their status codes to \`prerender.ignoreStatusCodes\`, or set \`prerender.failOnError\` to \`false\` to continue the build.`
+    );
   }
 
   const prerenderTimeInMs = Date.now() - prerenderStartTime;
@@ -491,4 +493,22 @@ function missingRendererHint(nitro: Nitro): string {
 
 function hashContents(data: Buffer): string {
   return createHash("sha256").update(data).digest("hex");
+}
+
+function formatFailedRoutes(failedRoutes: Set<PrerenderRoute>) {
+  return [...failedRoutes]
+    .map((route) => {
+      const status = route.error
+        ? [route.error.status, route.error.statusText].filter(Boolean).join(" ")
+        : "";
+      return `  - ${route.route}${status ? ` (${status})` : ""}`;
+    })
+    .join("\n");
+}
+
+function createPrerenderError(message: string) {
+  const error = new Error(message);
+  // Hide the internal prerender stack so the user only sees the message.
+  error.stack = `${error.name}: ${error.message}`;
+  return error;
 }

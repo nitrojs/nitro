@@ -10,8 +10,19 @@ const fixtureDir = fileURLToPath(new URL("./status-fixture", import.meta.url));
 
 describe("prerender failOnError", () => {
   it("fails the build when a route errors", async () => {
-    const { error } = await prerenderRoutes(["/", "/status/404"], { failOnError: true });
-    expect(error).toMatchObject({ message: "Exiting due to prerender errors." });
+    const { error, failedRoutes } = await prerenderRoutes(["/", "/status/404"], {
+      failOnError: true,
+    });
+    expect(error).toBeInstanceOf(Error);
+    const err = error as Error;
+    expect(err.message).toContain("Exiting due to prerender errors.");
+    expect(err.message).toContain("/status/404 (404)");
+    expect(err.message).toContain("prerender.ignore");
+    expect(err.message).toContain("prerender.ignoreStatusCodes");
+    expect(err.message).toContain("prerender.failOnError");
+    expect(err.stack).toBe(`${err.name}: ${err.message}`);
+    expect(failedRoutes.map((route) => route.route)).toEqual(["/status/404"]);
+    expect(failedRoutes.map((route) => route.error?.status)).toEqual([404]);
   }, 120_000);
 
   it("does not fail the build for errors with an ignored status code", async () => {
@@ -25,12 +36,28 @@ describe("prerender failOnError", () => {
     expect(failedRoutes.map((r) => [r.route, r.error?.status])).toEqual([["/status/404", 404]]);
   }, 120_000);
 
+  it("collapses the error stack when all routes fail and none are prerendered", async () => {
+    const { error, failedRoutes } = await prerenderRoutes(["/status/404"], {
+      failOnError: false,
+    });
+    expect(error).toBeInstanceOf(Error);
+    const err = error as Error;
+    expect(err.message).toContain("Prerendered 0 routes. All 1 route(s) failed");
+    expect(err.stack).toBe(`${err.name}: ${err.message}`);
+    expect(failedRoutes.map((route) => route.route)).toEqual(["/status/404"]);
+  }, 120_000);
+
   it("still fails the build for errors with other status codes", async () => {
     const { error, logs } = await prerenderRoutes(["/", "/status/404", "/status/500"], {
       failOnError: true,
       ignoreStatusCodes: [404],
     });
-    expect(error).toMatchObject({ message: "Exiting due to prerender errors." });
+    expect(error).toBeInstanceOf(Error);
+    const err = error as Error;
+    expect(err.message).toContain("Exiting due to prerender errors.");
+    expect(err.message).toContain("/status/500 (500)");
+    expect(err.message).not.toContain("/status/404");
+    expect(err.stack).toBe(`${err.name}: ${err.message}`);
     // only the routes failing the build are listed
     const summary = logs
       .slice(logs.findIndex((l) => l.includes("Errors prerendering:")))
