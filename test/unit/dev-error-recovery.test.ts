@@ -4,6 +4,7 @@ import {
   devErrorRecoveryScript,
   isDocumentRequest,
   appendDevErrorRecovery,
+  getScriptNonce,
   isRecoverableDevErrorPage,
   withDevErrorRecovery,
 } from "../../src/dev/_error-recovery.ts";
@@ -217,6 +218,42 @@ describe("dev error page recovery", () => {
     );
     expect(await page({ "sec-fetch-dest": "empty" })).toBe("<p>error</p>");
     expect(await page({ "sec-fetch-dest": "document" }, "POST")).toBe("<p>error</p>");
+  });
+
+  it("gives the script the nonce of the page's CSP", async () => {
+    const res = new Response("<p>error</p>", {
+      status: 500,
+      headers: {
+        "content-type": "text/html",
+        "content-security-policy": "default-src 'self'; script-src 'self' 'nonce-abc+/12=='",
+      },
+    });
+    const html = await appendDevErrorRecovery(res, {
+      url: "/_nitro/dev/reload",
+      id: "a",
+      v: 0,
+    }).text();
+    expect(html).toContain(`<script type="module" nonce="abc+/12==">`);
+    expect(await appendDevErrorRecovery(htmlError(), { url: "/", id: "a", v: 0 }).text()).toContain(
+      `<script type="module">`
+    );
+  });
+
+  it("reads the nonce from the directive that governs script elements", () => {
+    expect(getScriptNonce(null)).toBeUndefined();
+    expect(getScriptNonce("img-src 'self'")).toBeUndefined();
+    expect(getScriptNonce("default-src 'nonce-d'")).toBe("d");
+    expect(getScriptNonce("default-src 'nonce-d'; script-src 'nonce-s'")).toBe("s");
+    expect(getScriptNonce("script-src 'nonce-s'; script-src-elem 'nonce-e'")).toBe("e");
+    // `script-src` overrides `default-src` even without a nonce of its own
+    expect(getScriptNonce("default-src 'nonce-d'; script-src 'self'")).toBeUndefined();
+    expect(getScriptNonce("SCRIPT-SRC 'nonce-s'")).toBe("s");
+    expect(getScriptNonce("img-src 'self', script-src 'nonce-s'")).toBe("s");
+  });
+
+  it("does not write a nonce that could break out of the attribute", () => {
+    const script = devErrorRecoveryScript({ url: "/", id: "a", v: 0, nonce: `x"><img>` });
+    expect(script.startsWith(`<script type="module">`)).toBe(true);
   });
 
   it("escapes the embedded state to ASCII", () => {
