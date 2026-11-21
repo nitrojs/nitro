@@ -91,7 +91,7 @@ export async function writeBuildInfo(
     },
   };
 
-  await writeFile(buildInfoPath, JSON.stringify(buildInfo, null, 2), true);
+  await writeFile(buildInfoPath, JSON.stringify(buildInfo, null, 2), nitro.logger);
 
   const lastBuild = join(nitro.options.rootDir, NITRO_WELLKNOWN_DIR, "last-build.json");
   await mkdir(dirname(lastBuild), { recursive: true });

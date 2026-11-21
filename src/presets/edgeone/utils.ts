@@ -145,7 +145,7 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
   }
 
   const configContent = JSON.stringify(config, null, 2);
-  await writeFile(join(nitro.options.output.serverDir, "config.json"), configContent, true);
+  await writeFile(join(nitro.options.output.serverDir, "config.json"), configContent, nitro.logger);
 
   return {
     apiRoutes,

@@ -1,4 +1,5 @@
 import type { Nitro } from "nitro/types";
+import type { ConsolaInstance } from "../types/_consola.ts";
 import { randomBytes } from "node:crypto";
 import { stat, mkdir, rm, writeFile as fspWriteFile } from "node:fs/promises";
 import { dirname, join } from "pathe";
@@ -45,11 +46,15 @@ function _compilePathTemplate(contents: string) {
     });
 }
 
-export async function writeFile(file: string, contents: Buffer | string, log = false) {
+export async function writeFile(
+  file: string,
+  contents: Buffer | string,
+  log: ConsolaInstance | false = false
+) {
   await mkdir(dirname(file), { recursive: true });
   await fspWriteFile(file, contents, typeof contents === "string" ? "utf8" : undefined);
   if (log) {
-    consola.info("Generated", prettyPath(file));
+    log.info("Generated", prettyPath(file));
   }
 }
 

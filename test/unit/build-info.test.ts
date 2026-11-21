@@ -25,7 +25,7 @@ describe("writeBuildInfo", () => {
 
   function createNitro() {
     return {
-      logger: { warn },
+      logger: { info: vi.fn(), warn },
       options: {
         rootDir,
         entry: join(rootDir, "server"),
