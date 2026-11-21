@@ -38,9 +38,54 @@ describe("prerender failOnError", () => {
     expect(summary).toContain("/status/500");
     expect(summary).not.toContain("/status/404");
   }, 120_000);
+
+  it("fails the build when route generation throws", async () => {
+    const { error, failedRoutes } = await prerenderRoutes(
+      ["/", "/throws"],
+      { failOnError: true },
+      {
+        hooks: {
+          "prerender:generate"(route) {
+            if (route.route === "/throws") {
+              throw new Error("Route generation failed");
+            }
+          },
+        },
+      }
+    );
+    expect(error).toMatchObject({ message: "Exiting due to prerender errors." });
+    expect(failedRoutes.map((r) => [r.route, r.error?.message])).toEqual([
+      ["/throws", "Route generation failed"],
+    ]);
+  }, 120_000);
+
+  it("records thrown route error in failedRoutes when failOnError is false", async () => {
+    const { error, failedRoutes, nitro } = await prerenderRoutes(
+      ["/", "/throws"],
+      { failOnError: false },
+      {
+        hooks: {
+          "prerender:generate"(route) {
+            if (route.route === "/throws") {
+              throw new Error("Route generation failed");
+            }
+          },
+        },
+      }
+    );
+    expect(error).toBeUndefined();
+    expect(nitro._prerenderedRoutes!.map((r) => r.route)).toEqual(["/"]);
+    expect(failedRoutes.map((r) => [r.route, r.error?.message])).toEqual([
+      ["/throws", "Route generation failed"],
+    ]);
+  }, 120_000);
 });
 
-async function prerenderRoutes(routes: string[], options: NitroConfig["prerender"]) {
+async function prerenderRoutes(
+  routes: string[],
+  options: NitroConfig["prerender"],
+  config?: Partial<NitroConfig>
+) {
   const outDir = await mkdtemp(join(tmpdir(), "nitro-prerender-errors-"));
 
   const nitro = await createNitro({
@@ -48,6 +93,7 @@ async function prerenderRoutes(routes: string[], options: NitroConfig["prerender
     preset: "static",
     output: { dir: outDir },
     prerender: { crawlLinks: false, routes, ...options },
+    ...config,
   });
 
   const logs: string[] = [];
