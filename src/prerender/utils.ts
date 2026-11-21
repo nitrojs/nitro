@@ -60,8 +60,13 @@ export async function extractLinks(
     links.push(_link.pathname + _link.search);
   }
   for (const _link of links) {
-    // Keyed by route (relative to `baseURL`), as reported by `formatPrerenderRoute`
-    const link = withoutBase(_link, baseURL);
+    // Keyed by the decoded route relative to `baseURL`
+    let link: string;
+    try {
+      link = decodeURI(withoutBase(_link, baseURL));
+    } catch {
+      continue;
+    }
     const _parents = linkParents.get(link);
     if (_parents) {
       _parents.add(from);
@@ -79,17 +84,25 @@ function getExtension(link: string): string {
   return (pathname.match(EXT_REGEX) || [])[0] || "";
 }
 
+export function getLinkParents(route: string): string[] {
+  return [...(linkParents.get(route) ?? [])];
+}
+
+export function clearLinkParents() {
+  linkParents.clear();
+}
+
 export function formatPrerenderRoute(route: PrerenderRoute) {
   let str = `  ├─ ${route.route} (${route.generateTimeMS}ms)`;
 
   if (route.error) {
-    const parents = linkParents.get(route.route);
+    const parents = route.linkedFrom;
     const errorColor = colors[route.error.status === 404 ? "yellow" : "red"];
-    const errorLead = parents?.size ? "├──" : "└──";
+    const errorLead = parents?.length ? "├──" : "└──";
     str += `\n  │ ${errorLead} ${errorColor(route.error.message || "unknown error")}`;
 
-    if (parents?.size) {
-      str += `\n${[...parents.values()].map((link) => `  │ └── Linked from ${link}`).join("\n")}`;
+    if (parents?.length) {
+      str += `\n${parents.map((link) => `  │ └── Linked from ${link}`).join("\n")}`;
     }
   }
 
