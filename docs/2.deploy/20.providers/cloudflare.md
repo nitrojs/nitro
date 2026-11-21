@@ -256,6 +256,8 @@ export default defineConfig({
 
 Nitro automatically generates a `_routes.json` file that controls which routes get served from files and which are served from the Worker script. The auto-generated routes file can be overridden with the config option `cloudflare.pages.routes` ([read more](https://developers.cloudflare.com/pages/platform/functions/routing/#functions-invocation-routes)).
 
+Route rule redirects are also written to a `_redirects` file, which Cloudflare applies to files (requests served by the Worker get redirected by the Nitro runtime instead). A path that a more specific route rule opts out of with `redirect: false` is written as a rewrite to itself before the redirect, so that files under it are served instead of redirected. This needs a rule without a method, in a path that `_redirects` can express: an opt-out with a method (`GET /blog/feed.xml`), a regex param or a single-segment `*` is not written, and the broader redirect still applies to its files.
+
 ### Local Preview
 
 You can use [Wrangler](https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler) to preview your app locally:
