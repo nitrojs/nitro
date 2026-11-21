@@ -13,15 +13,19 @@ import { viteDepPaths } from "../build/vite/_import.ts";
 import { createNitro } from "../nitro.ts";
 import { compressPublicAssets } from "../utils/compress.ts";
 import { runParallel } from "../utils/parallel.ts";
-import { extractLinks, formatPrerenderRoute, matchesIgnorePattern } from "./utils.ts";
+import {
+  clearLinkParents,
+  extractLinks,
+  formatPrerenderRoute,
+  getLinkParents,
+  matchesIgnorePattern,
+} from "./utils.ts";
 import { getPrerenderMeta } from "./_meta.ts";
 import { scanUnprefixedPublicAssets } from "../build/assets.ts";
 import { toRequest } from "h3";
 import { EnvServer } from "env-runner";
 
 const JsonSigRx = /^\s*["[{]|^\s*-?\d{1,16}(\.\d{1,17})?([Ee][+-]?\d+)?\s*$/; // From unjs/destr
-
-// const linkParents = new Map<string, Set<string>>();
 
 export async function prerender(nitro: Nitro) {
   if (nitro.options.noPublicDir) {
@@ -305,6 +309,7 @@ export async function prerender(nitro: Nitro) {
 
     // After hook to allow ignoring in `prerender:generate` hook
     if (_route.error) {
+      _route.linkedFrom = getLinkParents(_route.route);
       failedRoutes.add(_route);
     }
 
@@ -376,12 +381,19 @@ export async function prerender(nitro: Nitro) {
       : `Prerendering ${routes.size} routes`
   );
 
+  clearLinkParents();
+
   await runParallel(routes, generateRoute, {
     concurrency: nitro.options.prerender.concurrency || 1,
     interval: nitro.options.prerender.interval,
   });
 
   await prerenderer.close();
+
+  // A route can fail before the pages linking to it are crawled, so refresh afterwards.
+  for (const route of failedRoutes) {
+    route.linkedFrom = getLinkParents(route.route);
+  }
 
   await nitro.hooks.callHook("prerender:done", {
     prerenderedRoutes: nitro._prerenderedRoutes,

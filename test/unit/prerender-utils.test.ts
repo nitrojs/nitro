@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   extractLinks,
   formatPrerenderRoute,
+  getLinkParents,
   matchesIgnorePattern,
 } from "../../src/prerender/utils.ts";
 import type { PrerenderRoute } from "nitro/types";
@@ -18,8 +19,16 @@ describe("prerender utils", () => {
     expect(links).toEqual(["/base/missing"]);
 
     const error = Object.assign(new Error("[404] Not Found"), { status: 404 });
-    const output = formatPrerenderRoute({ route: "/missing", error } as PrerenderRoute);
-    expect(output).toContain("Linked from /base/parent");
+    expect(getLinkParents("/missing")).toEqual(["/base/parent"]);
+    expect(formatPrerenderRoute({ route: "/missing", error } as PrerenderRoute)).not.toContain(
+      "Linked from"
+    );
+    const route = {
+      route: "/missing",
+      error,
+      linkedFrom: getLinkParents("/missing"),
+    } as PrerenderRoute;
+    expect(formatPrerenderRoute(route)).toContain("Linked from /base/parent");
   });
 
   describe("matchesIgnorePattern", () => {

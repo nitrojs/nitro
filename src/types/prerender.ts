@@ -6,6 +6,7 @@ export interface PrerenderRoute {
   data?: ArrayBuffer;
   fileName?: string;
   error?: Partial<HTTPError>;
+  linkedFrom?: string[];
   generateTimeMS?: number;
   skip?: boolean;
   contentType?: string;
