@@ -142,24 +142,91 @@ describe("Router headFromGet", () => {
 });
 
 describe("initNitroRouting", () => {
-  function createNitro(handlers: NitroEventHandler[]) {
+  function createNitro(
+    handlers: NitroEventHandler[],
+    options?: {
+      routes?: Record<string, string | Omit<NitroEventHandler, "route">>;
+      scannedHandlers?: NitroEventHandler[];
+      dev?: boolean;
+      warnings?: string[];
+    }
+  ) {
     const nitro = {
       options: {
-        dev: false,
+        dev: options?.dev ?? false,
         preset: "node-server",
         baseURL: "/",
         routeRules: {},
-        routes: {},
+        routes: options?.routes ?? {},
         handlers,
         serveStatic: false,
         publicAssets: [],
       },
-      scannedHandlers: [],
+      scannedHandlers: options?.scannedHandlers ?? [],
+      logger: {
+        warn: (message: string) => options?.warnings?.push(message),
+      },
     } as unknown as Nitro;
     initNitroRouting(nitro);
     nitro.routing.sync();
     return nitro;
   }
+
+  it("keeps the first handler when a pattern and method are registered twice", () => {
+    const nitro = createNitro([{ route: "/same", handler: "./handlers/same.ts" }], {
+      routes: { "/same": "./routes/config.ts" },
+      scannedHandlers: [{ route: "/same", handler: "./routes/scanned.ts" }],
+    });
+    expect(nitro.routing.routes.routes.map((r) => (r.data as NitroEventHandler).handler)).toEqual([
+      "./routes/config.ts",
+    ]);
+  });
+
+  it("keeps handlers for the same pattern with different methods", () => {
+    const nitro = createNitro([{ route: "/same", method: "GET", handler: "./handlers/get.ts" }], {
+      routes: {
+        "/same": { handler: "./routes/post.ts", method: "POST" },
+      },
+    });
+    expect(
+      nitro.routing.routes.routes.map((r) => (r.data as NitroEventHandler).handler).sort()
+    ).toEqual(["./handlers/get.ts", "./routes/post.ts"]);
+  });
+
+  it("keeps an HTTP and a WebSocket handler on the same path", () => {
+    const nitro = createNitro([{ route: "/chat", ws: true, handler: "./handlers/chat-ws.ts" }], {
+      routes: { "/chat": "./routes/chat.ts" },
+    });
+    expect(nitro.routing.routes.routes.map((r) => (r.data as NitroEventHandler).handler)).toEqual([
+      "./routes/chat.ts",
+    ]);
+    expect(
+      nitro.routing.webSocketRoutes.routes.map((r) => (r.data as NitroEventHandler).handler)
+    ).toEqual(["./handlers/chat-ws.ts"]);
+  });
+
+  it("warns in dev when a filesystem route is shadowed by a config route", () => {
+    const warnings: string[] = [];
+    createNitro([], {
+      dev: true,
+      warnings,
+      routes: { "/same": "./routes/config.ts" },
+      scannedHandlers: [{ route: "/same", handler: "./routes/scanned.ts" }],
+    });
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain("./routes/scanned.ts");
+    expect(warnings[0]).toContain("./routes/config.ts");
+  });
+
+  it("does not warn outside dev", () => {
+    const warnings: string[] = [];
+    createNitro([], {
+      warnings,
+      routes: { "/same": "./routes/config.ts" },
+      scannedHandlers: [{ route: "/same", handler: "./routes/scanned.ts" }],
+    });
+    expect(warnings).toHaveLength(0);
+  });
 
   it("matches `HEAD` requests with `GET` routes unless `head: false`", () => {
     const nitro = createNitro([
