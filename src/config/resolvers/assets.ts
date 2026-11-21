@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { defu } from "defu";
-import type { NitroOptions } from "nitro/types";
+import type { NitroOptions, PublicAssetDir } from "nitro/types";
 import { resolve } from "pathe";
 import { withLeadingSlash, withoutTrailingSlash } from "ufo";
 
@@ -68,4 +68,14 @@ export function addClientAssetsRouteRule(routeRules: NitroOptions["routeRules"],
     rule.headers = { ...rule.headers, "cache-control": "public, max-age=31536000, immutable" };
   }
   return immutable;
+}
+
+/**
+ * Whether a public asset dir serves a base URL other than `/` on its own (without
+ * `fallthrough`): requests under it that match none of its files are not passed to the app.
+ */
+export function isPrefixedPublicAssetDir(
+  dir: PublicAssetDir
+): dir is PublicAssetDir & { baseURL: string } {
+  return !dir.fallthrough && !!dir.baseURL && dir.baseURL !== "/";
 }

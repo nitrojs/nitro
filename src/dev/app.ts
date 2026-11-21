@@ -18,6 +18,7 @@ import { isLocalDevRequest } from "./_request.ts";
 import { createDevToolsJSONHandler, DEVTOOLS_JSON_ROUTE } from "./_devtools-json.ts";
 import { DevReloadSignal, DEV_RELOAD_ROUTE } from "./_reload-signal.ts";
 import { isCompressibleFile } from "../utils/compress.ts";
+import { isPrefixedPublicAssetDir } from "../config/resolvers/assets.ts";
 
 import devErrorHandler, {
   defaultHandler as devErrorHandlerInternal,
@@ -118,7 +119,7 @@ export class NitroDevApp {
           compress: this.nitro.options.compressPublicAssets,
         })
       );
-      if (!asset.fallthrough && asset.baseURL && asset.baseURL !== "/") {
+      if (isPrefixedPublicAssetDir(asset)) {
         this.#addRoute("", joinURL(assetBase, ":path+"));
       }
     }
