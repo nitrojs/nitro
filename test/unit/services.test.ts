@@ -104,6 +104,35 @@ describe("services template (loaders)", () => {
     expect(await services.later.fetch("req")).toBe("named:req");
   });
 
+  it("does not strand later fetches when an earlier load never settles", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "nitro-services-"));
+    let calls = 0;
+    (globalThis as any).__nitro_test_loader__ = () => {
+      calls++;
+      if (calls === 1) {
+        return new Promise(() => {});
+      }
+      return Promise.resolve({ default: { fetch: (req: string) => `ok:${req}` } });
+    };
+    const nitro = {
+      options: { services: { ssr: { entry: "ssr" } } },
+      _serviceLoader: () => ({ import: "test-ssr", bundle: true }),
+    } as unknown as Nitro;
+    const code = servicesTemplate(nitro).replace(
+      '() => import("test-ssr")',
+      "() => globalThis.__nitro_test_loader__()"
+    );
+    const services = await importTemplate(dir, code);
+    void services.ssr.fetch("first");
+    try {
+      expect(await services.ssr.fetch("second")).toBe("ok:second");
+      expect(await services.ssr.fetch("third")).toBe("ok:third");
+      expect(calls).toBe(2);
+    } finally {
+      delete (globalThis as any).__nitro_test_loader__;
+    }
+  });
+
   it("is empty when no builder integration loads the services", () => {
     const nitro = { options: { services: { api: { entry: "./api.ts" } } } } as unknown as Nitro;
     expect(servicesTemplate(nitro)).toBe("export const services = {};");
