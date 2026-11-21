@@ -1,13 +1,15 @@
 import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
+import type { Context } from "@netlify/functions";
 import type { ServerRequest } from "srvx";
 
 const nitroApp = useNitroApp();
 
 const ONE_YEAR_IN_SECONDS = 365 * 24 * 60 * 60;
 
-const handler = async (req: ServerRequest): Promise<Response> => {
+const handler = async (req: ServerRequest, context?: Context): Promise<Response> => {
   req.runtime ??= { name: "netlify" };
+  req.waitUntil ??= context?.waitUntil?.bind(context);
   req.ip ??= req.headers.get("x-nf-client-connection-ip") || undefined;
 
   const response = await nitroApp.fetch(req);

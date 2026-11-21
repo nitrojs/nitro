@@ -13,6 +13,7 @@ export default async function netlifyEdge(netlifyReq: Request, context: Context)
   req.ip = context.ip;
   req.runtime ??= { name: "netlify-edge" };
   req.runtime.netlify ??= { context } as any;
+  req.waitUntil ??= context.waitUntil?.bind(context);
 
   const url = new URL(req.url);
 
