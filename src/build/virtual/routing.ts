@@ -30,7 +30,7 @@ export default function routing(nitro: Nitro) {
       const routeRulesModule = compileRouteRules(nitro.options.routeRules, {
         runtimeRules: { cache: "#nitro/runtime/route-rule-handlers" },
         baseURL: nitro.options.baseURL,
-        preMerge: true,
+        preMerge: nitro.options.experimental.routeRulesPreMerge !== false,
       });
 
       return /* js */ `${hasNodeHandlers ? `\nimport * as srvxNode from "srvx/node"` : ""}

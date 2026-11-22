@@ -406,6 +406,15 @@ export interface NitroOptions extends PresetOptions {
      */
     entriesAwareLibChunks?: false;
     /**
+     * Set to `false` to disable route rules `preMerge` compilation (enabled by default).
+     *
+     * `preMerge` pre-merges each route pattern's subsumption chain at build time. When the
+     * `routeRules` set is not chain-clean (two patterns partially overlap), the compiler
+     * warns and falls back to plain compilation, which produces identical output. Disabling
+     * `preMerge` skips this warning for intentionally overlapping rule sets.
+     */
+    routeRulesPreMerge?: false;
+    /**
      * Allow env expansion in runtime config
      *
      * @see https://github.com/nitrojs/nitro/pull/2043

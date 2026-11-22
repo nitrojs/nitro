@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { H3, toEventHandler } from "h3";
 import { toFetchHandler } from "srvx/node";
 import type { NodeHttp1Handler } from "srvx";
-import type { Nitro, NitroEventHandler } from "nitro/types";
+import type { Nitro, NitroEventHandler, NitroOptions } from "nitro/types";
 
 import routing from "../../src/build/virtual/routing.ts";
 
@@ -10,6 +10,8 @@ function createNitroStub(
   opts: {
     tracingChannel?: Nitro["options"]["tracingChannel"];
     handler?: Partial<NitroEventHandler>;
+    routeRules?: NitroOptions["routeRules"];
+    experimental?: NitroOptions["experimental"];
   } = {}
 ): Nitro {
   const handler: NitroEventHandler & { _importHash: string } = {
@@ -24,7 +26,8 @@ function createNitroStub(
     options: {
       tracingChannel: opts.tracingChannel,
       baseURL: "/",
-      routeRules: {},
+      routeRules: opts.routeRules || {},
+      experimental: opts.experimental || {},
     },
     routing: {
       routes: {
@@ -93,6 +96,42 @@ describe("virtual/routing template", () => {
     expect(template).toContain(
       `h3.defineLazyEventHandler(() => import("/path/to/handler.ts").then(m => ({ fetch: srvxNode.toFetchHandler(m.default) })));`
     );
+  });
+});
+
+describe("routeRules preMerge", () => {
+  // https://github.com/nitrojs/nitro/issues/5048
+  const overlapRules = {
+    "/assets/**": { headers: { "x-content-type-options": "nosniff" } },
+    "/**.md": { headers: { "x-content-type-options": "nosniff" } },
+  };
+
+  it("warns when partially overlapping rules make preMerge fall back", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await routing(createNitroStub({ routeRules: overlapRules })).template();
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0]![0]).toContain("preMerge");
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("emits identical output without warning when experimental.routeRulesPreMerge is false", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const fallback = await routing(createNitroStub({ routeRules: overlapRules })).template();
+      const optedOut = await routing(
+        createNitroStub({
+          routeRules: overlapRules,
+          experimental: { routeRulesPreMerge: false },
+        })
+      ).template();
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(optedOut).toBe(fallback);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 
