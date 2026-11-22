@@ -7,6 +7,7 @@ import { unenvCfExternals } from "./unenv/preset.ts";
 import { extendEnv } from "../../build/env.ts";
 import {
   enableNodeCompat,
+  setupWranglerCommands,
   writeWranglerConfig,
   writeCFRoutes,
   writeCFHeaders,
@@ -146,6 +147,7 @@ const cloudflareModule = defineNitroPreset(
       "build:before": async (nitro) => {
         extendEnv(nitro, unenvCfExternals);
         await enableNodeCompat(nitro);
+        setupWranglerCommands(nitro);
         setupEntryExports(nitro);
         setupTracingBridge(nitro);
       },
