@@ -59,6 +59,45 @@ describe("prerender failOnError", () => {
     ]);
   }, 120_000);
 
+  it("fails the build when generation throws for a route with an ignored status", async () => {
+    const { error, failedRoutes } = await prerenderRoutes(
+      ["/", "/status/404"],
+      { failOnError: true, ignoreStatusCodes: [404] },
+      {
+        hooks: {
+          "prerender:generate"(route) {
+            if (route.route === "/status/404") {
+              throw new Error("Route generation failed");
+            }
+          },
+        },
+      }
+    );
+    // The thrown error replaces the ignored 404, so it is not filtered out
+    expect(error).toMatchObject({ message: "Exiting due to prerender errors." });
+    expect(failedRoutes.map((r) => [r.route, r.error?.message])).toEqual([
+      ["/status/404", "Route generation failed"],
+    ]);
+  }, 120_000);
+
+  it("logs a route whose prerender:route hook throws", async () => {
+    const { error, logs } = await prerenderRoutes(
+      ["/", "/status/404"],
+      { failOnError: false, ignoreStatusCodes: [404] },
+      {
+        hooks: {
+          "prerender:route"(route) {
+            if (route.route === "/status/404") {
+              throw new Error("Route hook failed");
+            }
+          },
+        },
+      }
+    );
+    expect(error).toBeUndefined();
+    expect(logs.filter((l) => l.includes("/status/404"))).toHaveLength(1);
+  }, 120_000);
+
   it("records thrown route error in failedRoutes when failOnError is false", async () => {
     const { error, failedRoutes, nitro } = await prerenderRoutes(
       ["/", "/throws"],

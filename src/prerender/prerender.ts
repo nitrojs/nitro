@@ -374,13 +374,14 @@ export async function prerender(nitro: Nitro) {
       dataBuff = undefined; // Free memory
       return _route;
     } catch (error: any) {
-      if (!_route.error) {
-        const err: any = error instanceof Error ? error : new Error(String(error));
-        if (!err.status && error?.statusCode) {
-          err.status = error.statusCode;
-        }
-        _route.error = err;
+      // The thrown error is the route failure, even if the response already set one
+      // (for example an ignored status code): otherwise `ignoreStatusCodes` would hide it
+      const err: any = error instanceof Error ? error : new Error(String(error));
+      if (!err.status && error?.statusCode) {
+        err.status = error.statusCode;
       }
+      _route.error = err;
+
       _route.generateTimeMS = Date.now() - start;
       failedRoutes.add(_route);
       if (!routeHookCalled) {
@@ -388,8 +389,8 @@ export async function prerender(nitro: Nitro) {
         try {
           await nitro.hooks.callHook("prerender:route", _route);
         } catch {}
-        nitro.logger.log(formatPrerenderRoute(_route));
       }
+      nitro.logger.log(formatPrerenderRoute(_route));
       dataBuff = undefined; // Free memory
       return _route;
     }
