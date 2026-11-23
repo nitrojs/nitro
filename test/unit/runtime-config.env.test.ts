@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { applyEnv } from "../../src/runtime/internal/runtime-config.ts";
+const virtualRuntimeConfig = vi.hoisted(() => ({ runtimeConfig: {} as Record<string, any> }));
+
+vi.mock("#nitro/virtual/runtime-config", () => virtualRuntimeConfig);
+
+import { applyEnv, useRuntimeConfig } from "../../src/runtime/internal/runtime-config.ts";
 
 describe("env utils", () => {
   describe("applyEnv", () => {
@@ -75,6 +79,28 @@ describe("env utils", () => {
         for (const key in test.env) {
           delete process.env[key];
         }
+      });
+    }
+  });
+
+  describe("NITRO_ENV_EXPANSION", () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      (useRuntimeConfig as any)._cached = undefined;
+    });
+
+    for (const [value, expected] of [
+      ["true", "http://localhost"],
+      ["1", "http://localhost"],
+      ["false", "{{MAIL_HOST}}"],
+      ["0", "{{MAIL_HOST}}"],
+      ["", "{{MAIL_HOST}}"],
+    ]) {
+      it(`NITRO_ENV_EXPANSION=${JSON.stringify(value)}`, () => {
+        virtualRuntimeConfig.runtimeConfig = { mail: "{{MAIL_HOST}}" };
+        vi.stubEnv("MAIL_HOST", "http://localhost");
+        vi.stubEnv("NITRO_ENV_EXPANSION", value);
+        expect(useRuntimeConfig()).toEqual({ mail: expected });
       });
     }
   });
