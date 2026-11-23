@@ -1063,6 +1063,57 @@ describe("nitro:preset:vercel:node", async () => {
         expect(waitUntil.mock.calls[0][0]).toBeInstanceOf(Promise);
       });
 
+      it.skipIf(isBun)("should handle multiple requests on a keep-alive socket", async () => {
+        const nodeHandler = await import(
+          resolve(ctx.outDir, "functions/__server.func/index.mjs")
+        ).then((r) => r.default || r);
+
+        const { Agent, request } = await import("node:http");
+        const errors: unknown[] = [];
+        const server = new Server((req, res) => {
+          Promise.resolve(nodeHandler(req, res)).catch((error) => {
+            errors.push(error);
+            res.statusCode = 500;
+            res.end();
+          });
+        });
+        let connections = 0;
+        server.on("connection", () => connections++);
+        await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+        const { port } = server.address() as { port: number };
+        const agent = new Agent({ keepAlive: true, maxSockets: 1 });
+        const get = (ip: string) =>
+          new Promise<{ status?: number; body: string }>((resolve, reject) => {
+            const req = request(
+              {
+                agent,
+                port,
+                host: "127.0.0.1",
+                path: "/wait-until",
+                headers: { "x-forwarded-for": ip },
+              },
+              (res) => {
+                let body = "";
+                res.setEncoding("utf8");
+                res.on("data", (chunk) => (body += chunk));
+                res.on("end", () => resolve({ status: res.statusCode, body }));
+              }
+            );
+            req.on("error", reject);
+            req.end();
+          });
+        try {
+          for (const ip of ["203.0.113.1", "203.0.113.2", "203.0.113.3"]) {
+            expect(await get(ip)).toEqual({ status: 200, body: "done" });
+          }
+          expect(errors).toEqual([]);
+          expect(connections).toBe(1);
+        } finally {
+          agent.destroy();
+          await new Promise((r) => server.close(r));
+        }
+      });
+
       it("should emit vercel schedules instead of cron jobs", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "config.json"), "utf8")

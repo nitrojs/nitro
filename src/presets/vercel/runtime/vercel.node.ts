@@ -41,8 +41,10 @@ const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }
 export default async function nodeHandler(req: NodeServerRequest, res: NodeServerResponse) {
   // https://vercel.com/docs/headers/request-headers#x-forwarded-for
   // srvx node adapter uses req.socket.remoteAddress for req.ip
+  // A keep-alive socket serves several requests, so this has to stay redefinable
   let ip: string | undefined;
   Object.defineProperty(req.socket, "remoteAddress", {
+    configurable: true,
     get() {
       const h = req.headers["x-forwarded-for"] as string;
       return (ip ??= h?.split?.(",").shift()?.trim());
