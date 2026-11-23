@@ -38,12 +38,7 @@ export function createSourceMapper(): (frame: StackFrame) => Promise<void> {
     ) {
       return;
     }
-    const root = sourceMap.sourceRoot ? sourceMap.sourceRoot.replace(/\/?$/, "/") : "";
-    frame.file = /^[a-z]:[\\/]/i.test(entry.originalSource)
-      ? entry.originalSource
-      : globalThis.process
-          .getBuiltinModule("node:url")
-          .fileURLToPath(new URL(escapeURLPath(root + entry.originalSource), sourceMap.url));
+    frame.file = resolveSourcePath(entry.originalSource, sourceMap.sourceRoot, sourceMap.url);
     frame.line = entry.originalLine + 1;
     frame.col = entry.originalColumn + 1;
     const content = sourceMap.sourcesContent[sourceMap.sources.indexOf(entry.originalSource)];
@@ -96,9 +91,139 @@ async function loadSourceMap(file: string): Promise<LoadedSourceMap | undefined>
   };
 }
 
+const LEADING_C0_SPACE_RE = /^[\u0000-\u0020]+/;
+const WINDOWS_DRIVE_RE = /^[a-z]:(?:[\\/]|$)/i;
+const WINDOWS_PATH_RE = /^(?:[a-z]:[\\/]|\\\\)/i;
+const UNC_ROOT_RE = /^[\\/]{2}([^\\/]+)(?:[\\/]([^\\/]+))?([\\/].*)?$/;
+const DOUBLE_SLASH_RE = /^[\\/]{2}/;
+const URL_SCHEME_RE = /^[a-z][a-z\d+\-.]+:/i;
+const HIERARCHICAL_URL_RE = /^[a-z][a-z\d+\-.]+:\/\//i;
+const FILE_SCHEME_RE = /^file:/i;
+
+function resolveSourcePath(source: string, sourceRoot: string | undefined, mapURL: URL): string {
+  if (source.startsWith("\0")) {
+    return source;
+  }
+  const cleanSource =
+    source.charCodeAt(0) <= 0x20 ? source.replace(LEADING_C0_SPACE_RE, "") : source;
+  if (WINDOWS_PATH_RE.test(cleanSource)) {
+    return cleanSource;
+  }
+  if (URL_SCHEME_RE.test(cleanSource)) {
+    return FILE_SCHEME_RE.test(cleanSource)
+      ? (safeFileURLToPath(cleanSource) ?? cleanSource)
+      : cleanSource;
+  }
+  if (sourceRoot?.startsWith("\0")) {
+    return (
+      (sourceRoot.endsWith(":") || sourceRoot.endsWith("/") ? sourceRoot : `${sourceRoot}/`) +
+      source
+    );
+  }
+  const root =
+    sourceRoot && sourceRoot.charCodeAt(0) <= 0x20
+      ? sourceRoot.replace(LEADING_C0_SPACE_RE, "")
+      : sourceRoot;
+  if (root && URL_SCHEME_RE.test(root) && !FILE_SCHEME_RE.test(root)) {
+    if (!HIERARCHICAL_URL_RE.test(root)) {
+      return (root.endsWith(":") || root.endsWith("/") ? root : `${root}/`) + source;
+    }
+    try {
+      return new URL(cleanSource, toBaseURL(root)).href;
+    } catch {
+      return withTrailingSlash(root) + source;
+    }
+  }
+  if (DOUBLE_SLASH_RE.test(cleanSource)) {
+    return cleanSource;
+  }
+  if (root && WINDOWS_DRIVE_RE.test(root)) {
+    return resolvePrefixedPath(root.slice(0, 2), root.slice(2) || "/", cleanSource, source);
+  }
+  const uncMatch = root ? UNC_ROOT_RE.exec(root) : null;
+  if (uncMatch) {
+    const prefix = uncMatch[2] ? `//${uncMatch[1]}/${uncMatch[2]}` : `//${uncMatch[1]}`;
+    return resolvePrefixedPath(prefix, uncMatch[3] || "/", cleanSource, source);
+  }
+  let base = mapURL;
+  let rootFallback: string | undefined;
+  if (root) {
+    try {
+      if (FILE_SCHEME_RE.test(root)) {
+        base = toBaseURL(root);
+      } else {
+        rootFallback = withTrailingSlash(root, true);
+        base = new URL(escapeURLPath(rootFallback), mapURL);
+      }
+      if (base.protocol !== "file:") {
+        return (rootFallback ?? withTrailingSlash(root, true)) + source;
+      }
+    } catch {
+      return (rootFallback ?? withTrailingSlash(root, true)) + source;
+    }
+  }
+  try {
+    const resolved = new URL(escapeURLPath(cleanSource), base);
+    return resolved.protocol === "file:"
+      ? (safeFileURLToPath(resolved) ?? (root ? resolved.href : source))
+      : source;
+  } catch {
+    return root ? (rootFallback ?? withTrailingSlash(root, true)) + source : source;
+  }
+}
+
+function resolvePrefixedPath(
+  prefix: string,
+  rootPath: string,
+  cleanSource: string,
+  rawSource: string
+): string {
+  const normalizedRoot = withTrailingSlash(rootPath.replace(/\\/g, "/").replace(/^\/+/, "/"));
+  try {
+    const resolved = new URL(
+      escapeURLPath(cleanSource.replace(/\\/g, "/")),
+      new URL(escapeURLPath(normalizedRoot), "file:///")
+    );
+    return resolved.protocol === "file:" && !resolved.hostname
+      ? prefix + decodeURIComponent(resolved.pathname)
+      : rawSource;
+  } catch {
+    return prefix + normalizedRoot + rawSource;
+  }
+}
+
+function withTrailingSlash(path: string, allowBackslash = false): string {
+  let end = path.length;
+  while (
+    end > 0 &&
+    (path.charCodeAt(end - 1) === 47 || (allowBackslash && path.charCodeAt(end - 1) === 92))
+  ) {
+    end--;
+  }
+  return path.slice(0, end) + "/";
+}
+
+function toBaseURL(url: string): URL {
+  const base = new URL(url);
+  base.search = "";
+  base.hash = "";
+  if (!base.pathname.endsWith("/")) {
+    base.pathname += "/";
+  }
+  return base;
+}
+
+function safeFileURLToPath(url: string | URL): string | undefined {
+  try {
+    return globalThis.process?.getBuiltinModule?.("node:url")?.fileURLToPath(url);
+  } catch {
+    return undefined;
+  }
+}
+
 // Sources may contain URL special chars (e.g. `#nitro/virtual/app`)
 function escapeURLPath(path: string): string {
-  return path.replace(/[%#?]/g, (c) => encodeURIComponent(c));
+  return path.replace(/[%#?\t\n\r]/g, (c) => encodeURIComponent(c));
 }
 
 function decodeDataURL(url: string): string {
