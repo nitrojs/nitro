@@ -31,10 +31,26 @@ export async function deploy(nitro: Nitro, opts: DeployOptions = {}): Promise<vo
 
   const cwd = nitro.options.rootDir;
   const command = [
-    deployCommand.replace(/(^|[\s:"'])\.\/(\S*)/g, `$1${relative(cwd, outputDir) || "."}/$2`),
+    rewriteDeployPaths(deployCommand, relative(cwd, outputDir) || "."),
     ...(opts.args || []),
   ].join(" ");
 
   consola.info(`$ ${command}`);
   execSync(command, { stdio: "inherit", cwd });
+}
+
+// `./` resolves to outputDir only where it is a standalone path argument. A
+// `./` inside quoted shell code (for example `require("./x")` in `node -e`)
+// keeps its working-directory meaning: the quote it follows did not open a
+// path argument, so it is left untouched.
+function rewriteDeployPaths(command: string, outputDir: string): string {
+  return command.replace(
+    /(^|[\s:"'])\.\/(\S*)/g,
+    (match, prefix: string, path: string, offset: number) => {
+      if ((prefix === '"' || prefix === "'") && offset > 0 && !/[\s:=]/.test(command[offset - 1])) {
+        return match;
+      }
+      return `${prefix}${outputDir}/${path}`;
+    }
+  );
 }
