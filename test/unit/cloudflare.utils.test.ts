@@ -236,10 +236,10 @@ describe("setupWranglerCommands", () => {
 
     // `./` resolves to `output.dir` in deploy commands and to `rootDir` in preview commands
     expect(nitro.options.commands.deploy).toBe(
-      "npx wrangler deploy --config ./server/wrangler.json"
+      'npx wrangler deploy --config "./server/wrangler.json"'
     );
     expect(nitro.options.commands.preview).toBe(
-      "npx wrangler dev --config .output/server/wrangler.json"
+      'npx wrangler dev --config ".output/server/wrangler.json"'
     );
   });
 

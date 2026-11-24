@@ -422,11 +422,11 @@ export function setupWranglerCommands(nitro: Nitro) {
   const commands = nitro.options.commands;
   // `./` resolves to `output.dir` when deploy commands run
   if (commands.deploy === "npx wrangler --cwd ./ deploy") {
-    commands.deploy = `npx wrangler deploy --config ./${relative(nitro.options.output.dir, configPath)}`;
+    commands.deploy = `npx wrangler deploy --config "./${relative(nitro.options.output.dir, configPath)}"`;
   }
   // preview commands run verbatim from `rootDir`
   if (commands.preview === "npx wrangler --cwd ./ dev") {
-    commands.preview = `npx wrangler dev --config ${relative(nitro.options.rootDir, configPath)}`;
+    commands.preview = `npx wrangler dev --config "${relative(nitro.options.rootDir, configPath)}"`;
   }
 }
 
