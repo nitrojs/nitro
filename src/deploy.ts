@@ -31,7 +31,7 @@ export async function deploy(nitro: Nitro, opts: DeployOptions = {}): Promise<vo
 
   const cwd = nitro.options.rootDir;
   const command = [
-    deployCommand.replace(/(^|[\s:])\.\/(\S*)/g, `$1${relative(cwd, outputDir) || "."}/$2`),
+    deployCommand.replace(/(^|[\s:"'])\.\/(\S*)/g, `$1${relative(cwd, outputDir) || "."}/$2`),
     ...(opts.args || []),
   ].join(" ");
 

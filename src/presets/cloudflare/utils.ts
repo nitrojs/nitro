@@ -426,7 +426,7 @@ export function setupWranglerCommands(nitro: Nitro) {
   }
   // preview commands run verbatim from `rootDir`
   if (commands.preview === "npx wrangler --cwd ./ dev") {
-    commands.preview = `npx wrangler dev --config "${relative(nitro.options.rootDir, configPath)}"`;
+    commands.preview = `npx wrangler dev --config ${relative(nitro.options.rootDir, configPath)}`;
   }
 }
 
