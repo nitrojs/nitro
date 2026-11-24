@@ -2,13 +2,13 @@ import type { Nitro } from "nitro/types";
 import type { WranglerConfig, CloudflarePagesRoutes } from "./types.ts";
 import { existsSync } from "node:fs";
 import { readFile, rename } from "node:fs/promises";
-import { relative, dirname, extname } from "node:path";
+import { dirname, extname } from "node:path";
 import { writeFile } from "../_utils/fs.ts";
 import { parseTOML, parseJSONC } from "confbox";
 import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";
 import { glob } from "tinyglobby";
-import { join, resolve } from "pathe";
+import { join, relative, resolve } from "pathe";
 import {
   joinURL,
   withLeadingSlash,
@@ -408,6 +408,26 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
     }),
     true
   );
+}
+
+// https://github.com/nitrojs/nitro/issues/5147
+// Point the deploy and preview commands at the generated `wrangler.json` instead of
+// relying on the `.wrangler/deploy/config.json` redirect, which is only applied next to
+// the user's own config and breaks when a parent directory provides one.
+export function setupWranglerCommands(nitro: Nitro) {
+  if (!nitro.options.cloudflare?.deployConfig) {
+    return;
+  }
+  const configPath = join(nitro.options.output.serverDir, "wrangler.json");
+  const commands = nitro.options.commands;
+  // `./` resolves to `output.dir` when deploy commands run
+  if (commands.deploy === "npx wrangler --cwd ./ deploy") {
+    commands.deploy = `npx wrangler deploy --config "./${relative(nitro.options.output.dir, configPath)}"`;
+  }
+  // preview commands run verbatim from `rootDir`
+  if (commands.preview === "npx wrangler --cwd ./ dev") {
+    commands.preview = `npx wrangler dev --config ${relative(nitro.options.rootDir, configPath)}`;
+  }
 }
 
 async function generateWorkerName(nitro: Nitro) {

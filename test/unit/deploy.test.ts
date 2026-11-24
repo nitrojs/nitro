@@ -61,6 +61,24 @@ describe("deploy", () => {
     );
   });
 
+  it("rewrites a quoted ./ path", async () => {
+    await deploy(mockNitro({ deploy: 'npx wrangler deploy --config "./server/wrangler.json"' }));
+    expect(execSyncMock).toHaveBeenCalledWith(
+      'npx wrangler deploy --config "dist/server-output/server/wrangler.json"',
+      { stdio: "inherit", cwd: rootDir }
+    );
+  });
+
+  it("does not rewrite ./ inside quoted shell code", async () => {
+    await deploy(
+      mockNitro({ deploy: `node -e 'require("./deploy.js")()' --config "./tool.json"` })
+    );
+    expect(execSyncMock).toHaveBeenCalledWith(
+      `node -e 'require("./deploy.js")()' --config "dist/server-output/tool.json"`,
+      { stdio: "inherit", cwd: rootDir }
+    );
+  });
+
   it("calls a function deploy command", async () => {
     const fn = vi.fn();
     const nitro = mockNitro({ deploy: fn });

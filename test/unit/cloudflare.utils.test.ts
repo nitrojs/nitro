@@ -1,13 +1,20 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "pathe";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { writeWranglerConfig } from "../../src/presets/cloudflare/utils.ts";
+import type { NitroConfig } from "nitro/types";
+import { setupWranglerCommands, writeWranglerConfig } from "../../src/presets/cloudflare/utils.ts";
+import cloudflarePresets from "../../src/presets/cloudflare/preset.ts";
+
+const moduleCommands = (
+  cloudflarePresets.find((preset) => preset._meta?.name === "cloudflare-module") as NitroConfig
+).commands!;
 
 function createNitroStub(
-  overrides: { static?: boolean; compatibilityDate?: string; wrangler?: Record<string, any> } = {}
+  overrides: { static?: boolean; compatibilityDate?: string; wrangler?: Record<string, any> } = {},
+  root = mkdtempSync(join(tmpdir(), "nitro-cf-wrangler-"))
 ) {
-  const root = mkdtempSync(join(tmpdir(), "nitro-cf-wrangler-"));
+  mkdirSync(root, { recursive: true });
   return {
     root,
     nitro: {
@@ -203,5 +210,58 @@ describe("writeWranglerConfig override warnings", () => {
     expect(nitro.logger.warn).toHaveBeenCalledWith(
       "[cloudflare] Wrangler config `main` set by config or modules is overridden and will be ignored."
     );
+  });
+});
+
+describe("setupWranglerCommands", () => {
+  let cleanup: string[] = [];
+  beforeEach(() => {
+    cleanup = [];
+  });
+  afterEach(() => {
+    for (const dir of cleanup) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // https://github.com/nitrojs/nitro/issues/5147
+  it("points deploy and preview at the generated config when a parent dir has a wrangler config", () => {
+    const parent = mkdtempSync(join(tmpdir(), "nitro-cf-parent-"));
+    cleanup.push(parent);
+    writeFileSync(join(parent, "wrangler.json"), JSON.stringify({ name: "other-worker" }));
+    const { nitro } = createNitroStub({}, join(parent, "apps/web"));
+    nitro.options.commands = { ...moduleCommands };
+
+    setupWranglerCommands(nitro);
+
+    // `./` resolves to `output.dir` in deploy commands and to `rootDir` in preview commands
+    expect(nitro.options.commands.deploy).toBe(
+      'npx wrangler deploy --config "./server/wrangler.json"'
+    );
+    expect(nitro.options.commands.preview).toBe(
+      "npx wrangler dev --config .output/server/wrangler.json"
+    );
+  });
+
+  it("keeps the `--cwd` commands when `deployConfig` is disabled", () => {
+    const { nitro } = createNitroStub();
+    nitro.options.commands = { ...moduleCommands };
+    nitro.options.cloudflare.deployConfig = false;
+
+    setupWranglerCommands(nitro);
+
+    expect(nitro.options.commands).toEqual(moduleCommands);
+  });
+
+  it("keeps user provided commands", () => {
+    const { nitro } = createNitroStub();
+    nitro.options.commands = { deploy: "custom deploy", preview: "custom preview" };
+
+    setupWranglerCommands(nitro);
+
+    expect(nitro.options.commands).toEqual({
+      deploy: "custom deploy",
+      preview: "custom preview",
+    });
   });
 });
