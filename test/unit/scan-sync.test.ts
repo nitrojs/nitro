@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "pathe";
+import { createHooks } from "hookable";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { scanAndSyncOptions, scanHandlers } from "../../src/scan.ts";
 import type { Nitro, NitroConfig } from "nitro/types";
@@ -38,6 +39,7 @@ function createNitro(options: Partial<NitroConfig> = {}) {
       experimental: { tasks: true, ...options.experimental },
     },
     logger: console,
+    hooks: createHooks(),
     routing: { sync: () => {} },
   } as unknown as Nitro;
 }
