@@ -13,7 +13,9 @@ export default function kv(nitro: Nitro) {
       const driverImports = [...new Set(mounts.map((m) => m.driver))];
 
       const tracingEnabled = !!(
-        typeof nitro.options.tracingChannel === "object" && nitro.options.tracingChannel?.unstorage
+        (typeof nitro.options.tracingChannel === "object" &&
+          nitro.options.tracingChannel?.unstorage) ||
+        (nitro.options.serverTiming && nitro.options.serverTiming.kv)
       );
 
       return /* js */ `

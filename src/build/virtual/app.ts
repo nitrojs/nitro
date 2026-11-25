@@ -21,6 +21,7 @@ export default function app(nitro: Nitro) {
       const allowMethods = [...routeMethods].sort();
       const hasMethodRoutes = allowMethods.length > 0;
       const hasWebSocketRoutes = nitro.routing.webSocketRoutes.hasRoutes();
+      const serverTiming = nitro.options.serverTiming;
 
       const routingImports = [
         hasRoutes && "findRoute",
@@ -36,6 +37,10 @@ export default function app(nitro: Nitro) {
         `import { H3Core } from "h3";`,
         `import errorHandler from "#nitro/virtual/error-handler";`
       );
+
+      if (serverTiming) {
+        imports.push(`import { withServerTimingContext } from "#nitro/runtime/server-timing";`);
+      }
 
       // --- createNitroApp() ---
 
@@ -100,6 +105,17 @@ export default function app(nitro: Nitro) {
         `    return h3App.fetch(req);`,
         `  };`
       );
+
+      if (serverTiming) {
+        // Reuse the Nitro async context (wrapped around it below) to find the current request.
+        const getRequest = hasAsyncContext
+          ? `, getRequest: () => nitroAsyncContext.tryUse()?.request`
+          : "";
+        code.push(
+          ``,
+          `  appHandler = withServerTimingContext(appHandler, { metrics: ${JSON.stringify(serverTiming)}${getRequest} });`
+        );
+      }
 
       if (hasAsyncContext) {
         imports.push(`import { nitroAsyncContext } from "#nitro/runtime/context";`);
