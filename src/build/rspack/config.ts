@@ -116,8 +116,17 @@ export async function getRspackConfig(
     },
     module: {
       parser: {
-        // `import.meta.*` replacements are applied by Nitro, others are kept as is (runtime values)
-        javascript: { importMeta: false, url: !!nitro.options.node, worker: false },
+        // `import.meta.*` replacements are applied by Nitro, others are kept as is (runtime values).
+        // A static `import("./mod")` is still parsed, so chunks and lazy handlers keep splitting.
+        // Every other `import()` stays native (`import(expr)`, `import(\`./dir/${name}.js\`)`), as with
+        // rolldown and rollup. An unknown request would otherwise compile to
+        // `__rspack_empty_async_context` and reject every call.
+        javascript: {
+          importMeta: false,
+          url: !!nitro.options.node,
+          worker: false,
+          importDynamic: false,
+        },
       },
       rules: [
         { test: /\.[cm]?[jt]sx?$/, resolve: { fullySpecified: false } },
