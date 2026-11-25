@@ -48,7 +48,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
       }
       continue;
     }
-    if (!isTest && !isCI) console.log();
+    if (!isTest && !isCI && nitro.options.logLevel > 2) console.log();
     nitro.logger.start(`Building [${fmtName}]`);
     await builder.build(env);
   }
@@ -78,7 +78,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   // Stage 2: Build Nitro
   // ----------------------------------------------
 
-  if (!isTest && !isCI) console.log();
+  if (!isTest && !isCI && nitro.options.logLevel > 2) console.log();
   const buildInfo = [
     ["preset", nitro.options.preset],
     ["compatibility", formatCompatibilityDate(nitro.options.compatibilityDate)],
@@ -132,7 +132,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   await writeBuildInfo(nitro, output);
 
   // Show deploy and preview commands
-  if (!isTest && !isCI) console.log();
+  if (!isTest && !isCI && nitro.options.logLevel > 2) console.log();
   const previewCommand = nitro.options.framework.previewCommand || "npx vite preview";
   nitro.logger.success(`You can preview this build using \`${previewCommand}\``);
   if (nitro.options.commands.deploy) {
