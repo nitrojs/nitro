@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "pathe";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Nitro, NitroConfig } from "nitro/types";
 import { addClientAssetsDir } from "../../src/build/assets.ts";
 import { createNitro } from "../../src/nitro.ts";
@@ -131,5 +131,19 @@ describe("nitro.updateConfig", () => {
     });
     await nitro.updateConfig({});
     expect(reloaded).toBe(true);
+  });
+
+  it("logs config hot reload in dev", async () => {
+    const nitro = await setup({ dev: true });
+    const success = vi.spyOn(nitro.logger, "success");
+    await nitro.updateConfig({});
+    expect(success).toHaveBeenCalledWith("Nitro config hot reloaded!");
+  });
+
+  it("does not log config hot reload in build", async () => {
+    const nitro = await setup();
+    const success = vi.spyOn(nitro.logger, "success");
+    await nitro.updateConfig({});
+    expect(success).not.toHaveBeenCalled();
   });
 });
