@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import type { Context as FunctionContext } from "@netlify/functions";
 import { execa, execaSync } from "execa";
 import { join, resolve } from "pathe";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Nitro } from "nitro/types";
 import {
   generateNetlifyEdgeFunction,
@@ -177,6 +177,18 @@ describe("nitro:preset:netlify", async () => {
         );
       });
 
+      it("forwards event.waitUntil to the Netlify context", async () => {
+        const { default: handler } = (await import(resolve(ctx.outDir, "server/main.mjs"))) as {
+          default: (req: Request, ctx: FunctionContext) => Promise<Response>;
+        };
+        const waitUntil = vi.fn();
+        const res = await handler(new Request("https://example.com/wait-until"), {
+          waitUntil,
+        } as unknown as FunctionContext);
+        expect(await res.text()).toBe("done");
+        expect(waitUntil).toHaveBeenCalledWith(expect.any(Promise));
+      });
+
       // https://github.com/nitrojs/nitro/issues/5035
       // Missing public assets now reach the function, which opts them out of
       // the immutable `cache-control` route rule of the asset dir.
@@ -298,5 +310,20 @@ describe("nitro:preset:netlify-edge", async () => {
       { cwd: ctx.nitro!.options.output.serverDir }
     );
     expect(stdout).toBe("ok");
+  });
+
+  it.runIf(hasDeno)("forwards event.waitUntil to the Netlify context", async () => {
+    const { stdout } = await execa(
+      "deno",
+      [
+        "eval",
+        `const { default: handler } = await import("./server.mjs");
+        let calls = 0;
+        const res = await handler(new Request("http://localhost/wait-until"), { waitUntil: () => calls++ });
+        console.log(await res.text(), calls);`,
+      ],
+      { cwd: ctx.nitro!.options.output.serverDir }
+    );
+    expect(stdout).toBe("done 1");
   });
 });
