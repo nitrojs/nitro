@@ -1,5 +1,6 @@
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import mime from "mime";
+import { stripSourceExtension } from "./source-extensions.ts";
 
 // prettier-ignore
 const methodSuffixes = new Set(["connect", "delete", "get", "head", "options", "patch", "post", "put", "query", "trace", "ws"]);
@@ -36,7 +37,7 @@ export function parseScanPath(
   file: { dir: string; path: string },
   opts: ScanSuffixOptions = {}
 ): ParsedScanPath | undefined {
-  const result: ParsedScanPath = { name: file.path.replace(/\.[A-Za-z]+$/, "") };
+  const result: ParsedScanPath = { name: stripSourceExtension(file.path, nitro.options) };
 
   const env = result.name.match(lastSuffixRe)?.[1];
   if (opts.env && env && envSuffixes.has(env)) {

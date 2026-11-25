@@ -575,6 +575,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/api\\/db\\/?$",
               },
               {
+                "dest": "/api/civet",
+                "src": "^\\/api\\/civet\\/?$",
+              },
+              {
                 "dest": "/api/catch-all/[...slug]",
                 "src": "^\\/api\\/catch-all(?:\\/(?<slug>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
               },
@@ -821,6 +825,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/catch-all-index.func (symlink)",
             "functions/api/catch-all-index/[...slug].func (symlink)",
             "functions/api/catch-all/[...slug].func (symlink)",
+            "functions/api/civet.func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func",
             "functions/api/headers.func (symlink)",

@@ -4,21 +4,11 @@ import { join, relative } from "pathe";
 import { withBase, withLeadingSlash, withoutTrailingSlash } from "ufo";
 import { parseScanPath } from "./utils/scan-suffix.ts";
 import type { ParsedScanPath, ScanSuffixOptions } from "./utils/scan-suffix.ts";
-
-export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
-
-// Co-located tests and type declarations are never registered.
-const GLOB_SCAN_IGNORE = [
-  "**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,tsx,jsx}",
-  "**/*.d.{ts,mts,cts}",
-];
-
-// Modules are only auto-registered from `modules/*` and `modules/*/index` (any supported
-// extension) so that a module's own nested files are not registered as modules themselves.
-const GLOB_MODULES_SCAN_PATTERN = [
-  "*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}",
-  "*/index.{js,mjs,cjs,ts,mts,cts,tsx,jsx}",
-];
+import {
+  getScanPattern,
+  getSourceExtensions,
+  stripSourceExtension,
+} from "./utils/source-extensions.ts";
 type FileInfo = { path: string; fullPath: string };
 
 const pluginScans = new WeakMap<Nitro, { scanned: Set<string>; added: Set<string> }>();
@@ -202,16 +192,16 @@ export async function scanPlugins(nitro: Nitro) {
 export async function scanTasks(nitro: Nitro) {
   const files = await scanFiles(nitro, "tasks");
   return files.map((f) => {
-    const name = f.path
-      .replace(/\/index$/, "")
-      .replace(/\.[A-Za-z]+$/, "")
-      .replace(/\//g, ":");
+    const name = stripSourceExtension(f.path.replace(/\/index$/, ""), nitro.options).replace(
+      /\//g,
+      ":"
+    );
     return { name, handler: f.fullPath };
   });
 }
 
 export async function scanModules(nitro: Nitro) {
-  const files = await scanFiles(nitro, "modules", { pattern: GLOB_MODULES_SCAN_PATTERN });
+  const files = await scanFiles(nitro, "modules", { pattern: getModulesScanPattern(nitro) });
   return files.map((f) => f.fullPath);
 }
 
@@ -222,7 +212,7 @@ async function scanFiles(
 ): Promise<(FileInfo & ParsedScanPath)[]> {
   const files = await Promise.all(
     nitro.options.scanDirs.map((dir) =>
-      scanDir(nitro, dir, name, opts.pattern || GLOB_SCAN_PATTERN)
+      scanDir(nitro, dir, name, opts.pattern || getScanPattern(nitro.options))
     )
   ).then((r) => r.flat());
   return files.flatMap((file) => {
@@ -241,7 +231,7 @@ async function scanDir(
   const fileNames = await glob(patterns, {
     cwd: dir,
     dot: true,
-    ignore: [...GLOB_SCAN_IGNORE, ...(nitro.options.ignore || [])],
+    ignore: [...getScanIgnore(nitro), ...(nitro.options.ignore || [])],
     absolute: true,
   }).catch((error) => {
     if (error?.code === "ENOTDIR") {
@@ -258,4 +248,24 @@ async function scanDir(
       };
     })
     .sort((a, b) => a.path.localeCompare(b.path));
+}
+
+// Co-located tests and type declarations are never registered.
+function getScanIgnore(nitro: Nitro): string[] {
+  const extensions = getSourceExtensionGlob(nitro);
+  return [`**/*.{test,spec}.${extensions}`, "**/*.d.{ts,mts,cts}"];
+}
+
+// Modules are only auto-registered from `modules/*` and `modules/*/index` (any supported
+// extension) so that a module's own nested files are not registered as modules themselves.
+function getModulesScanPattern(nitro: Nitro): string[] {
+  const extensions = getSourceExtensionGlob(nitro);
+  return [`*.${extensions}`, `*/index.${extensions}`];
+}
+
+function getSourceExtensionGlob(nitro: Nitro): string {
+  const extensions = getSourceExtensions(nitro.options)
+    .map((extension) => extension.slice(1))
+    .join(",");
+  return `{${extensions}}`;
 }

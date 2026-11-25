@@ -4,6 +4,7 @@ import { defu } from "defu";
 import { basename, join, resolve } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
+import { getSourceExtensionPattern } from "../../utils/source-extensions.ts";
 import { createWatcher } from "../../utils/watch.ts";
 import { formatRollupError } from "./error.ts";
 import { formatCompatibilityDate } from "compatx";
@@ -43,7 +44,8 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
     }
   });
 
-  const serverEntryRe = /^server\.[mc]?[jt]sx?$/;
+  const sourceExtensionPattern = getSourceExtensionPattern(nitro.options);
+  const serverEntryRe = new RegExp(String.raw`^server(?:\.node)?\.(?:${sourceExtensionPattern})$`);
   const rootDirWatcher = createWatcher(nitro, nitro.options.rootDir, {
     ignoreInitial: true,
     depth: 0,
