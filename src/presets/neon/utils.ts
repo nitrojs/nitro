@@ -35,9 +35,12 @@ export async function writeNeonOutput(nitro: Nitro) {
     }
   }
 
-  // Neon Functions load `index.mjs` from the root of the deployed directory.
+  // Neon Functions load `index.mjs` from the root of the deployed directory. When the server
+  // entry is already there, it is the handler itself.
   const entry = relative(dir, resolve(serverDir, "index.mjs"));
-  await writeFile(resolve(dir, "index.mjs"), `export { default } from "./${entry}";\n`);
+  if (entry !== "index.mjs") {
+    await writeFile(resolve(dir, "index.mjs"), `export { default } from "./${entry}";\n`);
+  }
 
   const triggers = Object.entries(nitro.options.scheduledTasks || {}).map(([cron, tasks]) => {
     if (!/^(\S+\s+){4}\S+$/.test(cron.trim()) || /[a-z@?#]/i.test(cron)) {

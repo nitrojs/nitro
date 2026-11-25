@@ -1,9 +1,10 @@
 import "#nitro/virtual/polyfills";
 import type { ServerRequest } from "srvx";
 
-import { useNitroApp, useNitroHooks } from "nitro/app";
+import { useNitroApp } from "nitro/app";
 import { runCronTasks } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
+import { shutdownNitro } from "./_shutdown.ts";
 
 declare global {
   // Published by the Neon Functions runtime for each invocation.
@@ -17,21 +18,8 @@ const nitroApp = useNitroApp();
 trapUnhandledErrors();
 
 // Neon sends `SIGINT` before stopping an isolate, and stops it 5 seconds later.
-let shuttingDown = false;
 process.once("SIGINT", async () => {
-  if (shuttingDown) {
-    return;
-  }
-  shuttingDown = true;
-  try {
-    await useNitroHooks().callHook("shutdown", {
-      waitUntil: () => {},
-      signal: AbortSignal.timeout(4500),
-    });
-    await useNitroHooks().callHook("close");
-  } catch (error) {
-    console.error("[nitro] Error while shutting down:", error);
-  }
+  await shutdownNitro({ timeout: 4000 });
   process.exit(0);
 });
 
