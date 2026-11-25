@@ -47,8 +47,10 @@ export function trackResponse(response: Response): Response {
       }
     },
     cancel(reason) {
+      // Resolves once the source stream finished its own cancellation cleanup.
+      const cancelled = trackInflight(reader.cancel(reason));
       settle();
-      return reader.cancel(reason);
+      return cancelled;
     },
   });
   return new Response(tracked, {

@@ -134,6 +134,26 @@ describe("neon shutdownNitro", () => {
     expect(hooks.close).toHaveBeenCalledOnce();
   });
 
+  it("waits for the source stream to finish cancelling", async () => {
+    const events: string[] = [];
+    hooks.close.mockImplementationOnce(() => {
+      events.push("close");
+    });
+    const source = new ReadableStream({
+      async cancel() {
+        await sleep(50);
+        events.push("cancel cleanup");
+      },
+    });
+    const response = trackResponse(new Response(source));
+
+    const cancelled = response.body!.cancel();
+    await shutdownNitro({ timeout: 1000 });
+    await cancelled;
+
+    expect(events).toEqual(["cancel cleanup", "close"]);
+  });
+
   it("stops tracking a response body that fails", async () => {
     const failing = new ReadableStream({
       pull(controller) {
