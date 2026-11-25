@@ -1184,7 +1184,8 @@ export function testNitro(
       !ctx.nitro!.options.node ||
       ctx.isLambda ||
       ctx.isWorker ||
-      ["bun", "deno-server", "netlify", "netlify-legacy"].includes(ctx.preset)
+      // `neon` defaults to the branch Postgres injected by Neon Functions
+      ["bun", "deno-server", "netlify", "netlify-legacy", "neon"].includes(ctx.preset)
   )("Database", () => {
     it("works", async () => {
       const { data } = await callHandler({ url: "/api/db" });
