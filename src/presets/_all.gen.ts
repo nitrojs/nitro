@@ -18,6 +18,7 @@ import _genezio from "./genezio/preset.ts";
 import _heroku from "./heroku/preset.ts";
 import _iis from "./iis/preset.ts";
 import _koyeb from "./koyeb/preset.ts";
+import _neon from "./neon/preset.ts";
 import _netlify from "./netlify/preset.ts";
 import _node from "./node/preset.ts";
 import _renderCom from "./render.com/preset.ts";
@@ -48,6 +49,7 @@ export default [
   ..._heroku,
   ..._iis,
   ..._koyeb,
+  ..._neon,
   ..._netlify,
   ..._node,
   ..._renderCom,
