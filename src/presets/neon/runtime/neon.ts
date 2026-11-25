@@ -4,7 +4,7 @@ import type { ServerRequest } from "srvx";
 import { useNitroApp } from "nitro/app";
 import { runCronTasks } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
-import { shutdownNitro, trackInflight } from "./_shutdown.ts";
+import { shutdownNitro, trackInflight, trackResponse } from "./_shutdown.ts";
 
 declare global {
   // Published by the Neon Functions runtime for each invocation.
@@ -25,7 +25,7 @@ process.once("SIGINT", async () => {
 
 export default {
   fetch(req: ServerRequest): Promise<Response> {
-    return trackInflight(handleRequest(req));
+    return trackInflight(handleRequest(req).then(trackResponse));
   },
 };
 

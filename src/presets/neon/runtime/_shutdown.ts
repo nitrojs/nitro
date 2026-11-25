@@ -20,6 +20,45 @@ export function trackInflight<T>(promise: Promise<T>): Promise<T> {
 }
 
 /**
+ * Keep a shutdown pending until the response body is fully sent, cancelled or failed. The body
+ * is read one chunk at a time as the client pulls it, so it is never buffered.
+ */
+export function trackResponse(response: Response): Response {
+  const body = response.body;
+  if (!body) {
+    return response;
+  }
+  let settle!: () => void;
+  trackInflight(new Promise<void>((resolve) => (settle = resolve)));
+  const reader = body.getReader();
+  const tracked = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        if (done) {
+          settle();
+          controller.close();
+        } else {
+          controller.enqueue(value);
+        }
+      } catch (error) {
+        settle();
+        controller.error(error);
+      }
+    },
+    cancel(reason) {
+      settle();
+      return reader.cancel(reason);
+    },
+  });
+  return new Response(tracked, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+}
+
+/**
  * Call the Nitro `shutdown` hooks, then wait for in-flight requests and the work registered
  * with `waitUntil` for up to `timeout` milliseconds, then call the `close` hooks.
  *
