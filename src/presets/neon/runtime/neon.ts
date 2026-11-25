@@ -4,7 +4,7 @@ import type { ServerRequest } from "srvx";
 import { useNitroApp } from "nitro/app";
 import { runCronTasks } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
-import { shutdownNitro } from "./_shutdown.ts";
+import { shutdownNitro, trackInflight } from "./_shutdown.ts";
 
 declare global {
   // Published by the Neon Functions runtime for each invocation.
@@ -24,24 +24,30 @@ process.once("SIGINT", async () => {
 });
 
 export default {
-  async fetch(req: ServerRequest): Promise<Response> {
-    const context = globalThis.NEON_REQUEST_CONTEXT;
-    req.runtime ??= { name: "neon" } as ServerRequest["runtime"];
-    if (!req.waitUntil && context?.waitUntil) {
-      req.waitUntil = (promise) => context.waitUntil!(Promise.resolve(promise));
-    }
-    req.ip ??= req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
-
-    if (import.meta._tasks && req.method === "POST") {
-      const { pathname } = new URL(req.url);
-      if (pathname.startsWith(CRON_PATH_PREFIX)) {
-        return runScheduledTrigger(req, pathname.slice(CRON_PATH_PREFIX.length));
-      }
-    }
-
-    return nitroApp.fetch(req);
+  fetch(req: ServerRequest): Promise<Response> {
+    return trackInflight(handleRequest(req));
   },
 };
+
+async function handleRequest(req: ServerRequest): Promise<Response> {
+  const context = globalThis.NEON_REQUEST_CONTEXT;
+  req.runtime ??= { name: "neon" } as ServerRequest["runtime"];
+  if (!req.waitUntil && context?.waitUntil) {
+    req.waitUntil = (promise) => {
+      context.waitUntil!(trackInflight(Promise.resolve(promise)));
+    };
+  }
+  req.ip ??= req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
+
+  if (import.meta._tasks && req.method === "POST") {
+    const { pathname } = new URL(req.url);
+    if (pathname.startsWith(CRON_PATH_PREFIX)) {
+      return runScheduledTrigger(req, pathname.slice(CRON_PATH_PREFIX.length));
+    }
+  }
+
+  return nitroApp.fetch(req);
+}
 
 async function runScheduledTrigger(req: ServerRequest, encodedCron: string): Promise<Response> {
   // Neon strips client-set `X-Neon-*` headers, so this one comes from a trigger delivery.

@@ -1,9 +1,27 @@
 import type { NitroShutdownContext } from "nitro/types";
 import { useNitroHooks } from "nitro/app";
 
+const inflight = new Set<Promise<void>>();
+let shutdownWaitUntil: NitroShutdownContext["waitUntil"] | undefined;
+
 /**
- * Call the Nitro `shutdown` hooks, wait for the work they register with `waitUntil` for up to
- * `timeout` milliseconds, then call the `close` hooks.
+ * Keep a shutdown pending until `promise` settles: use it for requests and for the work they
+ * register with `waitUntil`.
+ */
+export function trackInflight<T>(promise: Promise<T>): Promise<T> {
+  const settled = promise.then(
+    () => {},
+    () => {}
+  );
+  inflight.add(settled);
+  settled.finally(() => inflight.delete(settled));
+  shutdownWaitUntil?.(settled);
+  return promise;
+}
+
+/**
+ * Call the Nitro `shutdown` hooks, then wait for in-flight requests and the work registered
+ * with `waitUntil` for up to `timeout` milliseconds, then call the `close` hooks.
  *
  * Neon sends `SIGINT` before stopping an isolate and stops it 5 seconds later, so the timeout
  * leaves time for the `close` hooks within that window.
@@ -37,6 +55,10 @@ function callShutdownHooks(timeout: number): Promise<void> {
           }
         });
     };
+    shutdownWaitUntil = waitUntil;
+    for (const promise of inflight) {
+      waitUntil(promise);
+    }
     waitUntil(
       Promise.resolve(
         useNitroHooks().callHook("shutdown", { waitUntil, signal: controller.signal })

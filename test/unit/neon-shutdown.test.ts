@@ -9,7 +9,8 @@ vi.mock("nitro/app", () => ({
   }),
 }));
 
-const { shutdownNitro } = await import("../../src/presets/neon/runtime/_shutdown.ts");
+const { shutdownNitro, trackInflight } =
+  await import("../../src/presets/neon/runtime/_shutdown.ts");
 
 describe("neon shutdownNitro", () => {
   beforeEach(() => {
@@ -52,6 +53,55 @@ describe("neon shutdownNitro", () => {
     await done;
 
     expect(signal.aborted).toBe(true);
+    expect(hooks.close).toHaveBeenCalledOnce();
+  });
+
+  it("waits for in-flight requests before calling `close` hooks", async () => {
+    const events: string[] = [];
+    hooks.close.mockImplementationOnce(() => {
+      events.push("close");
+    });
+    trackInflight(sleep(50).then(() => events.push("response")));
+
+    await shutdownNitro({ timeout: 1000 });
+
+    expect(events).toEqual(["response", "close"]);
+  });
+
+  it("waits for requests and `waitUntil` work that start during shutdown", async () => {
+    const events: string[] = [];
+    hooks.shutdown.mockImplementationOnce(() => {
+      trackInflight(sleep(50).then(() => events.push("late request")));
+    });
+    hooks.close.mockImplementationOnce(() => {
+      events.push("close");
+    });
+
+    await shutdownNitro({ timeout: 1000 });
+
+    expect(events).toEqual(["late request", "close"]);
+  });
+
+  it("stops waiting for in-flight requests at the timeout", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    let release!: () => void;
+    trackInflight(new Promise<void>((resolve) => (release = resolve)));
+
+    const done = shutdownNitro({ timeout: 4000 });
+    await vi.advanceTimersByTimeAsync(4000);
+    await done;
+
+    expect(hooks.close).toHaveBeenCalledOnce();
+    release();
+  });
+
+  it("does not fail the shutdown when a request rejects", async () => {
+    const rejected = Promise.reject(new Error("request failed"));
+    trackInflight(rejected).catch(() => {});
+
+    await shutdownNitro({ timeout: 1000 });
+
     expect(hooks.close).toHaveBeenCalledOnce();
   });
 
