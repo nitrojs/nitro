@@ -147,6 +147,8 @@ export async function scanHandlers(nitro: Nitro) {
 
   nitro.routing.sync();
 
+  await nitro.hooks.callHook("scan:resolved", nitro);
+
   return handlers;
 }
 

@@ -7,6 +7,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { build, createDevServer, createNitro, prepare } from "../../src/builder.ts";
 import { publicAssetCase, scanDirCases, writeFiles } from "./_scan-dirs.ts";
 import type { Fetch, ScanDirCase } from "./_scan-dirs.ts";
+import { scanResolvedRecorder } from "./_scan-resolved.ts";
 
 const tmpDirs: string[] = [];
 afterAll(() => {
@@ -82,6 +83,7 @@ async function runCase(c: ScanDirCase, opts: { watchCwd?: boolean } = {}) {
     ...(c.existing && { [c.file]: c.contents }),
   });
 
+  const recorder = scanResolvedRecorder();
   const nitro = await createNitro({
     rootDir,
     serverDir: ".",
@@ -92,7 +94,9 @@ async function runCase(c: ScanDirCase, opts: { watchCwd?: boolean } = {}) {
     logLevel: 0,
     experimental: { tasks: true },
     watchOptions: opts.watchCwd ? { cwd: rootDir } : undefined,
+    modules: [recorder.module],
   });
+  expect(recorder.calls).toEqual([recorder.current()]);
   const server = await createDevServer(nitro).listen({ port: 0 });
   const fetchPath: Fetch = (path) => fetch(new URL(path, server.url));
 
@@ -133,6 +137,7 @@ async function runCase(c: ScanDirCase, opts: { watchCwd?: boolean } = {}) {
       }
     }
     expect(state).toEqual(expected);
+    expectScanResolved(expected === c.added);
     expect(lingeringErrors).toEqual([]);
     // TODO: the rolldown and rollup watchers build stale virtual modules before the scan dirs
     // watcher reloads
@@ -140,6 +145,18 @@ async function runCase(c: ScanDirCase, opts: { watchCwd?: boolean } = {}) {
       expect(errors).toEqual([]);
     }
     errors = [];
+  };
+
+  const handlerDir = ["routes", "api", "middleware"].includes(c.dir);
+  const expectScanResolved = (added: boolean) => {
+    const last = recorder.calls.at(-1)!;
+    expect(last).toEqual(recorder.current());
+    if (handlerDir) {
+      expect(last.handlers.some((h) => h.endsWith(`/${c.file}`))).toBe(added);
+    }
+    for (const call of recorder.calls) {
+      expect(call.routed).toEqual(call.scanned);
+    }
   };
 
   try {

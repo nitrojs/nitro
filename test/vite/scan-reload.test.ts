@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { nitro } from "../../src/vite.ts";
 import { publicAssetCase, scanDirCases, writeFiles } from "../unit/_scan-dirs.ts";
 import type { Fetch } from "../unit/_scan-dirs.ts";
+import { scanResolvedRecorder } from "../unit/_scan-resolved.ts";
 
 const { createServer } = (await import(
   process.env.NITRO_VITE_PKG || "vite"
@@ -17,6 +18,7 @@ describe("vite: scan dirs reload", { concurrent: false }, () => {
   let fetchPath: Fetch;
   const tmpDir = fileURLToPath(new URL(".tmp", import.meta.url));
   let rootDir: string;
+  const recorder = scanResolvedRecorder();
 
   beforeAll(async () => {
     mkdirSync(tmpDir, { recursive: true });
@@ -32,7 +34,14 @@ describe("vite: scan dirs reload", { concurrent: false }, () => {
       root: rootDir,
       configFile: false,
       logLevel: "warn",
-      plugins: [nitro({ serverDir: "./", scanDirs: ["layer"], experimental: { tasks: true } })],
+      plugins: [
+        nitro({
+          serverDir: "./",
+          scanDirs: ["layer"],
+          experimental: { tasks: true },
+          modules: [recorder.module],
+        }),
+      ],
     });
     await server.listen("0" as unknown as number);
     const addr = server.httpServer?.address() as { port: number; address: string; family: string };
@@ -54,6 +63,15 @@ describe("vite: scan dirs reload", { concurrent: false }, () => {
         state = await c.observe(fetchPath);
       }
       expect(state).toEqual(expected);
+
+      const last = recorder.calls.at(-1)!;
+      expect(last).toEqual(recorder.current());
+      if (["routes", "api", "middleware"].includes(c.dir)) {
+        expect(last.handlers.some((h) => h.endsWith(`/${c.file}`))).toBe(expected === c.added);
+      }
+      for (const call of recorder.calls) {
+        expect(call.routed).toEqual(call.scanned);
+      }
     };
 
     if (c.existing) {

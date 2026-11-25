@@ -7,6 +7,14 @@ import type { NitroBuildConfig, RollupConfig } from "./build.ts";
 type HookResult = void | Promise<void>;
 
 export interface NitroHooks {
+  /**
+   * Called after each scan of the scan dirs: on startup, on rescans before bundling, and in
+   * development when files are added to or removed from the scan dirs.
+   *
+   * `nitro.scannedHandlers` and `nitro.routing` hold the final result. Read them to derive
+   * artifacts such as route types or manifests. Changing them in this hook is not supported.
+   */
+  "scan:resolved": (nitro: Nitro) => HookResult;
   "build:before": (nitro: Nitro) => HookResult;
   /**
    * Called after the bundler config is resolved, right before bundling. Last chance to modify it.
