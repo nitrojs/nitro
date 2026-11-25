@@ -31,6 +31,7 @@ describe(`scan:resolved hook (${builder})`, () => {
       expect(recorder.calls).toEqual([recorder.current()]);
       await prepare(nitro);
       await build(nitro);
+      expect(recorder.calls.length).toBeGreaterThan(1);
       expect(recorder.calls.at(-1)).toEqual(recorder.current());
       expect(recorder.calls.at(-1)?.scanned).toEqual(["/ *"]);
       expect(recorder.calls.at(-1)?.routed).toEqual(["/ *"]);
