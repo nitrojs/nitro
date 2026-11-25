@@ -11,7 +11,9 @@ function getRuntimeConfig() {
   applyEnv(runtimeConfig, {
     prefix: "NITRO_",
     altPrefix: runtimeConfig.nitro?.envPrefix ?? env?.NITRO_ENV_PREFIX ?? "_",
-    envExpansion: Boolean(runtimeConfig.nitro?.envExpansion ?? env?.NITRO_ENV_EXPANSION ?? false),
+    envExpansion: Boolean(
+      runtimeConfig.nitro?.envExpansion ?? _toBoolean(env?.NITRO_ENV_EXPANSION)
+    ),
   });
   return runtimeConfig;
 }
@@ -74,4 +76,8 @@ function getEnv(key: string, opts: EnvOptions) {
 
 function _isObject(input: unknown) {
   return input !== null && typeof input === "object" && !Array.isArray(input);
+}
+
+function _toBoolean(value: string | undefined) {
+  return !!value && value !== "false" && value !== "0";
 }
