@@ -16,7 +16,7 @@ export function resolveServeOptions(opts: ServerOptions): ServerOptions {
   const { port, hostname, tls, ...entryOptions } = serverEntryOptions;
 
   const env: Record<string, string | undefined> = globalThis.process?.env || {};
-  const _parsedPort = Number.parseInt(env.NITRO_PORT ?? env.PORT ?? "");
+  const _parsedPort = Number.parseInt(env.NITRO_PORT || env.PORT || "");
   const cert = env.NITRO_SSL_CERT;
   const key = env.NITRO_SSL_KEY;
   const socketPath = env.NITRO_UNIX_SOCKET;
