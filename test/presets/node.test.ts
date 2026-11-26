@@ -282,6 +282,8 @@ function upgradeStatus(port: number, path: string): Promise<number> {
       host: "127.0.0.1",
       port,
       path,
+      // The server closes the connection after a non-101 response, without `connection: close`
+      agent: false,
       headers: {
         connection: "Upgrade",
         upgrade: "websocket",
