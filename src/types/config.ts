@@ -554,6 +554,16 @@ export interface NitroOptions extends PresetOptions {
   compressPublicAssets: boolean | CompressOptions;
 
   /**
+   * Keep file modification times in the bundled public and server asset metadata.
+   *
+   * Set to `false` to leave them out, so the asset metadata stays the same between builds of the same source.
+   * The `serveStatic` handler then sends public assets without `Last-Modified` and revalidates them by `ETag`.
+   *
+   * @see https://nitro.build/config/assets#assetsmtime
+   */
+  assetsMtime: boolean;
+
+  /**
    * Glob patterns to ignore when scanning directories.
    *
    * @see https://nitro.build/config/directories#ignore

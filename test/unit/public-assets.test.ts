@@ -301,4 +301,31 @@ describe("public assets manifest", () => {
       Object.keys(JSON.parse(code.replace(/^export default |;$/g, "")));
     expect(keys(await template())).toEqual(names.map((name) => `/${name}`));
   });
+
+  it("leaves mtime out with `assetsMtime: false`", async () => {
+    const outDir = await mkdtemp(join(tmpdir(), "nitro-public-assets-"));
+    tempDirs.push(outDir);
+    const publicDir = join(outDir, "public");
+    await mkdir(publicDir, { recursive: true });
+    await writeFile(join(publicDir, "a.txt"), "a");
+    const asset = async (assetsMtime: boolean) => {
+      const nitro = {
+        options: {
+          dev: false,
+          baseURL: "/",
+          serveStatic: true,
+          publicAssets: [],
+          assetsMtime,
+          output: { publicDir, serverDir: join(outDir, "server") },
+        },
+      } as unknown as Nitro;
+      const template = publicAssets(nitro).find(
+        (t) => t.id === "#nitro/virtual/public-assets-data"
+      )!.template as () => Promise<string>;
+      return JSON.parse((await template()).replace(/^export default |;$/g, ""))["/a.txt"];
+    };
+
+    expect(Date.parse((await asset(true)).mtime)).not.toBeNaN();
+    expect((await asset(false)).mtime).toBe("");
+  });
 });
