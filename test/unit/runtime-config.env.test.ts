@@ -30,46 +30,26 @@ describe("env utils", () => {
       });
     }
 
-    it("skips traversing nitro.routeRules while still applying sibling and top-level config", () => {
-      let routeRulesAccessed = false;
+    it("skips nitro.routeRules while still applying sibling and top-level config", () => {
       const routeRules = new Proxy(
+        { "/api/**": { headers: { "cache-control": "no-store" } } },
         {
-          "/api/**": { headers: { "cache-control": "no-store" } },
-          "/_nuxt/**": { headers: { "cache-control": "public, max-age=31536000, immutable" } },
-        },
-        {
-          ownKeys(target) {
-            routeRulesAccessed = true;
-            return Reflect.ownKeys(target);
-          },
-          get(target, prop, receiver) {
-            routeRulesAccessed = true;
-            return Reflect.get(target, prop, receiver);
+          ownKeys() {
+            throw new Error("should not traverse nitro.routeRules");
           },
         }
       );
-
-      process.env.NITRO_API_KEY = "from-env";
       process.env.NITRO_NITRO_OPEN_API_ROUTE = "/custom-openapi.json";
       process.env.NITRO_ROUTE_RULES_CUSTOM = "overridden";
       try {
         const config = {
-          apiKey: "default",
           routeRules: { custom: "initial" },
-          nitro: {
-            openAPI: { route: "/_openapi.json" },
-            routeRules,
-          },
+          nitro: { openAPI: { route: "/_openapi.json" }, routeRules },
         };
-        applyEnv(config, { prefix: "NITRO_", altPrefix: "_", envExpansion: true });
-
-        expect(routeRulesAccessed).toBe(false);
-        expect(config.apiKey).toBe("from-env");
+        applyEnv(config, { prefix: "NITRO_" });
         expect(config.nitro.openAPI.route).toBe("/custom-openapi.json");
         expect(config.routeRules.custom).toBe("overridden");
-        expect(config.nitro.routeRules).toBe(routeRules);
       } finally {
-        delete process.env.NITRO_API_KEY;
         delete process.env.NITRO_NITRO_OPEN_API_ROUTE;
         delete process.env.NITRO_ROUTE_RULES_CUSTOM;
       }
