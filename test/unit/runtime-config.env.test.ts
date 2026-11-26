@@ -29,6 +29,61 @@ describe("env utils", () => {
         }
       });
     }
+
+    it("skips traversing nitro.routeRules while still applying sibling and top-level config", () => {
+      let routeRulesAccessed = false;
+      const routeRules = new Proxy(
+        {
+          "/api/**": { headers: { "cache-control": "no-store" } },
+          "/_nuxt/**": { headers: { "cache-control": "public, max-age=31536000, immutable" } },
+        },
+        {
+          ownKeys(target) {
+            routeRulesAccessed = true;
+            return Reflect.ownKeys(target);
+          },
+          get(target, prop, receiver) {
+            routeRulesAccessed = true;
+            return Reflect.get(target, prop, receiver);
+          },
+        }
+      );
+
+      process.env.NITRO_API_KEY = "from-env";
+      process.env.NITRO_NITRO_OPEN_API_ROUTE = "/custom-openapi.json";
+      process.env.NITRO_ROUTE_RULES_CUSTOM = "overridden";
+      try {
+        const config = {
+          apiKey: "default",
+          routeRules: { custom: "initial" },
+          nitro: {
+            openAPI: { route: "/_openapi.json" },
+            routeRules,
+          },
+        };
+        applyEnv(config, { prefix: "NITRO_", altPrefix: "_", envExpansion: true });
+
+        expect(routeRulesAccessed).toBe(false);
+        expect(config.apiKey).toBe("from-env");
+        expect(config.nitro.openAPI.route).toBe("/custom-openapi.json");
+        expect(config.routeRules.custom).toBe("overridden");
+        expect(config.nitro.routeRules).toBe(routeRules);
+      } finally {
+        delete process.env.NITRO_API_KEY;
+        delete process.env.NITRO_NITRO_OPEN_API_ROUTE;
+        delete process.env.NITRO_ROUTE_RULES_CUSTOM;
+      }
+    });
+
+    it("does not read undefined-prefixed env keys when prefix or altPrefix is omitted", () => {
+      process.env.undefinedA = "wrong";
+      try {
+        expect(applyEnv({ a: "original" }, { prefix: "NITRO_" })).toEqual({ a: "original" });
+        expect(applyEnv({ a: "original" }, {})).toEqual({ a: "original" });
+      } finally {
+        delete process.env.undefinedA;
+      }
+    });
   });
 
   describe("envExpansion", () => {
@@ -69,7 +124,7 @@ describe("env utils", () => {
         .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
         .join(" ")} }`, () => {
         for (const key in test.env) {
-          process.env[key] = test.env[key as keyof typeof test.env];
+          process.env[key] = test.env[key as keyof typeof test.env] as string;
         }
         expect(applyEnv(test.config, test.envOptions)).toEqual(test.expected);
         for (const key in test.env) {

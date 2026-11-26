@@ -30,6 +30,10 @@ export function applyEnv(
   parentKey = ""
 ): Record<string, any> {
   for (const key in obj) {
+    // Route rule keys are URL/glob patterns (e.g. `/api/**`), not env-overridable config
+    if (parentKey === "nitro" && key === "routeRules") {
+      continue;
+    }
     const subKey = parentKey ? `${parentKey}_${key}` : key;
     const envValue = getEnv(subKey, opts);
     if (_isObject(obj[key])) {
@@ -68,8 +72,14 @@ function _expandFromEnv(value: string) {
 }
 
 function getEnv(key: string, opts: EnvOptions) {
+  if (opts.prefix === undefined && opts.altPrefix === undefined) {
+    return;
+  }
   const envKey = snakeCase(key).toUpperCase();
-  return process.env[opts.prefix + envKey] ?? process.env[opts.altPrefix + envKey];
+  return (
+    (opts.prefix !== undefined ? process.env[opts.prefix + envKey] : undefined) ??
+    (opts.altPrefix !== undefined ? process.env[opts.altPrefix + envKey] : undefined)
+  );
 }
 
 function _isObject(input: unknown) {
