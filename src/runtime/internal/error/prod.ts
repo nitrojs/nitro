@@ -21,9 +21,10 @@ export function defaultHandler(error: HTTPError, event: HTTPEvent): InternalHand
     const url = (event as H3Event).url || new URL(event.req.url);
     const baseURL = import.meta.baseURL || "/";
     if (/^\/[^/]/.test(baseURL) && !url.pathname.startsWith(baseURL)) {
+      const path = url.pathname === baseURL.slice(0, -1) ? "" : url.pathname.slice(1);
       return {
         status: 302,
-        headers: new Headers({ location: `${baseURL}${url.pathname.slice(1)}${url.search}` }),
+        headers: new Headers({ location: `${baseURL}${path}${url.search}` }),
       };
     }
   }
