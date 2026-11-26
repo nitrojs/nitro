@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { join } from "pathe";
@@ -37,6 +37,59 @@ describe("prerender failOnError", () => {
       .join("\n");
     expect(summary).toContain("/status/500");
     expect(summary).not.toContain("/status/404");
+  }, 120_000);
+
+  it("matches ignore patterns against decoded routes", async () => {
+    const generated: string[] = [];
+    const { error, nitro } = await prerenderRoutes(
+      ["/private%20page"],
+      { failOnError: true, ignore: ["/private page"] },
+      {
+        hooks: {
+          "prerender:generate"(route) {
+            generated.push(route.route);
+          },
+        },
+      }
+    );
+
+    expect(error).toBeUndefined();
+    expect(generated).toEqual([]);
+    expect(nitro._prerenderedRoutes).toEqual([]);
+  }, 120_000);
+
+  it("records malformed route encodings as route failures", async () => {
+    const { error, failedRoutes, nitro } = await prerenderRoutes(["/", "/bad%URI"], {
+      failOnError: false,
+    });
+
+    expect(error).toBeUndefined();
+    expect(nitro._prerenderedRoutes!.map((r) => r.route)).toEqual(["/"]);
+    expect(failedRoutes.map((r) => [r.route, r.error?.message])).toEqual([
+      ["/bad%URI", "URI malformed"],
+    ]);
+  }, 120_000);
+
+  it("releases a failed write claim before rendering an alias", async () => {
+    const { error, failedRoutes, nitro } = await prerenderRoutes(
+      ["/", "/a", "/a/index.html"],
+      { failOnError: false, concurrency: 1 },
+      {
+        hooks: {
+          async "prerender:generate"(route, nitro) {
+            if (route.route === "/a") {
+              await mkdir(join(nitro.options.output.publicDir, route.fileName!), {
+                recursive: true,
+              });
+            }
+          },
+        },
+      }
+    );
+
+    expect(error).toBeUndefined();
+    expect(nitro._prerenderedRoutes!.map((r) => r.route)).toEqual(["/"]);
+    expect(failedRoutes.map((r) => r.route)).toEqual(["/a", "/a/index.html"]);
   }, 120_000);
 
   it("fails the build when route generation throws", async () => {

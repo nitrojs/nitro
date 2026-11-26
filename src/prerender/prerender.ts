@@ -210,13 +210,6 @@ export async function prerender(nitro: Nitro) {
   const generateRoute = async (route: string) => {
     const start = Date.now();
 
-    // Check if we should render route
-    if (!canPrerender(route)) {
-      skippedRoutes.add(route);
-      return;
-    }
-    generatedRoutes.add(route);
-
     // Create result object
     const _route: PrerenderRoute = { route };
     let dataBuff: Buffer | undefined;
@@ -226,9 +219,17 @@ export async function prerender(nitro: Nitro) {
       // Crawled links are fetched, resolved and written by their original path
       const crawledPath = crawledLinkPaths.get(route);
 
-      // Ensure route is decoded to start with
+      // Decode before eligibility checks; malformed encodings are handled as route failures below
       route = decodeURI(route);
+      _route.route = route;
       const routePath = crawledPath ? decodeURI(crawledPath) : route;
+
+      // Check if we should render route
+      if (!canPrerender(route)) {
+        skippedRoutes.add(route);
+        return;
+      }
+      generatedRoutes.add(route);
 
       // Fetch the route
       const encodedRoute = encodeURI(routePath);
@@ -298,7 +299,8 @@ export async function prerender(nitro: Nitro) {
       // Allow hooking before generate
       await nitro.hooks.callHook("prerender:generate", _route, nitro);
       const filePath = join(nitro.options.output.publicDir, _route.fileName);
-      const claimed = outputByFile.get(outputKey(filePath));
+      const fileKey = outputKey(filePath);
+      const claimed = outputByFile.get(fileKey);
       // A route that cannot write to an already claimed file must not change its metadata
       if (_route.contentType !== inferredContentType && !claimed) {
         const prerenderMeta = getPrerenderMeta(nitro);
@@ -336,8 +338,16 @@ export async function prerender(nitro: Nitro) {
       } else if (canWriteToDisk(_route) && filePath.startsWith(nitro.options.output.publicDir)) {
         // Claim the file before awaiting, so a concurrent render of a route resolving
         // to the same file sees it as taken
-        outputByFile.set(outputKey(filePath), { route, hash: hashContents(dataBuff!) });
-        await writeFile(filePath, dataBuff!);
+        const claim = { route, hash: hashContents(dataBuff!) };
+        outputByFile.set(fileKey, claim);
+        try {
+          await writeFile(filePath, dataBuff!);
+        } catch (error) {
+          if (outputByFile.get(fileKey) === claim) {
+            outputByFile.delete(fileKey);
+          }
+          throw error;
+        }
         nitro._prerenderedRoutes!.push(_route);
       } else {
         _route.skip = true;
