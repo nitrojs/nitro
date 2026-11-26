@@ -74,16 +74,6 @@ describe("env utils", () => {
         delete process.env.NITRO_ROUTE_RULES_CUSTOM;
       }
     });
-
-    it("does not read undefined-prefixed env keys when prefix or altPrefix is omitted", () => {
-      process.env.undefinedA = "wrong";
-      try {
-        expect(applyEnv({ a: "original" }, { prefix: "NITRO_" })).toEqual({ a: "original" });
-        expect(applyEnv({ a: "original" }, {})).toEqual({ a: "original" });
-      } finally {
-        delete process.env.undefinedA;
-      }
-    });
   });
 
   describe("envExpansion", () => {

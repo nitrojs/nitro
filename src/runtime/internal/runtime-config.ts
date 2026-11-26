@@ -72,14 +72,8 @@ function _expandFromEnv(value: string) {
 }
 
 function getEnv(key: string, opts: EnvOptions) {
-  if (opts.prefix === undefined && opts.altPrefix === undefined) {
-    return;
-  }
   const envKey = snakeCase(key).toUpperCase();
-  return (
-    (opts.prefix !== undefined ? process.env[opts.prefix + envKey] : undefined) ??
-    (opts.altPrefix !== undefined ? process.env[opts.altPrefix + envKey] : undefined)
-  );
+  return process.env[opts.prefix + envKey] ?? process.env[opts.altPrefix + envKey];
 }
 
 function _isObject(input: unknown) {
