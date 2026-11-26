@@ -79,12 +79,20 @@ export const rendererTemplate = () => new HTTPResponse(${JSON.stringify(html)}, 
     ...(nitro._pageTemplate?.context || []),
   ];
   return /* js */ `
+import { HTTPError } from "h3";
 import { renderToResponse } from "#nitro/runtime/rendu";
-import { fetch, serverFetch } from "nitro/app";
+import { fetch as _fetch, serverFetch as _serverFetch } from "nitro/app";
 ${contextImports.map((i) => `import { ${i.name} } from ${JSON.stringify(i.from)};`).join("\n")}
+const fetch = (resource, init, context) => _fetch(resource, init, { ...context, rendererTemplate: true });
+const serverFetch = (resource, init, context) => _serverFetch(resource, init, { ...context, rendererTemplate: true });
 const context = { fetch, serverFetch${contextImports.map((i) => `, ${i.name}`).join("")} };
 const template = ${template};
-export const rendererTemplate = (request) => renderToResponse(template, { request, context });
+export const rendererTemplate = (request) => {
+  if (request.context?.rendererTemplate) {
+    throw new HTTPError({ status: 404 });
+  }
+  return renderToResponse(template, { request, context });
+};
 `;
 }
 
