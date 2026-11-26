@@ -29,6 +29,35 @@ describe("env utils", () => {
         }
       });
     }
+
+    it("skips nitro.routeRules while still applying sibling and top-level config", () => {
+      const routeRulesTarget = { "/api/**": { headers: { "cache-control": "no-store" } } };
+      const routeRules = new Proxy(routeRulesTarget, {
+        ownKeys() {
+          throw new Error("should not traverse nitro.routeRules");
+        },
+      });
+      process.env.NITRO_NITRO_ROUTE_RULES = '{"/override":{}}';
+      process.env.NITRO_NITRO_OPEN_API_ROUTE = "/custom-openapi.json";
+      process.env.NITRO_ROUTE_RULES_CUSTOM = "overridden";
+      try {
+        const config = {
+          routeRules: { custom: "initial" },
+          nitro: { openAPI: { route: "/_openapi.json" }, routeRules },
+        };
+        applyEnv(config, { prefix: "NITRO_" });
+        expect(config.nitro.routeRules).toBe(routeRules);
+        expect(routeRulesTarget).toEqual({
+          "/api/**": { headers: { "cache-control": "no-store" } },
+        });
+        expect(config.nitro.openAPI.route).toBe("/custom-openapi.json");
+        expect(config.routeRules.custom).toBe("overridden");
+      } finally {
+        delete process.env.NITRO_NITRO_ROUTE_RULES;
+        delete process.env.NITRO_NITRO_OPEN_API_ROUTE;
+        delete process.env.NITRO_ROUTE_RULES_CUSTOM;
+      }
+    });
   });
 
   describe("envExpansion", () => {

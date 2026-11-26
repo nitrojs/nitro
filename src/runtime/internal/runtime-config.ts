@@ -30,6 +30,10 @@ export function applyEnv(
   parentKey = ""
 ): Record<string, any> {
   for (const key in obj) {
+    // Route rule keys are URL/glob patterns (e.g. `/api/**`), not env-overridable config
+    if (parentKey === "nitro" && key === "routeRules") {
+      continue;
+    }
     const subKey = parentKey ? `${parentKey}_${key}` : key;
     const envValue = getEnv(subKey, opts);
     if (_isObject(obj[key])) {
