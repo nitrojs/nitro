@@ -34,24 +34,17 @@ function importUnbundled(id) {
 
   return /* js */ `${unbundled ? importUnbundled : ""}
 function lazyService(name, loader) {
-  let promise, mod
+  let mod
   return {
     fetch(req) {
       if (mod) { return mod.fetch(req) }
-      if (!promise) {
-        promise = loader().then(_mod => {
-          const m = typeof _mod.default?.fetch === "function" ? _mod.default : _mod
-          if (typeof m.fetch !== "function") {
-            throw new TypeError(\`[nitro] Service "\${name}" entry does not export a \\\`fetch\\\` handler.\`)
-          }
-          return (mod = m)
-        }).catch(error => {
-          // Retried by the next fetch (e.g. after the output is rebuilt)
-          promise = undefined
-          throw error
-        })
-      }
-      return promise.then(mod => mod.fetch(req))
+      return loader().then(_mod => {
+        const m = typeof _mod.default?.fetch === "function" ? _mod.default : _mod
+        if (typeof m.fetch !== "function") {
+          throw new TypeError(\`[nitro] Service "\${name}" entry does not export a \\\`fetch\\\` handler.\`)
+        }
+        return (mod = m).fetch(req)
+      })
     }
   }
 }
