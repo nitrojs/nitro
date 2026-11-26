@@ -1,6 +1,7 @@
 import type { Nitro, NormalizedRouteRules } from "nitro/types";
 import { compareRoutes } from "rou3";
 import { joinURL } from "ufo";
+import { isPrefixedPublicAssetDir } from "../../config/resolvers/assets.ts";
 import { parseRouteKey, sortRoutes } from "./routes.ts";
 
 type CorsRule = NormalizedRouteRules["cors"];
@@ -32,10 +33,10 @@ export function getPublicAssetCorsHeaders(
   const entries: { base: string; files: string; headers: Record<string, string> }[] = [];
 
   for (const asset of nitro.options.publicAssets) {
-    const base = asset.baseURL || "/";
-    if (asset.fallthrough || base === "/") {
+    if (!isPrefixedPublicAssetDir(asset)) {
       continue;
     }
+    const base = asset.baseURL;
     // Every file of the dir, but not the path of the dir itself
     const files = joinURL(base, "**:file");
     const dirKeys = keys.filter((key) => covers(key, files));

@@ -5,7 +5,7 @@ import type { Nitro, NitroOptions } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { withoutTrailingSlash } from "ufo";
 import { compressPublicAssets } from "../utils/compress.ts";
-import { addClientAssetsRouteRule } from "../config/resolvers/assets.ts";
+import { addClientAssetsRouteRule, isPrefixedPublicAssetDir } from "../config/resolvers/assets.ts";
 
 const NEGATION_RE = /^(!?)(.*)$/;
 const PARENT_DIR_GLOB_RE = /!?\.\.\//;
@@ -13,7 +13,7 @@ const PARENT_DIR_GLOB_RE = /!?\.\.\//;
 export async function scanUnprefixedPublicAssets(nitro: Nitro) {
   const scannedPaths: string[] = [];
   for (const asset of nitro.options.publicAssets) {
-    if (asset.baseURL && asset.baseURL !== "/" && !asset.fallthrough) {
+    if (isPrefixedPublicAssetDir(asset)) {
       // we can statically detect these without scanning
       continue;
     }

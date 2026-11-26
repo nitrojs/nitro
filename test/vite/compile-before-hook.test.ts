@@ -70,7 +70,8 @@ describe("vite: vite:compile:before hook", () => {
   });
 
   it("compressed siblings are picked up as public assets", async () => {
-    expect(await readFile(serverEntry, "utf8")).toContain("emitted-by-hook.txt.gz");
+    const entry = await readFile(serverEntry, "utf8");
+    expect(entry).toMatch(/"\/emitted-by-hook\.txt": \{[^}]*"variants": \{\s*"br"/);
   });
 
   it("compresses assets emitted by the compiled hook", () => {

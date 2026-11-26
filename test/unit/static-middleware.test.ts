@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HTTPError, mockEvent, toResponse } from "h3";
 import handler from "../../src/runtime/internal/static.ts";
-import { loadPublicAssets } from "./_public-assets.ts";
+import { loadPublicAssets, readArgs } from "./_public-assets.ts";
 import type { PublicAssetsLookup } from "./_public-assets.ts";
 
 const MTIME = "2024-01-01T00:00:00.000Z";
@@ -13,11 +13,17 @@ const { lookup, isPublicAssetURL, readAsset } = vi.hoisted(() => ({
   readAsset: vi.fn(),
 }));
 
-vi.mock("#nitro/virtual/public-assets", () => ({
-  getAsset: (id: string) => lookup.current!.getAsset(id),
+vi.mock("#nitro/virtual/public-assets-data", () => ({ default: {} }));
+
+vi.mock(import("../../src/runtime/internal/public-assets.ts"), async (importOriginal) => ({
+  ...(await importOriginal()),
   hasAsset: (id: string) => lookup.current!.hasAsset(id),
-  resolveAsset: (id: string, encodings: string[]) => lookup.current!.resolveAsset(id, encodings),
+  resolveAsset: (id: string, encodings: readonly string[]) =>
+    lookup.current!.resolveAsset(id, encodings),
   hasEncodedVariants: (id: string) => lookup.current!.hasEncodedVariants(id),
+}));
+
+vi.mock("#nitro/virtual/public-assets", () => ({
   isPublicAssetURL,
   isPublicAssetBaseURL: (id: string) => isPublicAssetURL(id),
   readAsset,
@@ -117,7 +123,7 @@ describe("runtime static middleware", () => {
     event.req.headers.set("range", "bytes=0-1");
 
     await expect(handler(event)).resolves.toBe("body");
-    expect(readAsset).toHaveBeenCalledWith("/foo.css.gz");
+    expectRead("/foo.css.gz");
     expect(event.res.status).not.toBe(206);
     expect(event.res.headers.get("Content-Encoding")).toBe("gzip");
     expect(event.res.headers.get("Content-Range")).toBeNull();
@@ -149,7 +155,7 @@ describe("runtime static middleware", () => {
 
       expect(await handler(event)).toEqual(file.subarray(start, end + 1));
       expect(event.res.status).toBe(206);
-      expect(readAsset).toHaveBeenCalledWith("/file.bin", { start, end });
+      expectRead("/file.bin", { start, end });
       expect(event.res.headers.get("Content-Range")).toBe(`bytes ${start}-${end}/10`);
       expect(event.res.headers.get("Content-Length")).toBe(String(end - start + 1));
     });
@@ -261,7 +267,7 @@ describe("runtime static middleware", () => {
 
     await handler(event);
 
-    expect(readAsset).toHaveBeenCalledWith("/docs/index.html.br");
+    expectRead("/docs/index.html.br");
     expect(event.res.headers.get("Content-Encoding")).toBe("br");
   });
 
@@ -305,7 +311,7 @@ describe("runtime static middleware", () => {
 
       await handler(event);
 
-      expect(readAsset).toHaveBeenCalledWith("/docs/index.html");
+      expectRead("/docs/index.html");
       expect(event.res.headers.get("Vary")).toBe("Origin, Accept-Encoding");
     });
 
@@ -352,7 +358,7 @@ describe("runtime static middleware", () => {
 
       await handler(event);
 
-      expect(readAsset).toHaveBeenCalledWith("/foo.css.br");
+      expectRead("/foo.css.br");
       expect(event.res.headers.get("Vary")).toBe("Origin");
     });
 
@@ -391,6 +397,48 @@ describe("runtime static middleware", () => {
     });
   });
 
+  it("sends the Last-Modified of the plain file for a compressed asset", async () => {
+    setAssets({
+      "/foo.css": { etag: '"plain"', mtime: MTIME, type: "text/css", size: 4 },
+      "/foo.css.br": { etag: '"br"', mtime: "2024-01-02T00:00:00.000Z", type: "text/css", size: 2 },
+    });
+    readAsset.mockResolvedValue("body");
+    const event = createEvent("/foo.css", "br");
+
+    await handler(event);
+
+    expectRead("/foo.css.br");
+    expect(event.res.headers.get("ETag")).toBe('"br"');
+    expect(event.res.headers.get("Last-Modified")).toBe(new Date(MTIME).toUTCString());
+  });
+
+  describe("with the manifest's isPublicAssetURL", () => {
+    const meta = { etag: '"test"', mtime: MTIME, type: "text/css", size: 1 };
+
+    beforeEach(() => {
+      isPublicAssetURL.mockImplementation((id: string) => lookup.current!.isPublicAssetURL(id));
+      readAsset.mockResolvedValue("body");
+    });
+
+    it("falls through for a compressed-only asset the client can't decode", () => {
+      setAssets({ "/foo.css.br": meta });
+      const event = createEvent("/foo.css", "gzip");
+
+      expect(handler(event)).toBeUndefined();
+      expect(readAsset).not.toHaveBeenCalled();
+    });
+
+    it("serves a compressed-only asset by its own name", async () => {
+      setAssets({ "/foo.css.br": meta });
+      const event = createEvent("/foo.css.br");
+
+      await handler(event);
+
+      expectRead("/foo.css.br");
+      expect(event.res.headers.get("Content-Encoding")).toBe("br");
+    });
+  });
+
   // Both `gzip` and `q` are case-insensitive, and both have to be recognised
   // for `.gz` to outrank the alphabetically-earlier `.br`.
   it("matches compressed assets when the encoding name and q key differ in case", async () => {
@@ -404,7 +452,7 @@ describe("runtime static middleware", () => {
 
     await handler(event);
 
-    expect(readAsset).toHaveBeenCalledWith("/foo.css.gz");
+    expectRead("/foo.css.gz");
     expect(event.res.headers.get("Content-Encoding")).toBe("gzip");
   });
 
@@ -419,7 +467,7 @@ describe("runtime static middleware", () => {
 
     await handler(event);
 
-    expect(readAsset).toHaveBeenCalledWith("/foo.css.gz");
+    expectRead("/foo.css.gz");
     expect(event.res.headers.get("Content-Encoding")).toBe("gzip");
   });
 
@@ -434,7 +482,7 @@ describe("runtime static middleware", () => {
 
     await handler(event);
 
-    expect(readAsset).toHaveBeenCalledWith("/foo.css.br");
+    expectRead("/foo.css.br");
     expect(event.res.headers.get("Content-Encoding")).toBe("br");
   });
 
@@ -454,7 +502,7 @@ describe("runtime static middleware", () => {
 
     await handler(event);
 
-    expect(readAsset).toHaveBeenCalledWith("/foo.css");
+    expectRead("/foo.css");
     expect(event.res.headers.get("Content-Encoding")).toBeNull();
   });
 
@@ -468,7 +516,8 @@ describe("runtime static middleware", () => {
     readAsset.mockReturnValue("body");
     const servedFor = (acceptEncoding: string) => {
       handler(createEvent("/foo.css", acceptEncoding));
-      return readAsset.mock.lastCall?.[0];
+      const [id, { encoding }] = readAsset.mock.lastCall!;
+      return id + ({ br: ".br", gzip: ".gz" }[encoding as string] || "");
     };
 
     for (let i = 0; i < 100; i++) {
@@ -492,6 +541,12 @@ describe("runtime static middleware", () => {
     }
   });
 });
+
+// The file read: its entry id and encoding
+function expectRead(file: string, range?: { start: number; end: number }) {
+  const [id, encoding] = readArgs(file);
+  expect(readAsset).toHaveBeenCalledWith(id, { encoding, range });
+}
 
 function catchError(fn: () => unknown): unknown {
   try {
