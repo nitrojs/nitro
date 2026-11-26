@@ -47,7 +47,10 @@ export default function serverAssets(nitro: Nitro) {
             type += "; charset=utf-8";
           }
           const etag = createEtag(await fsp.readFile(fsPath));
-          const mtime = await fsp.stat(fsPath).then((s) => s.mtime.toJSON());
+          const mtime =
+            nitro.options.assetsMtime !== false
+              ? await fsp.stat(fsPath).then((s) => s.mtime.toJSON())
+              : undefined;
           assets[id].meta = { type, etag, mtime };
         }
       }

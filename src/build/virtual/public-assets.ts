@@ -84,7 +84,7 @@ export default function publicAssets(nitro: Nitro) {
               type: getPrerenderMeta(nitro)[assetId]?.contentType || mimeType,
               encoding,
               etag,
-              mtime: stat.mtime.toJSON(),
+              mtime: nitro.options.assetsMtime !== false ? stat.mtime.toJSON() : "",
               size: stat.size,
               path: relative(nitro.options.output.serverDir, fullPath),
               data:

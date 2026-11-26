@@ -34,6 +34,7 @@ export const NitroDefaults: NitroConfig = {
   scheduler: {},
   virtual: {},
   compressPublicAssets: false,
+  assetsMtime: true,
   ignore: [],
   scanSuffixes: [],
   wasm: {},
