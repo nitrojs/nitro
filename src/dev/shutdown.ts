@@ -1,6 +1,6 @@
 import type { RunnerManager } from "env-runner";
 
-const SHUTDOWN_TIMEOUT = 5000;
+export const SHUTDOWN_TIMEOUT = 5000;
 
 /**
  * Ask the dev runner to shut down gracefully and wait for it to acknowledge.
@@ -29,7 +29,7 @@ export async function shutdownRunner(
     };
     manager.onMessage(listener);
     try {
-      manager.sendMessage({ event: "shutdown" });
+      manager.sendMessage({ event: "shutdown", timeout: SHUTDOWN_TIMEOUT });
     } catch (error) {
       opts.warn?.(
         `Could not send shutdown message to the dev worker: ${error instanceof Error ? error.message : String(error)}`
