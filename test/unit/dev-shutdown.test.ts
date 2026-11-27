@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shutdownRunner } from "../../src/dev/shutdown.ts";
+import { SHUTDOWN_TIMEOUT, shutdownRunner } from "../../src/dev/shutdown.ts";
 
 describe("shutdownRunner", () => {
   it("sends the shutdown timeout so an open socket cannot block close hooks", async () => {
@@ -19,7 +19,7 @@ describe("shutdownRunner", () => {
 
     const pending = shutdownRunner(manager as any);
     try {
-      expect(messages).toEqual([{ event: "shutdown", timeout: 5000 }]);
+      expect(messages).toEqual([{ event: "shutdown", timeout: SHUTDOWN_TIMEOUT }]);
     } finally {
       for (const listener of listeners) {
         listener({ event: "exit" });

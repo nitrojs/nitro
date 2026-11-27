@@ -1,6 +1,6 @@
 import type { RunnerManager } from "env-runner";
 
-const SHUTDOWN_TIMEOUT = 5000;
+export const SHUTDOWN_TIMEOUT = 5000;
 
 /**
  * Ask the dev runner to shut down gracefully and wait for it to acknowledge.
