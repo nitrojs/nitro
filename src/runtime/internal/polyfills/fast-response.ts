@@ -1,5 +1,5 @@
 import { FastResponse } from "srvx";
 
-if (globalThis.Response !== FastResponse) {
+if (!("Bun" in globalThis) && globalThis.Response !== FastResponse) {
   globalThis.Response = FastResponse;
 }

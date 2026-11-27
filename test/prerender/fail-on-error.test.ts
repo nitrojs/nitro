@@ -38,6 +38,29 @@ describe("prerender failOnError", () => {
     expect(summary).toContain("/status/500");
     expect(summary).not.toContain("/status/404");
   }, 120_000);
+
+  it("fails the build when fetching a route rejects even if `failOnError` is false", async () => {
+    const { error, failedRoutes } = await prerenderRoutes(["/stream-error"], {
+      failOnError: false,
+    });
+    expect(error).toMatchObject({ message: expect.stringContaining("Prerendered 0 routes.") });
+    expect(failedRoutes.map((r) => r.route)).toEqual(["/stream-error"]);
+    expect(failedRoutes[0]?.error).toBeInstanceOf(Error);
+  }, 120_000);
+
+  it("fails the build when a route rejection occurs alongside successful routes", async () => {
+    const { error, nitro, failedRoutes, logs } = await prerenderRoutes(["/", "/stream-error"], {
+      failOnError: true,
+      ignoreStatusCodes: [404],
+    });
+    expect(error).toMatchObject({ message: "Exiting due to prerender errors." });
+    expect(nitro._prerenderedRoutes!.map((r) => r.route)).toEqual(["/"]);
+    expect(failedRoutes.map((r) => r.route)).toEqual(["/stream-error"]);
+    const summary = logs
+      .slice(logs.findIndex((l) => l.includes("Errors prerendering:")))
+      .join("\n");
+    expect(summary).toContain("/stream-error");
+  }, 120_000);
 });
 
 async function prerenderRoutes(routes: string[], options: NitroConfig["prerender"]) {
