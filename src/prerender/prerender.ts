@@ -66,6 +66,11 @@ export async function prerender(nitro: Nitro) {
     virtual: { ...nitro.options.virtual },
     logLevel: 0,
     preset: "nitro-prerender",
+    ...(process.versions.bun && nitro.options.node !== false
+      ? {
+          exportConditions: ["bun", ...(nitro.options._config.exportConditions || [])],
+        }
+      : {}),
     builder: prerenderBuilder(nitro),
     deps: { ...nitro.options.deps, paths: { ...viteDepPaths(nitro) } },
   };
@@ -233,9 +238,20 @@ export async function prerender(nitro: Nitro) {
     const req = toRequest(withBase(encodedRoute, nitro.options.baseURL), {
       headers: [["x-nitro-prerender", encodedRoute]],
     });
-    const res = await prerenderer.fetch(req);
-    // Data will be removed as soon as written to the disk
-    let dataBuff: Buffer | undefined = Buffer.from(await res.arrayBuffer());
+    let res: Response;
+    let dataBuff: Buffer | undefined;
+    try {
+      res = await prerenderer.fetch(req);
+      // Data will be removed as soon as written to the disk
+      dataBuff = Buffer.from(await res.arrayBuffer());
+    } catch (error) {
+      _route.error = (error instanceof Error ? error : new Error(String(error))) as any;
+      _route.generateTimeMS = Date.now() - start;
+      failedRoutes.add(_route);
+      await nitro.hooks.callHook("prerender:route", _route);
+      nitro.logger.log(formatPrerenderRoute(_route));
+      return _route;
+    }
 
     Object.defineProperty(_route, "contents", {
       get: () => {
@@ -376,7 +392,7 @@ export async function prerender(nitro: Nitro) {
       : `Prerendering ${routes.size} routes`
   );
 
-  await runParallel(routes, generateRoute, {
+  const { errors } = await runParallel(routes, generateRoute, {
     concurrency: nitro.options.prerender.concurrency || 1,
     interval: nitro.options.prerender.interval,
   });
@@ -404,6 +420,13 @@ export async function prerender(nitro: Nitro) {
   if (nitro.options.prerender.failOnError && fatalRoutes.size > 0) {
     logPrerenderErrors(nitro, fatalRoutes);
     throw new Error("Exiting due to prerender errors.");
+  }
+
+  if (
+    errors.length > 0 &&
+    (nitro.options.prerender.failOnError || nitro._prerenderedRoutes.length === 0)
+  ) {
+    throw errors[0];
   }
 
   const prerenderTimeInMs = Date.now() - prerenderStartTime;
