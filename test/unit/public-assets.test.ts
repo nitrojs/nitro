@@ -260,6 +260,18 @@ describe("virtual/public-assets lookup", () => {
     expect(isPublicAssetURL("/api/hello")).toBe(false);
   });
 
+  it("treats a directory url as public when index.html is in the manifest", () => {
+    expect(isPublicAssetURL("/")).toBe(true);
+    expect(isPublicAssetURL("/docs")).toBe(true);
+    expect(isPublicAssetURL("/docs/")).toBe(true);
+    expect(isPublicAssetURL("/page/")).toBe(true);
+    expect(isPublicAssetURL("/docs/index.html")).toBe(true);
+    expect(isPublicAssetURL("/doc")).toBe(false);
+    expect(isPublicAssetURL("/docs/index")).toBe(false);
+    expect(isPublicAssetURL("")).toBe(false);
+    expect(isPublicAssetURL("/foo.css")).toBe(false);
+  });
+
   it("matches only public asset bases with isPublicAssetBaseURL", () => {
     expect(isPublicAssetBaseURL("/_nuxt/missing.js")).toBe(true);
     expect(isPublicAssetBaseURL("/_nuxt/entry.js")).toBe(true);
