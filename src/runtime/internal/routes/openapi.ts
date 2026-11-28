@@ -18,12 +18,23 @@ export default defineHandler((event) => {
   const runtimeConfig = useRuntimeConfig();
 
   const base = runtimeConfig.app?.baseURL;
-  const url = joinURL(getRequestURL(event).origin, base);
+  const url = joinURL(
+    getRequestURL(event, { xForwardedHost: true, xForwardedProto: true }).origin,
+    base
+  );
 
   const meta = {
     title: "Nitro Server Routes",
     ...runtimeConfig.nitro?.openAPI?.meta,
   };
+
+  const servers = runtimeConfig.nitro?.openAPI?.servers ?? [
+    {
+      url,
+      ...(import.meta.dev ? { description: "Local Development Server" } : {}),
+      variables: {},
+    },
+  ];
 
   const {
     paths,
@@ -41,13 +52,7 @@ export default defineHandler((event) => {
       version: meta?.version || "1.0.0",
       description: meta?.description,
     },
-    servers: [
-      {
-        url,
-        description: "Local Development Server",
-        variables: {},
-      },
-    ],
+    servers,
     paths,
     components,
     ...extensible,
