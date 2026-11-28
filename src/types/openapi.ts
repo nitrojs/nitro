@@ -1,4 +1,5 @@
 // import type { ApiReferenceConfiguration as ScalarConfig } from "@scalar/api-reference";
+import type { ServerObject } from "./openapi-ts.ts";
 
 /**
  * Swagger UI configuration options.
@@ -46,6 +47,11 @@ export interface NitroOpenAPIConfig {
     description?: string;
     version?: string;
   };
+
+  /**
+   * OpenAPI server entries. When omitted, defaults to the incoming request origin.
+   */
+  servers?: ServerObject[];
 
   /**
    * Route for the OpenAPI JSON endpoint.
