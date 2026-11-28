@@ -266,6 +266,60 @@ describe("virtual/public-assets lookup", () => {
     expect(isPublicAssetBaseURL("/robots.txt")).toBe(false);
     expect(isPublicAssetBaseURL("/api/hello")).toBe(false);
   });
+
+  it("treats missing files as absent in dev until they exist again", () => {
+    const present = new Set([
+      "/app/public/asset.txt",
+      "/app/public/asset.txt.gz",
+      "/app/public/docs/index.html",
+      "/app/public/_nuxt/app.js",
+    ]);
+    const devLookup = loadPublicAssets(
+      {
+        "/asset.txt": { ...asset, path: "/app/public/asset.txt" },
+        "/asset.txt.gz": { ...asset, path: "/app/public/asset.txt.gz" },
+        "/docs/index.html": { ...asset, path: "/app/public/docs/index.html" },
+        "/_nuxt/app.js": { ...asset, path: "/app/public/_nuxt/app.js" },
+      },
+      {
+        dev: true,
+        publicAssets: [{ baseURL: "/_nuxt" }],
+        existsSync: (path) => present.has(path),
+      }
+    );
+
+    expect(devLookup.hasAsset("/asset.txt")).toBe(true);
+    expect(devLookup.hasEncodedVariants("/asset.txt")).toBe(true);
+    expect(devLookup.resolveAsset("/asset.txt", [".gz", ""])).toBe("/asset.txt.gz");
+    expect(devLookup.isPublicAssetURL("/asset.txt")).toBe(true);
+
+    // Deleting only the compressed variant drops Vary/encoded resolution while keeping plain
+    present.delete("/app/public/asset.txt.gz");
+    expect(devLookup.hasAsset("/asset.txt")).toBe(true);
+    expect(devLookup.hasEncodedVariants("/asset.txt")).toBe(false);
+    expect(devLookup.resolveAsset("/asset.txt", [".gz", ""])).toBe("/asset.txt");
+
+    // Deleting the plain file and directory index makes them absent everywhere
+    present.delete("/app/public/asset.txt");
+    present.delete("/app/public/docs/index.html");
+    expect(devLookup.getAsset("/asset.txt")).toBeUndefined();
+    expect(devLookup.hasAsset("/asset.txt")).toBe(false);
+    expect(devLookup.isPublicAssetURL("/asset.txt")).toBe(false);
+    expect(devLookup.resolveAsset("/asset.txt", [".gz", ""])).toBeUndefined();
+    expect(devLookup.hasAsset("/docs")).toBe(false);
+    expect(devLookup.hasAsset("/docs/")).toBe(false);
+
+    // Non-fallthrough base URLs still count as public asset URLs even when missing
+    present.delete("/app/public/_nuxt/app.js");
+    expect(devLookup.hasAsset("/_nuxt/app.js")).toBe(false);
+    expect(devLookup.isPublicAssetURL("/_nuxt/app.js")).toBe(true);
+
+    // Recreating the file makes it resolvable again without rebuilding the manifest
+    present.add("/app/public/asset.txt");
+    expect(devLookup.hasAsset("/asset.txt")).toBe(true);
+    expect(devLookup.isPublicAssetURL("/asset.txt")).toBe(true);
+    expect(devLookup.getAsset("/asset.txt")?.path).toBe("/app/public/asset.txt");
+  });
 });
 
 describe("public assets manifest", () => {

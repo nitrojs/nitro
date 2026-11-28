@@ -108,7 +108,9 @@ describe("vite: deleted public asset", () => {
 
   test("is no longer served", async () => {
     expect(await publicAssetCase.observe(fetchPath)).toEqual(publicAssetCase.existing);
-    rmSync(join(rootDir, publicAssetCase.file));
+    for (const file of publicAssetCase.removedFiles) {
+      rmSync(join(rootDir, file));
+    }
     expect(await publicAssetCase.observe(fetchPath)).toEqual(publicAssetCase.removed);
   });
 });

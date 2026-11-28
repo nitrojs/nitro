@@ -112,20 +112,24 @@ export function writeFiles(rootDir: string, files: Record<string, string>) {
   }
 }
 
-/** A public asset that exists at startup and is deleted during dev. */
+/** Public assets that exist at startup and are deleted during dev. */
 export const publicAssetCase = {
   files: {
     "public/asset.txt": "asset",
+    "public/overridden.txt": "static",
+    "routes/overridden.txt.ts": `export default () => "route";`,
     "routes/internal.ts": `import { serverFetch } from "nitro";
-export default () => serverFetch("/asset.txt");`,
+export default (event) => serverFetch(new URL(event.req.url).searchParams.get("path") || "/asset.txt");`,
   },
-  file: "public/asset.txt",
+  removedFiles: ["public/asset.txt", "public/overridden.txt"],
   observe: async (fetch: Fetch) => [
     await text(await fetch("/asset.txt")),
     await text(await fetch("/internal")),
+    await text(await fetch("/overridden.txt")),
+    await text(await fetch("/internal?path=/overridden.txt")),
   ],
-  existing: ["asset", "asset"],
-  removed: [404, 404],
+  existing: ["asset", "asset", "static", "static"],
+  removed: [404, 404, "route", "route"],
 };
 
 async function text(res: Response) {

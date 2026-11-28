@@ -126,14 +126,25 @@ export default function publicAssets(nitro: Nitro) {
         // prettier-ignore
         const handlerName = readAssetHandler[nitro.options.serveStatic as _serveStaticAsKey] || "null";
         const readAssetImport = `#nitro/virtual/public-assets-${handlerName}`;
+        // In dev, public files are served live from disk, so check their presence dynamically
+        const checkDisk = Boolean(nitro.options.dev && handlerName === "node");
 
-        return /* js */ `
+        return /* js */ `${checkDisk ? "\nimport { existsSync } from 'node:fs'" : ""}
 import assets from '#nitro/virtual/public-assets-data'
 export { readAsset } from "${readAssetImport}"
 export const publicAssetBases = ${JSON.stringify(publicAssetBases)}
-
+${
+  checkDisk
+    ? `
+function _hasFile (assetId) {
+  const asset = assets[assetId]
+  return !!asset && existsSync(asset.path)
+}
+`
+    : ""
+}
 export function isPublicAssetURL(id = '') {
-  return !!assets[id] || isPublicAssetBaseURL(id)
+  return ${checkDisk ? "_hasFile(id)" : "!!assets[id]"} || isPublicAssetBaseURL(id)
 }
 
 export function isPublicAssetBaseURL(id = '') {
@@ -151,7 +162,7 @@ export function getPublicAssetMeta(id = '') {
 }
 
 export function getAsset (id) {
-  return assets[id]
+  return ${checkDisk ? "_hasFile(id) ? assets[id] : undefined" : "assets[id]"}
 }
 
 // Encoding extensions by flag bit (\`EncodingMap\` of the static middleware must not add others)
@@ -189,8 +200,31 @@ function _flag (servable, id, flag) {
   servable.set(id, (servable.get(id) || 0) | flag)
 }
 
-export function hasAsset (id = '') {
-  return _getServable().has(id)
+${
+  checkDisk
+    ? `function _liveFlags (id) {
+  const flags = _getServable().get(id)
+  if (!flags) { return 0 }
+  let live = 0
+  for (let ext = 0; ext < _exts.length; ext++) {
+    const encoding = _exts[ext]
+    if ((flags & (1 << ext)) && _hasFile(id + encoding)) {
+      live |= 1 << ext
+    }
+    if (flags & (1 << (_INDEX + ext))) {
+      const indexId = (id.endsWith('/') ? id : id + '/') + 'index.html' + encoding
+      if (_hasFile(indexId)) {
+        live |= 1 << (_INDEX + ext)
+      }
+    }
+  }
+  return live
+}
+
+`
+    : ""
+}export function hasAsset (id = '') {
+  return ${checkDisk ? "!!_liveFlags(id)" : "_getServable().has(id)"}
 }
 
 // Flags of the compressed files, for the request id and for its \`index.html\`
@@ -199,12 +233,12 @@ const _ENCODED_MASK = _ENCODED | (_ENCODED << _INDEX)
 
 // Whether the response for a request id depends on its \`Accept-Encoding\`
 export function hasEncodedVariants (id = '') {
-  return !!((_getServable().get(id) || 0) & _ENCODED_MASK)
+  return !!((${checkDisk ? "_liveFlags(id)" : "_getServable().get(id) || 0"}) & _ENCODED_MASK)
 }
 
 // Asset id for the first encoding extension (most preferred first) that has a file
 export function resolveAsset (id, encodings) {
-  const flags = _getServable().get(id)
+  const flags = ${checkDisk ? "_liveFlags(id)" : "_getServable().get(id)"}
   if (flags) {
     for (const encoding of encodings) {
       const ext = _exts.indexOf(encoding)
