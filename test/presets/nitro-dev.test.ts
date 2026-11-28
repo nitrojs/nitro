@@ -20,7 +20,13 @@ describeIf(supported, "nitro:preset:nitro-dev (serve static)", async () => {
 });
 
 describeIf(supported, "nitro:preset:nitro-dev", async () => {
-  const ctx = await setupTest("nitro-dev");
+  const ctx = await setupTest("nitro-dev", {
+    config: {
+      routes: {
+        "/literal\\:action\\*/:id": "./server/routes/literal(v1)+.ts",
+      },
+    },
+  });
   testNitro(
     ctx,
     () => {
@@ -139,6 +145,25 @@ describeIf(supported, "nitro:preset:nitro-dev", async () => {
           expect(spec.openapi).to.match(/^3\.\d+\.\d+$/);
           expect(spec.info?.title).toBe("Nitro Test Fixture");
           expect(spec.info?.description).toBe("Nitro Test Fixture API");
+        });
+
+        it("publishes literal route URLs without router escapes", async () => {
+          const url = "/literal(v1)+";
+          expect(await callHandler({ url })).toMatchObject({ status: 200, data: "literal" });
+          const { status, data } = await callHandler({ url: "/_openapi.json" });
+          expect(status).toBe(200);
+          expect(Object.keys(data.paths)).toContain(url);
+        });
+
+        it("keeps escaped syntax literal alongside path parameters", async () => {
+          expect(await callHandler({ url: "/literal:action*/123" })).toMatchObject({
+            status: 200,
+            data: "literal",
+          });
+          const { data } = await callHandler({ url: "/_openapi.json" });
+          expect(data.paths["/literal:action*/{id}"]?.get?.parameters).toEqual([
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ]);
         });
 
         it("defineRouteMeta works", () => {
