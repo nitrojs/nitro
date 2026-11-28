@@ -38,6 +38,7 @@ jobs:
           - run: pnpm vitest run test/unit
           - run: pnpm vitest run test/minimal
           - run: pnpm vitest run test/vite
+          - run: pnpm vitest run test/rsbuild
   tests-rollup:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10

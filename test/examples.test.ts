@@ -9,6 +9,7 @@ import { describe, test, expect, beforeAll, afterAll } from "vitest";
 
 import type { ViteDevServer } from "vite";
 import { existsSync } from "node:fs";
+import { runRstest } from "./rsbuild/_rstest.ts";
 
 const examplesDir = fileURLToPath(new URL("../examples", import.meta.url));
 
@@ -48,7 +49,27 @@ for (const example of await readdir(examplesDir)) {
   const pkg = JSON.parse(await readFile(join(examplesDir, example, "package.json"), "utf8"));
   if (/\bvitest\b/.test(pkg.scripts?.test || "")) {
     setupVitestTest(example);
+  } else if (/\brstest\b/.test(pkg.scripts?.test || "")) {
+    setupRstestTest(example);
   }
+}
+
+// Runs the example's own Rstest suite, as `pnpm test` does in the example
+function setupRstestTest(name: string) {
+  const rootDir = join(examplesDir, name);
+  test.skipIf(skip.has(name))(
+    `${name} (rstest)`,
+    async () => {
+      const rstestEntry = resolveModuleURL("@rstest/core", { from: rootDir + "/" });
+      const { results, failures, output } = await runRstest(rootDir, {
+        bin: fileURLToPath(new URL("../bin/rstest.js", rstestEntry)),
+      });
+      expect(failures, output).toEqual([]);
+      expect(results.status, output).toBe("pass");
+      expect(results.summary.passedTests).toBeGreaterThan(0);
+    },
+    60_000
+  );
 }
 
 // Runs the example's own Vitest suite, as `pnpm test` does in the example

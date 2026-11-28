@@ -101,6 +101,7 @@
     "@rollup/plugin-replace": "^6.0.3",
     "@rsbuild/core": "^2.3.1",
     "@rspack/core": "^2.3.1",
+    "@rstest/core": "^0.12.6",
     "@scalar/api-reference": "^1.77.0",
     "@scalar/openapi-types": "^0.9.8",
     "@types/aws-lambda": "^8.10.164",
