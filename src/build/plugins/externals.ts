@@ -2,13 +2,16 @@ import type { Plugin, RenderedChunk } from "rollup";
 import type { PackageJson } from "pkg-types";
 import type { ExternalsTraceOptions, TracedLayout } from "nf3";
 
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
-import { dirname, isAbsolute, join, normalize, relative } from "pathe";
+import { basename, dirname, extname, isAbsolute, join, normalize, relative, resolve } from "pathe";
 import MagicString from "magic-string";
 import { resolveModulePath } from "exsolve";
 import consola from "consola";
 
+import { importOXC, type OXC } from "../../utils/oxc.ts";
 import { escapeRegExp, toPathRegExp } from "../../utils/regex.ts";
 import { isNodeBuiltin } from "./builtins.ts";
 import { NodeNativePackages, NonBundleablePackages, FullTracePackages } from "nf3/db";
@@ -75,6 +78,22 @@ export function externals(opts: ExternalsOptions): Plugin {
   // during resolution, never wholesale (see `resolveTraceDeps`).
   const forcedTraceIncludes = new Set<string>(resolved?.traceInclude);
 
+  // Per-build caches for native Node externalizability checks in non-traced (dev/prerender) mode
+  const validNodeExternalCache = new Map<string, boolean>();
+  const packageTypeCache = new Map<string, string | undefined>();
+  let oxcPromise: Promise<OXC> | undefined;
+
+  const checkValidNodeExternal = async (resolvedPath: string): Promise<boolean> => {
+    const cleanPath = resolvedPath.split(/[?#]/, 1)[0]!;
+    if (validNodeExternalCache.has(cleanPath)) {
+      return validNodeExternalCache.get(cleanPath)!;
+    }
+    oxcPromise ??= importOXC({ dir: opts.rootDir });
+    const isValid = await isValidNodeExternal(cleanPath, await oxcPromise, packageTypeCache);
+    validNodeExternalCache.set(cleanPath, isValid);
+    return isValid;
+  };
+
   if (opts.trace && !resolved?.includePattern) {
     return {
       name: PLUGIN_NAME,
@@ -83,6 +102,10 @@ export function externals(opts: ExternalsOptions): Plugin {
 
   return {
     name: PLUGIN_NAME,
+    buildStart() {
+      validNodeExternalCache.clear();
+      packageTypeCache.clear();
+    },
     resolveId: {
       order: "pre",
       filter: { id: { exclude, include } },
@@ -105,13 +128,14 @@ export function externals(opts: ExternalsOptions): Plugin {
         }
 
         // Resolve by other resolvers
-        let resolved = await this.resolve(id, importer, rOpts);
+        const rawResolved = await this.resolve(id, importer, rOpts);
+        let resolved = rawResolved;
 
         // Skip rolldown-plugin-commonjs resolver for externals
         const cjsResolved = resolved?.meta?.commonjs?.resolved;
         if (cjsResolved) {
           if (!filter(cjsResolved.id)) {
-            return resolved; // Bundled and wrapped by CJS plugin
+            return rawResolved; // Bundled and wrapped by CJS plugin
           }
           resolved = cjsResolved; /* non-wrapped */
         }
@@ -135,12 +159,12 @@ export function externals(opts: ExternalsOptions): Plugin {
               id: importId,
             };
           }
-          return resolved;
+          return rawResolved;
         }
 
         // Check if explicitly marked as excluded
         if (!filter(resolved.id)) {
-          return resolved;
+          return rawResolved;
         }
 
         // Normalize to absolute path
@@ -153,12 +177,12 @@ export function externals(opts: ExternalsOptions): Plugin {
         if (opts.trace) {
           let importId = toImport(id) || toImport(resolvedPath);
           if (!importId) {
-            return resolved;
+            return rawResolved;
           }
           if (!tryResolve(importId, importer)) {
             const guessed = await guessSubpath(resolvedPath, resolveConditions);
             if (!guessed) {
-              return resolved;
+              return rawResolved;
             }
             importId = guessed;
           }
@@ -176,6 +200,12 @@ export function externals(opts: ExternalsOptions): Plugin {
             external: true,
             id: placeholder,
           };
+        }
+
+        // Inline files that Node cannot import natively (e.g. `.js` ESM in an
+        // untyped package or ESM with extensionless relative imports like `dayjs/esm`)
+        if (isAbsolute(resolvedPath) && !(await checkValidNodeExternal(resolvedPath))) {
+          return rawResolved;
         }
 
         // Resolve as absolute path external
@@ -517,4 +547,93 @@ function flattenExports(
     }
     return typeof value === "object" ? flattenExports(value, _subPath) : [];
   });
+}
+
+async function isValidNodeExternal(
+  resolvedPath: string,
+  oxc: OXC,
+  packageTypeCache: Map<string, string | undefined>
+): Promise<boolean> {
+  const ext = extname(resolvedPath);
+  if (ext !== ".js" && ext !== ".mjs") {
+    return true;
+  }
+
+  let code: string;
+  try {
+    code = await readFile(resolvedPath, "utf8");
+  } catch {
+    return true;
+  }
+
+  const { module, errors } = oxc.parseSync(resolvedPath, code, { lang: "js" });
+  if (errors.length > 0 || !module.hasModuleSyntax) {
+    return true;
+  }
+
+  if (ext === ".js" && getNearestPackageType(resolvedPath, packageTypeCache) !== "module") {
+    return false;
+  }
+
+  const dir = dirname(resolvedPath);
+  const specifiers = [
+    ...module.staticImports.map((entry) => entry.moduleRequest.value),
+    ...module.staticExports.flatMap((entry) =>
+      entry.entries.map((item) => item.moduleRequest?.value)
+    ),
+  ];
+  for (const specifier of specifiers) {
+    if (!specifier || (!specifier.startsWith("./") && !specifier.startsWith("../"))) {
+      continue;
+    }
+    const target = resolve(dir, specifier.split(/[?#]/, 1)[0]!);
+    if (!statSync(target, { throwIfNoEntry: false })?.isFile()) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function getNearestPackageType(
+  filePath: string,
+  cache: Map<string, string | undefined>
+): string | undefined {
+  let dir = dirname(filePath);
+  const visited: string[] = [];
+  while (true) {
+    if (cache.has(dir)) {
+      const cached = cache.get(dir);
+      for (const visitedDir of visited) {
+        cache.set(visitedDir, cached);
+      }
+      return cached;
+    }
+    visited.push(dir);
+    if (basename(dir) === "node_modules") {
+      break;
+    }
+    const pkgPath = join(dir, "package.json");
+    if (existsSync(pkgPath)) {
+      let pkgType: string | undefined;
+      try {
+        pkgType = JSON.parse(readFileSync(pkgPath, "utf8")).type;
+      } catch {
+        /* ignore */
+      }
+      for (const visitedDir of visited) {
+        cache.set(visitedDir, pkgType);
+      }
+      return pkgType;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) {
+      break;
+    }
+    dir = parent;
+  }
+  for (const visitedDir of visited) {
+    cache.set(visitedDir, undefined);
+  }
+  return undefined;
 }
