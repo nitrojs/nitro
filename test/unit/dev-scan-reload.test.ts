@@ -62,7 +62,9 @@ describe(`dev deleted public asset (${builder})`, () => {
         await build(nitro);
         await ready;
         expect(await publicAssetCase.observe(fetchPath)).toEqual(publicAssetCase.existing);
-        rmSync(join(rootDir, publicAssetCase.file));
+        for (const file of publicAssetCase.removedFiles) {
+          rmSync(join(rootDir, file));
+        }
         expect(await publicAssetCase.observe(fetchPath)).toEqual(publicAssetCase.removed);
       } finally {
         await server.close();

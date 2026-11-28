@@ -13,10 +13,18 @@ export type PublicAssetsLookup = {
 // Evaluate the generated `#nitro/virtual/public-assets` lookup helpers over a manifest
 export function loadPublicAssets(
   assets: object,
-  { publicAssets: dirs = [] }: { publicAssets?: { baseURL: string }[] } = {}
+  {
+    dev = false,
+    publicAssets: dirs = [],
+    existsSync = () => true,
+  }: {
+    dev?: boolean;
+    publicAssets?: { baseURL: string }[];
+    existsSync?: (path: string) => boolean;
+  } = {}
 ): PublicAssetsLookup {
   const nitro = {
-    options: { serveStatic: true, baseURL: "/", publicAssets: dirs },
+    options: { dev, serveStatic: true, baseURL: "/", publicAssets: dirs },
   } as unknown as Nitro;
   const template = publicAssets(nitro).find((t) => t.id === "#nitro/virtual/public-assets")!
     .template as () => string;
@@ -25,6 +33,7 @@ export function loadPublicAssets(
     .replace(/^export /gm, "");
   return new Function(
     "assets",
+    "existsSync",
     `${body}\nreturn { getAsset, hasAsset, resolveAsset, hasEncodedVariants, isPublicAssetURL, isPublicAssetBaseURL };`
-  )(assets);
+  )(assets, existsSync);
 }
