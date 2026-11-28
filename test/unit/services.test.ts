@@ -104,6 +104,45 @@ describe("services template (loaders)", () => {
     expect(await services.later.fetch("req")).toBe("named:req");
   });
 
+  it("does not strand subsequent fetches when an earlier load never settles", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "nitro-services-"));
+    const nitro = {
+      options: { services: { ssr: { entry: "ssr" } } },
+      _serviceLoader: () => ({ import: "./ssr.mjs" }),
+    } as unknown as Nitro;
+    const code = servicesTemplate(nitro).replace(
+      /export const services = [\s\S]*$/,
+      "export { lazyService };"
+    );
+    const file = join(dir, `services-${Math.random().toString(36).slice(2)}.mjs`);
+    writeFileSync(file, code);
+    const { lazyService } = (await import(pathToFileURL(file).href)) as {
+      lazyService: (
+        name: string,
+        loader: () => Promise<unknown>
+      ) => { fetch: (req: any) => Promise<unknown> };
+    };
+
+    let calls = 0;
+    const service = lazyService("ssr", () => {
+      calls++;
+      if (calls === 1) {
+        return new Promise(() => {});
+      }
+      return Promise.resolve({ fetch: (req: string) => `ok:${req}` });
+    });
+
+    void service.fetch("cancelled");
+    const result = await Promise.race([
+      service.fetch("next"),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("stranded")), 100)),
+    ]);
+    expect(result).toBe("ok:next");
+    expect(calls).toBe(2);
+    expect(await service.fetch("cached")).toBe("ok:cached");
+    expect(calls).toBe(2);
+  });
+
   it("is empty when no builder integration loads the services", () => {
     const nitro = { options: { services: { api: { entry: "./api.ts" } } } } as unknown as Nitro;
     expect(servicesTemplate(nitro)).toBe("export const services = {};");
