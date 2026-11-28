@@ -16,6 +16,7 @@ const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 
 // Must match `_exts` of the `#nitro/virtual/public-assets` template: others are never served
 const EncodingMap = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
+const EncodingExtensions = Object.values(EncodingMap);
 
 // Clients send only a few distinct `Accept-Encoding` values
 const encodingsCache = new Map<string, readonly string[]>();
@@ -53,6 +54,9 @@ export default defineHandler((event) => {
   }
 
   if (!asset) {
+    if (hasAsset(id) && !encodings.includes("")) {
+      throw new HTTPError({ status: 406, headers: noCacheHeaders });
+    }
     if (isPublicAssetURL(id)) {
       throw new HTTPError({ status: 404, headers: noCacheHeaders });
     }
@@ -190,7 +194,7 @@ function isModifiedSince(mtime: string, header: string | null): boolean | undefi
   return Math.floor(modified / 1000) * 1000 > since;
 }
 
-// Accepted encoding extensions, most preferred first, ending with the identity
+// Accepted encoding extensions, most preferred first (omitting `identity` when explicitly rejected)
 function getEncodings(header: string): readonly string[] {
   let encodings = encodingsCache.get(header);
   if (!encodings) {
@@ -207,28 +211,70 @@ function getEncodings(header: string): readonly string[] {
 }
 
 function parseAcceptEncoding(header: string): string[] {
-  return [
-    ...header
-      .split(",")
-      .map((entry) => {
-        const [name, ...parameters] = entry.split(";");
-        const quality = parameters
-          .map((parameter) => parameter.trim().split("="))
-          .find(([key]) => key.toLowerCase() === "q")?.[1];
-        const weight = quality === undefined ? 1 : Number.parseFloat(quality);
-        return {
-          ext: EncodingMap[name.trim().toLowerCase() as keyof typeof EncodingMap],
-          // An unparsable weight is an invalid parameter, not a rejection
-          weight: Number.isNaN(weight) ? 1 : weight,
-        };
-      })
-      // `q=0` means "not acceptable" (RFC 9110 12.4.2)
-      .filter((entry) => entry.ext && entry.weight > 0)
-      // Highest client weight wins, then our own (alphabetical) preference
-      .sort((a, b) => b.weight - a.weight || (a.ext < b.ext ? -1 : a.ext > b.ext ? 1 : 0))
-      .map((entry) => entry.ext),
-    "",
-  ];
+  let wildcardWeight: number | undefined;
+  let identityWeight: number | undefined;
+  const explicitWeights = new Map<string, number>();
+
+  for (const entry of header.split(",")) {
+    const [rawName, ...parameters] = entry.split(";");
+    const name = rawName.trim().toLowerCase();
+    if (!name) {
+      continue;
+    }
+    const quality = parameters
+      .map((parameter) => parameter.trim().split("="))
+      .find(([key]) => key.toLowerCase() === "q")?.[1];
+    const parsed = quality === undefined ? 1 : Number.parseFloat(quality);
+    // An unparsable weight is an invalid parameter, not a rejection
+    const weight = Number.isNaN(parsed) ? 1 : parsed;
+
+    if (name === "*") {
+      wildcardWeight = weight;
+    } else if (name === "identity") {
+      identityWeight = weight;
+    } else {
+      const ext = EncodingMap[name as keyof typeof EncodingMap];
+      if (ext) {
+        explicitWeights.set(ext, weight);
+      }
+    }
+  }
+
+  const candidates: Array<{ ext: string; weight: number }> = [];
+  for (const ext of EncodingExtensions) {
+    const weight = explicitWeights.get(ext) ?? wildcardWeight ?? 0;
+    if (weight > 0) {
+      candidates.push({ ext, weight });
+    }
+  }
+
+  // `identity` stays acceptable unless excluded explicitly or via `*` (RFC 9110 12.5.3)
+  const resolvedIdentity = identityWeight ?? wildcardWeight;
+  if (resolvedIdentity === undefined) {
+    // Implicit fallback sorts strictly behind every positively weighted coding
+    candidates.push({ ext: "", weight: 0 });
+  } else if (resolvedIdentity > 0) {
+    candidates.push({ ext: "", weight: resolvedIdentity });
+  }
+
+  // Highest client weight wins; at equal weight, prefer compressed codings over `identity` in server order
+  return candidates
+    .sort((a, b) => {
+      if (b.weight !== a.weight) {
+        return b.weight - a.weight;
+      }
+      if (a.ext === b.ext) {
+        return 0;
+      }
+      if (a.ext === "") {
+        return 1;
+      }
+      if (b.ext === "") {
+        return -1;
+      }
+      return a.ext < b.ext ? -1 : 1;
+    })
+    .map((entry) => entry.ext);
 }
 
 type ByteRange = { start: number; end: number };

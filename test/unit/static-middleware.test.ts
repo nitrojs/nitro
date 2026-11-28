@@ -458,6 +458,90 @@ describe("runtime static middleware", () => {
     expect(event.res.headers.get("Content-Encoding")).toBeNull();
   });
 
+  it("prefers identity when explicitly weighted above compressed codings", async () => {
+    setAssets({
+      "/foo.css": { etag: '"plain"', mtime: MTIME, size: 4, type: "text/css" },
+      "/foo.css.gz": { etag: '"gz"', mtime: MTIME, size: 4, type: "text/css", encoding: "gzip" },
+    });
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockResolvedValue("body");
+    const event = createEvent("/foo.css", "identity;q=1, gzip;q=0.5");
+
+    await handler(event);
+
+    expect(readAsset).toHaveBeenCalledWith("/foo.css");
+    expect(event.res.headers.get("Content-Encoding")).toBeNull();
+  });
+
+  it("serves wildcard matches when identity and specific codings are excluded", async () => {
+    setAssets({
+      "/foo.css": { etag: '"plain"', mtime: MTIME, size: 4, type: "text/css" },
+      "/foo.css.gz": { etag: '"gz"', mtime: MTIME, size: 4, type: "text/css", encoding: "gzip" },
+      "/foo.css.br": { etag: '"br"', mtime: MTIME, size: 4, type: "text/css", encoding: "br" },
+    });
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockResolvedValue("body");
+    const event = createEvent("/foo.css", "gzip;q=0, *;q=1, identity;q=0");
+
+    await handler(event);
+
+    expect(readAsset).toHaveBeenCalledWith("/foo.css.br");
+    expect(event.res.headers.get("Content-Encoding")).toBe("br");
+  });
+
+  it("lets explicit encoding weights override wildcard preference", async () => {
+    setAssets({
+      "/foo.css": { etag: '"plain"', mtime: MTIME, size: 4, type: "text/css" },
+      "/foo.css.gz": { etag: '"gz"', mtime: MTIME, size: 4, type: "text/css", encoding: "gzip" },
+    });
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockResolvedValue("body");
+    const event = createEvent("/foo.css", "gzip;q=0.2, *;q=0.8");
+
+    await handler(event);
+
+    expect(readAsset).toHaveBeenCalledWith("/foo.css");
+    expect(event.res.headers.get("Content-Encoding")).toBeNull();
+  });
+
+  it.each(["*;q=0", "identity;q=0", "br;q=1, identity;q=0"])(
+    "responds 406 with Vary when all available representations are rejected (%j)",
+    async (acceptEncoding) => {
+      setAssets({
+        "/foo.css": { etag: '"plain"', mtime: MTIME, size: 4, type: "text/css" },
+        "/foo.css.gz": { etag: '"gz"', mtime: MTIME, size: 4, type: "text/css", encoding: "gzip" },
+      });
+      isPublicAssetURL.mockReturnValue(true);
+      const event = createEvent("/foo.css", acceptEncoding);
+      event.res.errHeaders.append("Vary", "Origin");
+      const error = catchError(() => handler(event));
+
+      expectNoStore(error, 406);
+      const res = await toResponse(error as HTTPError, event);
+      expect(res.headers.get("Vary")).toBe("Origin, Accept-Encoding");
+    }
+  );
+
+  it("responds 404 for missing assets even when Accept-Encoding rejects everything", () => {
+    setAssets({});
+    isPublicAssetURL.mockReturnValue(true);
+    const event = createEvent("/missing.css", "*;q=0");
+
+    expectNoStore(
+      catchError(() => handler(event)),
+      404
+    );
+  });
+
+  it("skips non-public missing paths even when Accept-Encoding rejects everything", () => {
+    setAssets({});
+    isPublicAssetURL.mockReturnValue(false);
+    const event = createEvent("/api/hello", "*;q=0");
+
+    expect(handler(event)).toBeUndefined();
+    expect(readAsset).not.toHaveBeenCalled();
+  });
+
   // Parsed `Accept-Encoding` values are cached with a bounded size
   it("negotiates each Accept-Encoding value on its own", async () => {
     setAssets({
